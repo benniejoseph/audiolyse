@@ -10,12 +10,8 @@ const HARDCODED_FALLBACK = "AIzaSyAITrV75kNkzbOdHTjWM7-ms7tC2lw-C7A";
 
 const gemini = new GoogleGenerativeAI(API_KEY || HARDCODED_FALLBACK);
 
-// We will instruct the model to return strict JSON instead of using a response schema
-
 export const runtime = 'nodejs';
-
-// Increase timeout for audio processing
-export const maxDuration = 120; // 2 minutes
+export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,88 +27,190 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Transcribe] Processing: ${audio.name}, Size: ${Math.round(originalBuffer.length / 1024)}KB, Type: ${originalMimeType}`);
 
-    // Check file size (Gemini limit is ~20MB for inline data)
     const sizeCheck = checkFileSize(originalBuffer, 20);
     if (!sizeCheck.ok) {
       return NextResponse.json({ 
-        error: `File too large (${sizeCheck.sizeMB.toFixed(1)}MB). Maximum size is 20MB. Please compress the audio file.` 
+        error: `File too large (${sizeCheck.sizeMB.toFixed(1)}MB). Maximum size is 20MB.` 
       }, { status: 400 });
     }
 
-    // Normalize MIME type for Gemini
     const processedAudio = processAudioForAnalysis(originalBuffer, originalMimeType, audio.name);
-    
     console.log(`[Transcribe] Audio ready - Format: ${processedAudio.mimeType}, Size: ${Math.round(processedAudio.buffer.length / 1024)}KB`);
 
-    // Create a model instance with enhanced reasoning
     const model = gemini.getGenerativeModel({ model: 'gemini-2.5-pro' });
 
     const systemPrompt = `
-You are an expert call quality analyst and sales/support coach. The audio contains a two-party conversation between a patient/customer and a support agent, physiotherapy practitioner, or sales representative. The audio may be in English, Hindi, or other Indian languages (Hinglish mixed allowed).
+You are an expert call quality analyst, conversation intelligence specialist, and sales/support coach. Analyze this audio call between a patient/customer and a support agent, physiotherapy practitioner, or sales representative. The audio may be in English, Hindi, or Hinglish.
 
-First, think step-by-step thoroughly about the full audio to extract all necessary information. Then respond ONLY with strict JSON in this shape:
+Perform DEEP ANALYSIS and respond ONLY with strict JSON in this exact shape:
 {
   "language": string,
-  "durationSec": number | null,
+  "durationSec": number,
   "transcription": string,
   "summary": string,
+  
   "mom": {
     "participants": string[],
     "decisions": string[],
     "actionItems": string[],
     "nextSteps": string[]
   },
-  "insights": {"sentiment": string, "topics": string[], "keywords": string[]},
+  
+  "insights": {
+    "sentiment": "Positive" | "Neutral" | "Negative",
+    "sentimentScore": number,
+    "topics": string[],
+    "keywords": string[]
+  },
+  
+  "conversationMetrics": {
+    "agentTalkRatio": number,
+    "customerTalkRatio": number,
+    "silenceRatio": number,
+    "totalQuestions": number,
+    "openQuestions": number,
+    "closedQuestions": number,
+    "agentInterruptions": number,
+    "customerInterruptions": number,
+    "avgResponseTimeSec": number,
+    "longestPauseSec": number,
+    "wordsPerMinuteAgent": number,
+    "wordsPerMinuteCustomer": number
+  },
+  
+  "conversationSegments": [
+    {
+      "name": string,
+      "startTime": string,
+      "endTime": string,
+      "durationSec": number,
+      "quality": "excellent" | "good" | "average" | "poor",
+      "notes": string
+    }
+  ],
+  
+  "keyMoments": [
+    {
+      "timestamp": string,
+      "type": "complaint" | "compliment" | "objection" | "competitor_mention" | "pricing_discussion" | "commitment" | "breakthrough" | "escalation_risk" | "pain_point" | "positive_signal",
+      "speaker": "agent" | "customer",
+      "text": string,
+      "sentiment": "positive" | "neutral" | "negative",
+      "importance": "high" | "medium" | "low"
+    }
+  ],
+  
   "coaching": {
     "overallScore": number,
+    "categoryScores": {
+      "opening": number,
+      "discovery": number,
+      "solutionPresentation": number,
+      "objectionHandling": number,
+      "closing": number,
+      "empathy": number,
+      "clarity": number,
+      "compliance": number
+    },
     "strengths": string[],
     "weaknesses": string[],
     "missedOpportunities": string[],
-    "customerHandling": {
-      "score": number,
-      "feedback": string
-    },
-    "communicationQuality": {
-      "score": number,
-      "feedback": string
-    },
-    "pitchEffectiveness": {
-      "score": number,
-      "feedback": string
-    },
-    "objectionHandling": {
-      "score": number,
-      "feedback": string
-    },
+    "customerHandling": { "score": number, "feedback": string },
+    "communicationQuality": { "score": number, "feedback": string },
+    "pitchEffectiveness": { "score": number, "feedback": string },
+    "objectionHandling": { "score": number, "feedback": string },
     "improvementSuggestions": string[],
     "scriptRecommendations": string[],
     "redFlags": string[],
     "coachingSummary": string
+  },
+  
+  "predictions": {
+    "conversionProbability": number,
+    "churnRisk": "high" | "medium" | "low",
+    "escalationRisk": "high" | "medium" | "low",
+    "satisfactionLikely": "high" | "medium" | "low",
+    "followUpNeeded": boolean,
+    "urgencyLevel": "high" | "medium" | "low"
+  },
+  
+  "customerProfile": {
+    "communicationStyle": "detailed" | "brief" | "emotional" | "analytical",
+    "decisionStyle": "quick" | "deliberate" | "needs_reassurance" | "price_focused",
+    "engagementLevel": "high" | "medium" | "low",
+    "pricesSensitivity": "high" | "medium" | "low",
+    "concerns": string[],
+    "preferences": string[]
+  },
+  
+  "actionItems": {
+    "forAgent": string[],
+    "forManager": string[],
+    "forFollowUp": string[]
   }
 }
 
-Requirements:
-1) Provide Summary, Transcript, MOM (if applicable), Insights, and detailed Coaching analysis. Analyze the entire audio. If MOM is not applicable, set arrays empty.
-2) Transcript must be comprehensive and natural with punctuation. Use generic speakers if uncertain.
-3) Summary: 6–10 crisp bullets covering symptoms, assessments, recommendations, concerns, outcomes.
-4) Insights: overall sentiment (Positive/Neutral/Negative), and top 3–6 topics and keywords.
-5) COACHING ANALYSIS (Critical - be thorough and constructive):
-   - overallScore: 1-100 rating of call quality
-   - strengths: What the agent did well (2-5 points)
-   - weaknesses: What went wrong or could be improved (2-5 points)
-   - missedOpportunities: Sales/support opportunities the agent missed
-   - customerHandling: Score 1-100 + feedback on empathy, patience, listening
-   - communicationQuality: Score 1-100 + feedback on clarity, tone, professionalism
-   - pitchEffectiveness: Score 1-100 + feedback on value proposition, persuasion (if sales)
-   - objectionHandling: Score 1-100 + feedback on addressing concerns
-   - improvementSuggestions: Specific actionable tips to improve (3-6 suggestions)
-   - scriptRecommendations: Better phrases/scripts the agent should use
-   - redFlags: Any serious issues (rude behavior, misinformation, compliance issues)
-   - coachingSummary: 2-3 sentence overall coaching feedback
-6) If any field is unknown, return empty string/array. Do not include extra keys.
+ANALYSIS REQUIREMENTS:
+
+1. TRANSCRIPTION: Full, natural transcription with speaker labels (Agent/Customer or names if mentioned). Include punctuation.
+
+2. SUMMARY: 6-10 crisp bullet points covering: problem presented, discovery made, solutions offered, objections raised, outcomes, next steps.
+
+3. CONVERSATION METRICS (Calculate precisely):
+   - agentTalkRatio: % of time agent speaks (target: 40-50%)
+   - customerTalkRatio: % of time customer speaks
+   - silenceRatio: % of silence/pauses
+   - Questions: Count open-ended vs closed questions
+   - Interruptions: Count times each party interrupts
+   - Response time: Average seconds before responding
+   - Speech rate: Estimate words per minute
+
+4. CONVERSATION SEGMENTS: Break the call into phases:
+   - Greeting/Opening
+   - Discovery/Problem Identification  
+   - Solution/Recommendation
+   - Objection Handling (if any)
+   - Closing/Next Steps
+   Rate each segment's quality.
+
+5. KEY MOMENTS: Identify 5-10 critical moments including:
+   - Complaints or frustrations expressed
+   - Compliments or positive feedback
+   - Competitor mentions
+   - Pricing/cost discussions
+   - Objections raised
+   - Commitments made
+   - Breakthrough moments (customer understanding)
+   - Escalation risks
+   Include timestamp (MM:SS format), exact quote, and sentiment.
+
+6. COACHING SCORES (1-100 for each):
+   - Opening: Greeting quality, rapport building
+   - Discovery: Questions asked, understanding needs
+   - Solution: Clarity, relevance, value proposition
+   - Objection Handling: Addressing concerns effectively
+   - Closing: Clear next steps, call to action
+   - Empathy: Understanding, patience, acknowledgment
+   - Clarity: Clear communication, no jargon
+   - Compliance: Following guidelines, proper disclosures
+
+7. PREDICTIONS (be realistic):
+   - Conversion probability: 0-100% likelihood of desired outcome
+   - Churn risk: Will customer leave/not return?
+   - Escalation risk: Will this become a complaint?
+   - Satisfaction: How satisfied is the customer?
+
+8. CUSTOMER PROFILE: Infer from conversation:
+   - How they communicate
+   - How they make decisions
+   - Price sensitivity signals
+   - Main concerns and preferences
+
+9. ACTION ITEMS: Specific follow-ups needed
+
+If any field cannot be determined, use reasonable defaults (0 for numbers, "unknown" for strings, empty arrays for lists).
 `;
 
-    // Use the processed (converted/compressed) audio
     const audioBase64 = processedAudio.buffer.toString('base64');
     const finalMimeType = processedAudio.mimeType;
 
@@ -121,24 +219,18 @@ Requirements:
         role: 'user',
         parts: [
           { text: systemPrompt },
-          {
-            inlineData: {
-              mimeType: finalMimeType,
-              data: audioBase64,
-            },
-          },
+          { inlineData: { mimeType: finalMimeType, data: audioBase64 } },
         ],
       },
     ];
 
     const generationConfig = {
-      temperature: 0.25,
+      temperature: 0.2,
       topK: 32,
       topP: 0.95,
       responseMimeType: 'application/json'
     };
 
-    // Retry up to 1 time if summary appears empty (balance quality vs latency)
     let text: string = '';
     for (let attempt = 0; attempt < 2; attempt++) {
       const resp = await model.generateContent({ contents, generationConfig });
@@ -159,53 +251,129 @@ Requirements:
     }
 
     const d: any = data || {};
+    
+    // Normalize with all enhanced fields
     const normalized = {
-      language: typeof d.language === 'string' ? d.language : 'unknown',
-      durationSec: typeof d.durationSec === 'number' ? d.durationSec : undefined,
-      transcription: typeof d.transcription === 'string' ? d.transcription : '',
-      summary: typeof d.summary === 'string' ? d.summary : '',
+      language: d.language || 'unknown',
+      durationSec: d.durationSec || 0,
+      transcription: d.transcription || '',
+      summary: d.summary || '',
+      
       mom: {
-        participants: Array.isArray(d?.mom?.participants) ? d.mom.participants : [],
-        decisions: Array.isArray(d?.mom?.decisions) ? d.mom.decisions : [],
-        actionItems: Array.isArray(d?.mom?.actionItems) ? d.mom.actionItems : [],
-        nextSteps: Array.isArray(d?.mom?.nextSteps) ? d.mom.nextSteps : [],
+        participants: d?.mom?.participants || [],
+        decisions: d?.mom?.decisions || [],
+        actionItems: d?.mom?.actionItems || [],
+        nextSteps: d?.mom?.nextSteps || [],
       },
+      
       insights: {
-        sentiment: typeof d?.insights?.sentiment === 'string' ? d.insights.sentiment : '',
-        topics: Array.isArray(d?.insights?.topics) ? d.insights.topics : [],
-        keywords: Array.isArray(d?.insights?.keywords) ? d.insights.keywords : [],
+        sentiment: d?.insights?.sentiment || 'Neutral',
+        sentimentScore: d?.insights?.sentimentScore || 50,
+        topics: d?.insights?.topics || [],
+        keywords: d?.insights?.keywords || [],
       },
+      
+      conversationMetrics: {
+        agentTalkRatio: d?.conversationMetrics?.agentTalkRatio || 0,
+        customerTalkRatio: d?.conversationMetrics?.customerTalkRatio || 0,
+        silenceRatio: d?.conversationMetrics?.silenceRatio || 0,
+        totalQuestions: d?.conversationMetrics?.totalQuestions || 0,
+        openQuestions: d?.conversationMetrics?.openQuestions || 0,
+        closedQuestions: d?.conversationMetrics?.closedQuestions || 0,
+        agentInterruptions: d?.conversationMetrics?.agentInterruptions || 0,
+        customerInterruptions: d?.conversationMetrics?.customerInterruptions || 0,
+        avgResponseTimeSec: d?.conversationMetrics?.avgResponseTimeSec || 0,
+        longestPauseSec: d?.conversationMetrics?.longestPauseSec || 0,
+        wordsPerMinuteAgent: d?.conversationMetrics?.wordsPerMinuteAgent || 0,
+        wordsPerMinuteCustomer: d?.conversationMetrics?.wordsPerMinuteCustomer || 0,
+      },
+      
+      conversationSegments: Array.isArray(d?.conversationSegments) 
+        ? d.conversationSegments.map((s: any) => ({
+            name: s.name || '',
+            startTime: s.startTime || '0:00',
+            endTime: s.endTime || '0:00',
+            durationSec: s.durationSec || 0,
+            quality: s.quality || 'average',
+            notes: s.notes || '',
+          }))
+        : [],
+      
+      keyMoments: Array.isArray(d?.keyMoments)
+        ? d.keyMoments.map((m: any) => ({
+            timestamp: m.timestamp || '0:00',
+            type: m.type || 'pain_point',
+            speaker: m.speaker || 'customer',
+            text: m.text || '',
+            sentiment: m.sentiment || 'neutral',
+            importance: m.importance || 'medium',
+          }))
+        : [],
+      
       coaching: {
-        overallScore: typeof d?.coaching?.overallScore === 'number' ? d.coaching.overallScore : 0,
-        strengths: Array.isArray(d?.coaching?.strengths) ? d.coaching.strengths : [],
-        weaknesses: Array.isArray(d?.coaching?.weaknesses) ? d.coaching.weaknesses : [],
-        missedOpportunities: Array.isArray(d?.coaching?.missedOpportunities) ? d.coaching.missedOpportunities : [],
+        overallScore: d?.coaching?.overallScore || 0,
+        categoryScores: {
+          opening: d?.coaching?.categoryScores?.opening || 0,
+          discovery: d?.coaching?.categoryScores?.discovery || 0,
+          solutionPresentation: d?.coaching?.categoryScores?.solutionPresentation || 0,
+          objectionHandling: d?.coaching?.categoryScores?.objectionHandling || 0,
+          closing: d?.coaching?.categoryScores?.closing || 0,
+          empathy: d?.coaching?.categoryScores?.empathy || 0,
+          clarity: d?.coaching?.categoryScores?.clarity || 0,
+          compliance: d?.coaching?.categoryScores?.compliance || 0,
+        },
+        strengths: d?.coaching?.strengths || [],
+        weaknesses: d?.coaching?.weaknesses || [],
+        missedOpportunities: d?.coaching?.missedOpportunities || [],
         customerHandling: {
-          score: typeof d?.coaching?.customerHandling?.score === 'number' ? d.coaching.customerHandling.score : 0,
-          feedback: typeof d?.coaching?.customerHandling?.feedback === 'string' ? d.coaching.customerHandling.feedback : '',
+          score: d?.coaching?.customerHandling?.score || 0,
+          feedback: d?.coaching?.customerHandling?.feedback || '',
         },
         communicationQuality: {
-          score: typeof d?.coaching?.communicationQuality?.score === 'number' ? d.coaching.communicationQuality.score : 0,
-          feedback: typeof d?.coaching?.communicationQuality?.feedback === 'string' ? d.coaching.communicationQuality.feedback : '',
+          score: d?.coaching?.communicationQuality?.score || 0,
+          feedback: d?.coaching?.communicationQuality?.feedback || '',
         },
         pitchEffectiveness: {
-          score: typeof d?.coaching?.pitchEffectiveness?.score === 'number' ? d.coaching.pitchEffectiveness.score : 0,
-          feedback: typeof d?.coaching?.pitchEffectiveness?.feedback === 'string' ? d.coaching.pitchEffectiveness.feedback : '',
+          score: d?.coaching?.pitchEffectiveness?.score || 0,
+          feedback: d?.coaching?.pitchEffectiveness?.feedback || '',
         },
         objectionHandling: {
-          score: typeof d?.coaching?.objectionHandling?.score === 'number' ? d.coaching.objectionHandling.score : 0,
-          feedback: typeof d?.coaching?.objectionHandling?.feedback === 'string' ? d.coaching.objectionHandling.feedback : '',
+          score: d?.coaching?.objectionHandling?.score || 0,
+          feedback: d?.coaching?.objectionHandling?.feedback || '',
         },
-        improvementSuggestions: Array.isArray(d?.coaching?.improvementSuggestions) ? d.coaching.improvementSuggestions : [],
-        scriptRecommendations: Array.isArray(d?.coaching?.scriptRecommendations) ? d.coaching.scriptRecommendations : [],
-        redFlags: Array.isArray(d?.coaching?.redFlags) ? d.coaching.redFlags : [],
-        coachingSummary: typeof d?.coaching?.coachingSummary === 'string' ? d.coaching.coachingSummary : '',
+        improvementSuggestions: d?.coaching?.improvementSuggestions || [],
+        scriptRecommendations: d?.coaching?.scriptRecommendations || [],
+        redFlags: d?.coaching?.redFlags || [],
+        coachingSummary: d?.coaching?.coachingSummary || '',
+      },
+      
+      predictions: {
+        conversionProbability: d?.predictions?.conversionProbability || 0,
+        churnRisk: d?.predictions?.churnRisk || 'medium',
+        escalationRisk: d?.predictions?.escalationRisk || 'low',
+        satisfactionLikely: d?.predictions?.satisfactionLikely || 'medium',
+        followUpNeeded: d?.predictions?.followUpNeeded || false,
+        urgencyLevel: d?.predictions?.urgencyLevel || 'medium',
+      },
+      
+      customerProfile: {
+        communicationStyle: d?.customerProfile?.communicationStyle || 'brief',
+        decisionStyle: d?.customerProfile?.decisionStyle || 'deliberate',
+        engagementLevel: d?.customerProfile?.engagementLevel || 'medium',
+        pricesSensitivity: d?.customerProfile?.pricesSensitivity || 'medium',
+        concerns: d?.customerProfile?.concerns || [],
+        preferences: d?.customerProfile?.preferences || [],
+      },
+      
+      actionItems: {
+        forAgent: d?.actionItems?.forAgent || [],
+        forManager: d?.actionItems?.forManager || [],
+        forFollowUp: d?.actionItems?.forFollowUp || [],
       },
     };
 
     return NextResponse.json(normalized);
   } catch (e: any) {
-    // Log full error details for troubleshooting during development
     console.error('Transcribe API error:', e);
     return NextResponse.json({
       error: e?.message || 'Unexpected error',
@@ -213,5 +381,3 @@ Requirements:
     }, { status: 500 });
   }
 }
-
-
