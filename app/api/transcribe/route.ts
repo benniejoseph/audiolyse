@@ -224,10 +224,12 @@ If any field cannot be determined, use reasonable defaults (0 for numbers, "unkn
       },
     ];
 
+    // CONSISTENCY: Very low temperature for reproducible results
+    // Same call analyzed twice should produce nearly identical results
     const generationConfig = {
-      temperature: 0.2,
-      topK: 32,
-      topP: 0.95,
+      temperature: 0.1,  // Very low for consistency
+      topK: 20,          // Reduced for more deterministic output
+      topP: 0.85,        // Tighter probability distribution
       responseMimeType: 'application/json'
     };
 

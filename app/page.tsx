@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 
 type ApiResult = {
   transcription: string;
@@ -38,16 +39,33 @@ type ApiResult = {
   actionItems?: { forAgent: string[]; forManager: string[]; forFollowUp: string[] };
 };
 
-type BulkCallResult = { id: string; fileName: string; fileSize: number; status: 'pending' | 'processing' | 'completed' | 'error'; result?: ApiResult; error?: string };
+type BulkCallResult = { 
+  id: string; 
+  fileName: string; 
+  fileSize: number; 
+  status: 'pending' | 'processing' | 'completed' | 'error'; 
+  result?: ApiResult; 
+  error?: string;
+  audioUrl?: string; // Store audio URL for playback
+};
 
 export default function HomePage() {
   const [files, setFiles] = useState<File[]>([]);
+  const [fileUrls, setFileUrls] = useState<Map<string, string>>(new Map()); // Store file URLs
   const [dragOver, setDragOver] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [bulkResults, setBulkResults] = useState<BulkCallResult[]>([]);
   const [selectedCall, setSelectedCall] = useState<BulkCallResult | null>(null);
   const [activeTab, setActiveTab] = useState<'metrics' | 'coaching' | 'moments' | 'transcript' | 'summary' | 'predictions'>('metrics');
   const [viewMode, setViewMode] = useState<'upload' | 'dashboard' | 'detail'>('upload');
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Cleanup URLs on unmount
+  useEffect(() => {
+    return () => {
+      fileUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [fileUrls]);
 
   const onDrop = useCallback((ev: React.DragEvent) => {
     ev.preventDefault(); ev.stopPropagation(); setDragOver(false);
@@ -65,18 +83,29 @@ export default function HomePage() {
   }, []);
 
   const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index));
-  const clearAll = () => { setFiles([]); setBulkResults([]); setSelectedCall(null); setViewMode('upload'); };
+  const clearAll = () => { 
+    fileUrls.forEach(url => URL.revokeObjectURL(url));
+    setFileUrls(new Map());
+    setFiles([]); 
+    setBulkResults([]); 
+    setSelectedCall(null); 
+    setViewMode('upload'); 
+  };
   const canSubmit = files.length > 0 && !isLoading;
 
   const processFile = async (file: File, id: string): Promise<BulkCallResult> => {
+    // Create object URL for audio playback
+    const audioUrl = URL.createObjectURL(file);
+    setFileUrls(prev => new Map(prev).set(id, audioUrl));
+    
     try {
       const body = new FormData(); body.append('audio', file);
       const res = await fetch('/api/transcribe', { method: 'POST', body });
       if (!res.ok) throw new Error(await res.text() || 'Failed to process audio');
       const data: ApiResult = await res.json();
-      return { id, fileName: file.name, fileSize: file.size, status: 'completed', result: data };
+      return { id, fileName: file.name, fileSize: file.size, status: 'completed', result: data, audioUrl };
     } catch (e: any) {
-      return { id, fileName: file.name, fileSize: file.size, status: 'error', error: e?.message || 'Something went wrong' };
+      return { id, fileName: file.name, fileSize: file.size, status: 'error', error: e?.message || 'Something went wrong', audioUrl };
     }
   };
 
@@ -131,6 +160,12 @@ export default function HomePage() {
     return icons[type] || '📌';
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const ScoreRing = ({ score, size = 80, label }: { score: number; size?: number; label?: string }) => {
     const circumference = 2 * Math.PI * 35; const offset = circumference - (score / 100) * circumference;
     return (
@@ -160,18 +195,104 @@ export default function HomePage() {
     </div>
   );
 
+  // Audio Player Component
+  const AudioPlayer = ({ audioUrl, duration }: { audioUrl?: string; duration?: number }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [audioDuration, setAudioDuration] = useState(duration || 0);
+    const playerRef = useRef<HTMLAudioElement>(null);
+
+    const togglePlay = () => {
+      if (playerRef.current) {
+        if (isPlaying) {
+          playerRef.current.pause();
+        } else {
+          playerRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+      }
+    };
+
+    const handleTimeUpdate = () => {
+      if (playerRef.current) {
+        setCurrentTime(playerRef.current.currentTime);
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      if (playerRef.current) {
+        setAudioDuration(playerRef.current.duration);
+      }
+    };
+
+    const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const time = parseFloat(e.target.value);
+      if (playerRef.current) {
+        playerRef.current.currentTime = time;
+        setCurrentTime(time);
+      }
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    if (!audioUrl) return null;
+
+    return (
+      <div className="audio-player">
+        <audio 
+          ref={playerRef} 
+          src={audioUrl} 
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+        />
+        <button className="play-btn" onClick={togglePlay}>
+          {isPlaying ? '⏸️' : '▶️'}
+        </button>
+        <div className="audio-progress">
+          <span className="time-display">{formatTime(currentTime)}</span>
+          <input 
+            type="range" 
+            min="0" 
+            max={audioDuration || 100} 
+            value={currentTime}
+            onChange={handleSeek}
+            className="progress-slider"
+          />
+          <span className="time-display">{formatTime(audioDuration)}</span>
+        </div>
+        <div className="audio-label">🎧 Listen to the original recording while reviewing the analysis</div>
+      </div>
+    );
+  };
+
   return (
     <div className="container">
       <div className="header">
         <div className="tag"><span>🎧</span><strong>CallTranscribe</strong></div>
         <span className="muted">Advanced Call Intelligence • AI Coaching • Predictive Analytics</span>
-        {viewMode !== 'upload' && <button className="back-btn" onClick={clearAll}>← New Analysis</button>}
+        <div className="header-actions">
+          <Link href="/help" className="help-link">📖 How to Read Analysis</Link>
+          {viewMode !== 'upload' && <button className="back-btn" onClick={clearAll}>← New Analysis</button>}
+        </div>
       </div>
 
       {viewMode === 'upload' && (
         <div className="card upload-card">
           <h1 className="title">Advanced Call Analysis</h1>
           <p className="subtitle">Upload calls for deep analytics, coaching scores, and predictive insights</p>
+          
+          <div className="info-banner">
+            <span>📖</span>
+            <div>
+              <strong>New to call analytics?</strong>
+              <p>Check out our <Link href="/help">detailed guide</Link> to understand what each metric means and how to use the insights.</p>
+            </div>
+          </div>
+
           <div className={`uploader ${dragOver ? 'dragover' : ''}`} onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={onDrop}>
             <div className="upload-icon">📁</div>
             <p>Drag & drop audio files or click to browse</p>
@@ -232,13 +353,19 @@ export default function HomePage() {
         <div className="detail-view">
           <button className="back-link" onClick={() => setViewMode('dashboard')}>← Back to Dashboard</button>
           
+          {/* Audio Player Card */}
+          <div className="card audio-card">
+            <h3>🎧 Original Recording</h3>
+            <AudioPlayer audioUrl={selectedCall.audioUrl} duration={selectedCall.result.durationSec} />
+          </div>
+          
           <div className="card detail-header-card">
             <div className="detail-header">
               <div>
                 <h2>{selectedCall.fileName}</h2>
                 <div className="detail-meta">
                   <span>🌐 {selectedCall.result.language}</span>
-                  {selectedCall.result.durationSec && <span>⏱️ {Math.round(selectedCall.result.durationSec)}s</span>}
+                  {selectedCall.result.durationSec && <span>⏱️ {formatTime(selectedCall.result.durationSec)}</span>}
                   <span style={{ color: selectedCall.result.insights?.sentiment === 'Positive' ? '#7cffc7' : selectedCall.result.insights?.sentiment === 'Negative' ? '#ff6b6b' : '#ffd166' }}>
                     {selectedCall.result.insights?.sentiment === 'Positive' ? '😊' : selectedCall.result.insights?.sentiment === 'Negative' ? '😤' : '😐'} {selectedCall.result.insights?.sentiment}
                   </span>
@@ -255,6 +382,7 @@ export default function HomePage() {
           </div>
 
           <div className="tabs">
+            <Link href="/help" className="tab help-tab">📖 Help</Link>
             {(['metrics', 'coaching', 'moments', 'predictions', 'transcript', 'summary'] as const).map(key => (
               <button key={key} className={`tab ${activeTab === key ? 'tab-active' : ''}`} onClick={() => setActiveTab(key)}>
                 {key === 'metrics' ? '📊 Metrics' : key === 'coaching' ? '🎯 Coaching' : key === 'moments' ? '⚡ Key Moments' : key === 'predictions' ? '🔮 Predictions' : key === 'transcript' ? '📝 Transcript' : '📋 Summary'}
@@ -265,30 +393,68 @@ export default function HomePage() {
           <div className="card tab-content">
             {activeTab === 'metrics' && selectedCall.result.conversationMetrics && (
               <div className="metrics-view">
-                <h3>Conversation Metrics</h3>
+                <div className="section-header">
+                  <h3>Conversation Metrics</h3>
+                  <p className="section-desc">These metrics show how the conversation flowed between the agent and customer. <Link href="/help#metrics">Learn more →</Link></p>
+                </div>
+                
                 <div className="metric-section">
-                  <h4>Talk Ratio</h4>
+                  <h4>Talk Ratio Distribution</h4>
+                  <p className="metric-explain">This shows who spoke more during the call. Ideally, the agent should speak 40-50% of the time, giving the customer enough space to express their needs.</p>
                   <TalkRatioBar agent={selectedCall.result.conversationMetrics.agentTalkRatio} customer={selectedCall.result.conversationMetrics.customerTalkRatio} silence={selectedCall.result.conversationMetrics.silenceRatio} />
-                  <p className="metric-insight">{selectedCall.result.conversationMetrics.agentTalkRatio > 60 ? '⚠️ Agent talking too much. Aim for 40-50%.' : selectedCall.result.conversationMetrics.agentTalkRatio < 30 ? '⚠️ Agent should engage more.' : '✅ Good talk balance!'}</p>
+                  <p className="metric-insight">{selectedCall.result.conversationMetrics.agentTalkRatio > 60 ? '⚠️ Agent talking too much. Aim for 40-50% to let the customer express themselves.' : selectedCall.result.conversationMetrics.agentTalkRatio < 30 ? '⚠️ Agent should engage more actively in the conversation.' : '✅ Good talk balance! The agent is giving adequate space to the customer.'}</p>
                 </div>
                 
                 <div className="metrics-grid-4">
-                  <div className="metric-box"><div className="metric-value">{selectedCall.result.conversationMetrics.totalQuestions}</div><div className="metric-label">Questions Asked</div></div>
-                  <div className="metric-box"><div className="metric-value">{selectedCall.result.conversationMetrics.openQuestions}</div><div className="metric-label">Open Questions</div></div>
-                  <div className="metric-box"><div className="metric-value">{selectedCall.result.conversationMetrics.closedQuestions}</div><div className="metric-label">Closed Questions</div></div>
-                  <div className="metric-box"><div className="metric-value">{selectedCall.result.conversationMetrics.agentInterruptions + selectedCall.result.conversationMetrics.customerInterruptions}</div><div className="metric-label">Interruptions</div></div>
+                  <div className="metric-box">
+                    <div className="metric-value">{selectedCall.result.conversationMetrics.totalQuestions}</div>
+                    <div className="metric-label">Questions Asked</div>
+                    <div className="metric-tip">Total questions the agent asked to understand the customer</div>
+                  </div>
+                  <div className="metric-box">
+                    <div className="metric-value">{selectedCall.result.conversationMetrics.openQuestions}</div>
+                    <div className="metric-label">Open Questions</div>
+                    <div className="metric-tip">Questions that encourage detailed responses (e.g., &ldquo;How do you feel?&rdquo;)</div>
+                  </div>
+                  <div className="metric-box">
+                    <div className="metric-value">{selectedCall.result.conversationMetrics.closedQuestions}</div>
+                    <div className="metric-label">Closed Questions</div>
+                    <div className="metric-tip">Yes/No questions (e.g., &ldquo;Is the pain constant?&rdquo;)</div>
+                  </div>
+                  <div className="metric-box">
+                    <div className="metric-value">{selectedCall.result.conversationMetrics.agentInterruptions + selectedCall.result.conversationMetrics.customerInterruptions}</div>
+                    <div className="metric-label">Interruptions</div>
+                    <div className="metric-tip">Times someone spoke over the other person</div>
+                  </div>
                 </div>
 
                 <div className="metrics-grid-4">
-                  <div className="metric-box"><div className="metric-value">{selectedCall.result.conversationMetrics.avgResponseTimeSec?.toFixed(1)}s</div><div className="metric-label">Avg Response Time</div></div>
-                  <div className="metric-box"><div className="metric-value">{selectedCall.result.conversationMetrics.longestPauseSec?.toFixed(1)}s</div><div className="metric-label">Longest Pause</div></div>
-                  <div className="metric-box"><div className="metric-value">{selectedCall.result.conversationMetrics.wordsPerMinuteAgent}</div><div className="metric-label">Agent WPM</div></div>
-                  <div className="metric-box"><div className="metric-value">{selectedCall.result.conversationMetrics.wordsPerMinuteCustomer}</div><div className="metric-label">Customer WPM</div></div>
+                  <div className="metric-box">
+                    <div className="metric-value">{selectedCall.result.conversationMetrics.avgResponseTimeSec?.toFixed(1)}s</div>
+                    <div className="metric-label">Avg Response Time</div>
+                    <div className="metric-tip">How quickly the agent responds (1-3 seconds is ideal)</div>
+                  </div>
+                  <div className="metric-box">
+                    <div className="metric-value">{selectedCall.result.conversationMetrics.longestPauseSec?.toFixed(1)}s</div>
+                    <div className="metric-label">Longest Pause</div>
+                    <div className="metric-tip">Longest silence during the call (may indicate confusion)</div>
+                  </div>
+                  <div className="metric-box">
+                    <div className="metric-value">{selectedCall.result.conversationMetrics.wordsPerMinuteAgent}</div>
+                    <div className="metric-label">Agent WPM</div>
+                    <div className="metric-tip">Speaking speed (120-150 WPM is comfortable)</div>
+                  </div>
+                  <div className="metric-box">
+                    <div className="metric-value">{selectedCall.result.conversationMetrics.wordsPerMinuteCustomer}</div>
+                    <div className="metric-label">Customer WPM</div>
+                    <div className="metric-tip">Customer&apos;s speaking pace</div>
+                  </div>
                 </div>
 
                 {selectedCall.result.conversationSegments && selectedCall.result.conversationSegments.length > 0 && (
                   <div className="segments-section">
                     <h4>Conversation Flow</h4>
+                    <p className="metric-explain">Every good call follows a structure. This shows how each part of the conversation was handled.</p>
                     <div className="segments-timeline">
                       {selectedCall.result.conversationSegments.map((seg, i) => (
                         <div key={i} className={`segment-card ${seg.quality}`}>
@@ -304,6 +470,7 @@ export default function HomePage() {
                 {selectedCall.result.customerProfile && (
                   <div className="customer-profile-section">
                     <h4>Customer Profile</h4>
+                    <p className="metric-explain">AI-detected personality and communication style of the customer. Use this to tailor future interactions.</p>
                     <div className="profile-grid">
                       <div className="profile-item"><span>Communication</span><strong>{selectedCall.result.customerProfile.communicationStyle}</strong></div>
                       <div className="profile-item"><span>Decision Style</span><strong>{selectedCall.result.customerProfile.decisionStyle}</strong></div>
@@ -311,7 +478,7 @@ export default function HomePage() {
                       <div className="profile-item"><span>Price Sensitivity</span><strong style={{ color: getRiskColor(selectedCall.result.customerProfile.pricesSensitivity) }}>{selectedCall.result.customerProfile.pricesSensitivity}</strong></div>
                     </div>
                     {selectedCall.result.customerProfile.concerns?.length > 0 && (
-                      <div className="profile-concerns"><strong>Concerns:</strong> {selectedCall.result.customerProfile.concerns.join(', ')}</div>
+                      <div className="profile-concerns"><strong>Key Concerns:</strong> {selectedCall.result.customerProfile.concerns.join(', ')}</div>
                     )}
                   </div>
                 )}
@@ -320,48 +487,66 @@ export default function HomePage() {
 
             {activeTab === 'coaching' && selectedCall.result.coaching && (
               <div className="coaching-view">
+                <div className="section-header">
+                  <h3>Coaching Feedback</h3>
+                  <p className="section-desc">Detailed performance review with actionable improvement suggestions. <Link href="/help#coaching">Learn more →</Link></p>
+                </div>
+
                 <div className="coaching-header">
                   <ScoreRing score={selectedCall.result.coaching.overallScore} size={100} />
-                  <div className="coaching-summary"><h4>Overall Assessment</h4><p>{selectedCall.result.coaching.coachingSummary || 'No summary available'}</p></div>
+                  <div className="coaching-summary">
+                    <h4>Overall Assessment</h4>
+                    <p>{selectedCall.result.coaching.coachingSummary || 'No summary available'}</p>
+                    <div className="score-interpretation">
+                      {selectedCall.result.coaching.overallScore >= 80 ? '🌟 Excellent performance! Keep up the great work.' :
+                       selectedCall.result.coaching.overallScore >= 60 ? '👍 Good call with room for improvement.' :
+                       '⚠️ This call needs attention. Review the suggestions below.'}
+                    </div>
+                  </div>
                 </div>
 
                 {selectedCall.result.coaching.categoryScores && (
                   <div className="category-scores">
                     <h4>Category Breakdown</h4>
+                    <p className="metric-explain">Each category is scored from 0-100. Green (80+) is excellent, yellow (60-79) is good, red (below 60) needs improvement.</p>
                     <div className="scores-grid">
                       {Object.entries(selectedCall.result.coaching.categoryScores).map(([key, score]) => (
-                        <div key={key} className="score-item"><div className="score-bar-container"><div className="score-bar" style={{ width: `${score}%`, background: getScoreColor(score) }} /></div><span className="score-name">{key.replace(/([A-Z])/g, ' $1').trim()}</span><span className="score-num">{score}</span></div>
+                        <div key={key} className="score-item"><div className="score-bar-container"><div className="score-bar" style={{ width: `${score}%`, background: getScoreColor(score) }} /></div><span className="score-name">{key.replace(/([A-Z])/g, ' $1').trim()}</span><span className="score-num" style={{ color: getScoreColor(score) }}>{score}</span></div>
                       ))}
                     </div>
                   </div>
                 )}
 
                 <div className="coaching-details">
-                  <div className="detail-section strengths"><h5>✓ Strengths</h5><ul>{(selectedCall.result.coaching.strengths || []).map((s, i) => <li key={i}>{s}</li>)}</ul></div>
-                  <div className="detail-section weaknesses"><h5>✗ Areas for Improvement</h5><ul>{(selectedCall.result.coaching.weaknesses || []).map((w, i) => <li key={i}>{w}</li>)}</ul></div>
+                  <div className="detail-section strengths"><h5>✅ What Went Well</h5><p className="section-note">These are things the agent did excellently. Reinforce these behaviors.</p><ul>{(selectedCall.result.coaching.strengths || []).map((s, i) => <li key={i}>{s}</li>)}</ul></div>
+                  <div className="detail-section weaknesses"><h5>⚠️ Areas for Improvement</h5><p className="section-note">Focus training on these areas to improve performance.</p><ul>{(selectedCall.result.coaching.weaknesses || []).map((w, i) => <li key={i}>{w}</li>)}</ul></div>
                 </div>
 
                 {selectedCall.result.coaching.missedOpportunities?.length > 0 && (
-                  <div className="detail-section missed"><h5>💡 Missed Opportunities</h5><ul>{selectedCall.result.coaching.missedOpportunities.map((m, i) => <li key={i}>{m}</li>)}</ul></div>
+                  <div className="detail-section missed"><h5>💡 Missed Opportunities</h5><p className="section-note">Chances to help the customer better or close a sale that were not utilized.</p><ul>{selectedCall.result.coaching.missedOpportunities.map((m, i) => <li key={i}>{m}</li>)}</ul></div>
                 )}
 
-                <div className="detail-section suggestions"><h5>📈 Improvement Suggestions</h5><ul>{(selectedCall.result.coaching.improvementSuggestions || []).map((s, i) => <li key={i}>{s}</li>)}</ul></div>
+                <div className="detail-section suggestions"><h5>📈 Specific Improvement Tips</h5><p className="section-note">Actionable advice the agent can implement immediately.</p><ul>{(selectedCall.result.coaching.improvementSuggestions || []).map((s, i) => <li key={i}>{s}</li>)}</ul></div>
 
                 {selectedCall.result.coaching.scriptRecommendations?.length > 0 && (
-                  <div className="detail-section scripts"><h5>📝 Recommended Scripts</h5><div className="script-cards">{selectedCall.result.coaching.scriptRecommendations.map((s, i) => (
+                  <div className="detail-section scripts"><h5>📝 Recommended Scripts</h5><p className="section-note">Use these phrases in similar situations for better outcomes.</p><div className="script-cards">{selectedCall.result.coaching.scriptRecommendations.map((s, i) => (
                     <div key={i} className="script-card"><span>&ldquo;{s}&rdquo;</span><button className="copy-small" onClick={() => onCopy(s)}>Copy</button></div>
                   ))}</div></div>
                 )}
 
                 {selectedCall.result.coaching.redFlags?.length > 0 && (
-                  <div className="detail-section red-flags"><h5>🚨 Red Flags</h5><ul>{selectedCall.result.coaching.redFlags.map((r, i) => <li key={i}>{r}</li>)}</ul></div>
+                  <div className="detail-section red-flags"><h5>🚨 Red Flags - Immediate Attention Needed</h5><p className="section-note">Serious issues that require immediate review and correction.</p><ul>{selectedCall.result.coaching.redFlags.map((r, i) => <li key={i}>{r}</li>)}</ul></div>
                 )}
               </div>
             )}
 
             {activeTab === 'moments' && (
               <div className="moments-view">
-                <h3>Key Moments Timeline</h3>
+                <div className="section-header">
+                  <h3>Key Moments Timeline</h3>
+                  <p className="section-desc">Important moments during the call that reveal customer sentiment and opportunities. <Link href="/help#moments">Learn more →</Link></p>
+                </div>
+                
                 {selectedCall.result.keyMoments && selectedCall.result.keyMoments.length > 0 ? (
                   <div className="moments-timeline">
                     {selectedCall.result.keyMoments.map((m, i) => (
@@ -382,15 +567,16 @@ export default function HomePage() {
                 {selectedCall.result.actionItems && (
                   <div className="action-items-section">
                     <h4>Action Items</h4>
+                    <p className="metric-explain">Tasks that need to be completed based on this call.</p>
                     <div className="action-grid">
                       {selectedCall.result.actionItems.forAgent?.length > 0 && (
-                        <div className="action-card agent"><h5>For Agent</h5><ul>{selectedCall.result.actionItems.forAgent.map((a, i) => <li key={i}>{a}</li>)}</ul></div>
+                        <div className="action-card agent"><h5>👤 For Agent</h5><ul>{selectedCall.result.actionItems.forAgent.map((a, i) => <li key={i}>{a}</li>)}</ul></div>
                       )}
                       {selectedCall.result.actionItems.forManager?.length > 0 && (
-                        <div className="action-card manager"><h5>For Manager</h5><ul>{selectedCall.result.actionItems.forManager.map((a, i) => <li key={i}>{a}</li>)}</ul></div>
+                        <div className="action-card manager"><h5>👔 For Manager</h5><ul>{selectedCall.result.actionItems.forManager.map((a, i) => <li key={i}>{a}</li>)}</ul></div>
                       )}
                       {selectedCall.result.actionItems.forFollowUp?.length > 0 && (
-                        <div className="action-card followup"><h5>Follow-Up Required</h5><ul>{selectedCall.result.actionItems.forFollowUp.map((a, i) => <li key={i}>{a}</li>)}</ul></div>
+                        <div className="action-card followup"><h5>📞 Follow-Up Required</h5><ul>{selectedCall.result.actionItems.forFollowUp.map((a, i) => <li key={i}>{a}</li>)}</ul></div>
                       )}
                     </div>
                   </div>
@@ -400,7 +586,11 @@ export default function HomePage() {
 
             {activeTab === 'predictions' && selectedCall.result.predictions && (
               <div className="predictions-view">
-                <h3>Predictive Analytics</h3>
+                <div className="section-header">
+                  <h3>Predictive Analytics</h3>
+                  <p className="section-desc">AI predictions about the likely outcome of this interaction. <Link href="/help#predictions">Learn more →</Link></p>
+                </div>
+                
                 <div className="predictions-grid">
                   <div className="prediction-card">
                     <ScoreRing score={selectedCall.result.predictions.conversionProbability} size={90} />
@@ -411,11 +601,13 @@ export default function HomePage() {
                     <div className={`risk-indicator ${selectedCall.result.predictions.churnRisk}`}>{selectedCall.result.predictions.churnRisk === 'high' ? '⚠️' : selectedCall.result.predictions.churnRisk === 'medium' ? '⚡' : '✅'}</div>
                     <h4>Churn Risk</h4>
                     <p className={`risk-${selectedCall.result.predictions.churnRisk}`}>{selectedCall.result.predictions.churnRisk.toUpperCase()}</p>
+                    <p className="pred-explain">{selectedCall.result.predictions.churnRisk === 'high' ? 'Customer may not return. Immediate action needed.' : selectedCall.result.predictions.churnRisk === 'medium' ? 'Some concerns exist. Follow up recommended.' : 'Customer seems satisfied and likely to return.'}</p>
                   </div>
                   <div className="prediction-card">
                     <div className={`risk-indicator ${selectedCall.result.predictions.escalationRisk}`}>{selectedCall.result.predictions.escalationRisk === 'high' ? '🚨' : selectedCall.result.predictions.escalationRisk === 'medium' ? '⚡' : '✅'}</div>
                     <h4>Escalation Risk</h4>
                     <p className={`risk-${selectedCall.result.predictions.escalationRisk}`}>{selectedCall.result.predictions.escalationRisk.toUpperCase()}</p>
+                    <p className="pred-explain">{selectedCall.result.predictions.escalationRisk === 'high' ? 'May become a formal complaint. Address immediately.' : 'Low risk of escalation.'}</p>
                   </div>
                   <div className="prediction-card">
                     <div className={`risk-indicator ${selectedCall.result.predictions.satisfactionLikely}`}>{selectedCall.result.predictions.satisfactionLikely === 'high' ? '😊' : selectedCall.result.predictions.satisfactionLikely === 'low' ? '😤' : '😐'}</div>
@@ -424,7 +616,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="prediction-details">
-                  <div className="pred-item"><span>Follow-up Needed:</span><strong>{selectedCall.result.predictions.followUpNeeded ? 'Yes' : 'No'}</strong></div>
+                  <div className="pred-item"><span>Follow-up Needed:</span><strong>{selectedCall.result.predictions.followUpNeeded ? '✅ Yes - Contact customer again' : '❌ No'}</strong></div>
                   <div className="pred-item"><span>Urgency Level:</span><strong style={{ color: getRiskColor(selectedCall.result.predictions.urgencyLevel) }}>{selectedCall.result.predictions.urgencyLevel.toUpperCase()}</strong></div>
                 </div>
               </div>
@@ -432,30 +624,44 @@ export default function HomePage() {
 
             {activeTab === 'transcript' && (
               <section className="result">
-                <div className="sectionTitle"><strong>Full Transcription</strong><button className="copy" onClick={() => onCopy(selectedCall.result?.transcription || '')}>Copy</button></div>
-                <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{selectedCall.result.transcription || 'No transcription'}</p>
+                <div className="section-header">
+                  <h3>Full Transcription</h3>
+                  <button className="copy" onClick={() => onCopy(selectedCall.result?.transcription || '')}>Copy</button>
+                </div>
+                <p className="section-desc">Complete word-for-word record of the conversation. Speaker labels indicate who said what.</p>
+                <div className="transcript-content">
+                  <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{selectedCall.result.transcription || 'No transcription'}</p>
+                </div>
               </section>
             )}
 
             {activeTab === 'summary' && (
               <div>
                 <section className="result">
-                  <div className="sectionTitle"><strong>Call Summary</strong><button className="copy" onClick={() => onCopy(selectedCall.result?.summary || '')}>Copy</button></div>
+                  <div className="section-header">
+                    <h3>Call Summary</h3>
+                    <button className="copy" onClick={() => onCopy(selectedCall.result?.summary || '')}>Copy</button>
+                  </div>
+                  <p className="section-desc">Key points from the conversation in bullet format.</p>
                   <p style={{ whiteSpace: 'pre-wrap' }}>{selectedCall.result.summary || 'No summary'}</p>
                 </section>
                 <section className="result" style={{ marginTop: 16 }}>
-                  <h4>Minutes of Meeting</h4>
+                  <h4>Minutes of Meeting (MOM)</h4>
+                  <p className="section-desc">Structured breakdown of participants, decisions, and action items.</p>
                   <div className="grid-two">
                     <div><strong>Participants</strong><ul>{(selectedCall.result.mom?.participants ?? []).map((p, i) => <li key={i}>{p}</li>)}</ul></div>
-                    <div><strong>Decisions</strong><ul>{(selectedCall.result.mom?.decisions ?? []).map((d, i) => <li key={i}>{d}</li>)}</ul></div>
-                    <div><strong>Action Items</strong><ul>{(selectedCall.result.mom?.actionItems ?? []).map((a, i) => <li key={i}>{a}</li>)}</ul></div>
-                    <div><strong>Next Steps</strong><ul>{(selectedCall.result.mom?.nextSteps ?? []).map((n, i) => <li key={i}>{n}</li>)}</ul></div>
+                    <div><strong>Decisions Made</strong><ul>{(selectedCall.result.mom?.decisions ?? []).length > 0 ? selectedCall.result.mom?.decisions.map((d, i) => <li key={i}>{d}</li>) : <li className="muted">No decisions recorded</li>}</ul></div>
+                    <div><strong>Action Items</strong><ul>{(selectedCall.result.mom?.actionItems ?? []).length > 0 ? selectedCall.result.mom?.actionItems.map((a, i) => <li key={i}>{a}</li>) : <li className="muted">No action items</li>}</ul></div>
+                    <div><strong>Next Steps</strong><ul>{(selectedCall.result.mom?.nextSteps ?? []).length > 0 ? selectedCall.result.mom?.nextSteps.map((n, i) => <li key={i}>{n}</li>) : <li className="muted">No next steps defined</li>}</ul></div>
                   </div>
                 </section>
                 <section className="result" style={{ marginTop: 16 }}>
                   <h4>Topics & Keywords</h4>
+                  <p className="section-desc">Main subjects discussed and important terms mentioned.</p>
+                  <div><strong>Topics:</strong></div>
                   <div className="keyword-tags">{(selectedCall.result.insights?.topics ?? []).map((t, i) => <span key={i} className="keyword-tag topic">{t}</span>)}</div>
-                  <div className="keyword-tags" style={{ marginTop: 8 }}>{(selectedCall.result.insights?.keywords ?? []).map((k, i) => <span key={i} className="keyword-tag">{k}</span>)}</div>
+                  <div style={{ marginTop: 12 }}><strong>Keywords:</strong></div>
+                  <div className="keyword-tags">{(selectedCall.result.insights?.keywords ?? []).map((k, i) => <span key={i} className="keyword-tag">{k}</span>)}</div>
                 </section>
               </div>
             )}
