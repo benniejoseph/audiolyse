@@ -119,6 +119,12 @@ Perform DEEP ANALYSIS and respond ONLY with strict JSON in this exact shape:
     "communicationQuality": { "score": number, "feedback": string },
     "pitchEffectiveness": { "score": number, "feedback": string },
     "objectionHandling": { "score": number, "feedback": string },
+    "forcedSale": {
+      "detected": boolean,
+      "severity": "none" | "mild" | "moderate" | "severe",
+      "indicators": string[],
+      "feedback": string
+    },
     "improvementSuggestions": string[],
     "scriptRecommendations": string[],
     "redFlags": string[],
@@ -193,6 +199,24 @@ ANALYSIS REQUIREMENTS:
    - Empathy: Understanding, patience, acknowledgment
    - Clarity: Clear communication, no jargon
    - Compliance: Following guidelines, proper disclosures
+
+10. FORCED SALE DETECTION (CRITICAL):
+   Analyze if the agent pressured or forced the customer into a sale/decision. Look for:
+   - Agent not accepting "no" or "I need to think about it"
+   - Creating false urgency ("offer expires today", "last chance")
+   - Ignoring customer's budget constraints or objections
+   - Not giving customer time to think or consult others
+   - Manipulative language or guilt-tripping
+   - Agent dominating conversation without listening
+   - Pushing add-ons or upgrades after customer said no
+   - Not respecting customer's explicit refusal
+   - Using fear tactics or exaggerated consequences
+   
+   Severity levels:
+   - "none": Customer was given full autonomy, no pressure detected
+   - "mild": Minor pressure tactics but customer still had choice
+   - "moderate": Noticeable pressure that may have influenced decision
+   - "severe": Clear forced sale tactics that violated customer's autonomy
 
 7. PREDICTIONS (be realistic):
    - Conversion probability: 0-100% likelihood of desired outcome
@@ -342,6 +366,12 @@ If any field cannot be determined, use reasonable defaults (0 for numbers, "unkn
         objectionHandling: {
           score: d?.coaching?.objectionHandling?.score || 0,
           feedback: d?.coaching?.objectionHandling?.feedback || '',
+        },
+        forcedSale: {
+          detected: d?.coaching?.forcedSale?.detected || false,
+          severity: d?.coaching?.forcedSale?.severity || 'none',
+          indicators: d?.coaching?.forcedSale?.indicators || [],
+          feedback: d?.coaching?.forcedSale?.feedback || 'No forced sale tactics detected.',
         },
         improvementSuggestions: d?.coaching?.improvementSuggestions || [],
         scriptRecommendations: d?.coaching?.scriptRecommendations || [],

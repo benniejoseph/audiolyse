@@ -222,6 +222,33 @@ html, body {
 .detail-section.scripts { border-left: 3px solid var(--muted); }
 .detail-section.red-flags { background: rgba(255,107,107,0.08); border-left: 3px solid var(--danger); }
 
+/* Forced Sale Card */
+.forced-sale-card { padding: 20px; border-radius: 12px; background: rgba(124,255,199,0.05); border: 1px solid rgba(124,255,199,0.2); margin-bottom: 16px; }
+.forced-sale-card.mild { background: rgba(255,209,102,0.08); border-color: rgba(255,209,102,0.3); }
+.forced-sale-card.moderate { background: rgba(255,169,77,0.08); border-color: rgba(255,169,77,0.3); }
+.forced-sale-card.severe { background: rgba(255,107,107,0.1); border-color: rgba(255,107,107,0.4); }
+.forced-sale-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.forced-sale-icon { font-size: 28px; }
+.forced-sale-title { flex: 1; }
+.forced-sale-title h4 { margin: 0 0 4px; font-size: 16px; }
+.severity-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+.severity-badge.none { background: rgba(124,255,199,0.2); color: var(--success); }
+.severity-badge.mild { background: rgba(255,209,102,0.2); color: var(--accent-2); }
+.severity-badge.moderate { background: rgba(255,169,77,0.2); color: #ffa94d; }
+.severity-badge.severe { background: rgba(255,107,107,0.2); color: var(--danger); }
+.forced-sale-feedback { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
+.forced-sale-indicators { padding: 12px; background: rgba(0,0,0,0.15); border-radius: 8px; }
+.forced-sale-indicators strong { font-size: 13px; display: block; margin-bottom: 8px; }
+.forced-sale-indicators ul { margin: 0; padding-left: 20px; }
+.forced-sale-indicators li { font-size: 13px; margin-bottom: 6px; color: #e0e0e0; }
+.forced-sale-ok { margin: 0; padding: 12px; background: rgba(124,255,199,0.08); border-radius: 8px; font-size: 14px; }
+
+/* Forced Sale Alert in Dashboard */
+.forced-sale-alert { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); border-radius: 10px; margin-bottom: 16px; }
+.forced-sale-alert .alert-icon { font-size: 24px; }
+.forced-sale-alert span { font-size: 14px; }
+.forced-sale-alert strong { color: var(--danger); }
+
 .script-cards { display: flex; flex-direction: column; gap: 8px; }
 .script-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; font-style: italic; font-size: 14px; }
 .copy-small { background: rgba(255,255,255,0.1); border: none; color: var(--muted); padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; flex-shrink: 0; }
@@ -307,6 +334,19 @@ html, body {
 .progress-slider { flex: 1; height: 6px; -webkit-appearance: none; background: rgba(255,255,255,0.1); border-radius: 3px; cursor: pointer; }
 .progress-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; }
 .audio-label { font-size: 12px; color: var(--muted); text-align: center; }
+
+/* Floating Audio Indicator */
+.floating-audio-indicator { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, rgba(124,255,199,0.15), rgba(142,160,255,0.15)); border: 1px solid rgba(124,255,199,0.3); backdrop-filter: blur(12px); padding: 12px 20px; border-radius: 50px; display: flex; align-items: center; gap: 12px; cursor: pointer; z-index: 1000; animation: slideUp 0.3s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+.floating-audio-indicator:hover { transform: translateY(-2px); }
+.playing-icon { font-size: 18px; animation: pulse 1s infinite; }
+.playing-text { font-size: 13px; font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stop-btn { background: rgba(255,107,107,0.2); border: none; color: var(--danger); width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.stop-btn:hover { background: rgba(255,107,107,0.3); }
+@keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Now Playing Badge */
+.now-playing-badge { font-size: 12px; animation: pulse 1s infinite; }
+.call-row.playing { background: rgba(124,255,199,0.08); border: 1px solid rgba(124,255,199,0.2); }
 
 /* Header Actions */
 .header-actions { display: flex; gap: 12px; margin-left: auto; align-items: center; }

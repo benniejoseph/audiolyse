@@ -20,6 +20,7 @@ type ApiResult = {
     communicationQuality: { score: number; feedback: string };
     pitchEffectiveness: { score: number; feedback: string };
     objectionHandling: { score: number; feedback: string };
+    forcedSale?: { detected: boolean; severity: 'none' | 'mild' | 'moderate' | 'severe'; indicators: string[]; feedback: string };
     improvementSuggestions: string[];
     scriptRecommendations: string[];
     redFlags: string[];
@@ -46,19 +47,65 @@ type BulkCallResult = {
   status: 'pending' | 'processing' | 'completed' | 'error'; 
   result?: ApiResult; 
   error?: string;
-  audioUrl?: string; // Store audio URL for playback
+  audioUrl?: string;
 };
 
 export default function HomePage() {
   const [files, setFiles] = useState<File[]>([]);
-  const [fileUrls, setFileUrls] = useState<Map<string, string>>(new Map()); // Store file URLs
+  const [fileUrls, setFileUrls] = useState<Map<string, string>>(new Map());
   const [dragOver, setDragOver] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [bulkResults, setBulkResults] = useState<BulkCallResult[]>([]);
   const [selectedCall, setSelectedCall] = useState<BulkCallResult | null>(null);
   const [activeTab, setActiveTab] = useState<'metrics' | 'coaching' | 'moments' | 'transcript' | 'summary' | 'predictions'>('metrics');
   const [viewMode, setViewMode] = useState<'upload' | 'dashboard' | 'detail'>('upload');
-  const audioRef = useRef<HTMLAudioElement>(null);
+  
+  // Global audio player state - persists across navigation
+  const globalAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+
+  // Initialize global audio element
+  useEffect(() => {
+    globalAudioRef.current = new Audio();
+    globalAudioRef.current.addEventListener('timeupdate', () => {
+      setCurrentTime(globalAudioRef.current?.currentTime || 0);
+    });
+    globalAudioRef.current.addEventListener('loadedmetadata', () => {
+      setAudioDuration(globalAudioRef.current?.duration || 0);
+    });
+    globalAudioRef.current.addEventListener('ended', () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    });
+    globalAudioRef.current.addEventListener('pause', () => {
+      setIsPlaying(false);
+    });
+    globalAudioRef.current.addEventListener('play', () => {
+      setIsPlaying(true);
+    });
+    
+    return () => {
+      if (globalAudioRef.current) {
+        globalAudioRef.current.pause();
+        globalAudioRef.current.src = '';
+      }
+    };
+  }, []);
+
+  // Load audio when selected call changes
+  useEffect(() => {
+    if (selectedCall?.audioUrl && selectedCall.id !== currentlyPlayingId) {
+      // Don't interrupt if same audio is already playing
+      if (globalAudioRef.current && !isPlaying) {
+        globalAudioRef.current.src = selectedCall.audioUrl;
+        setCurrentlyPlayingId(selectedCall.id);
+        setCurrentTime(0);
+      }
+    }
+  }, [selectedCall, currentlyPlayingId, isPlaying]);
 
   // Cleanup URLs on unmount
   useEffect(() => {
@@ -83,7 +130,19 @@ export default function HomePage() {
   }, []);
 
   const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index));
+  
   const clearAll = () => { 
+    // Stop audio and reset player
+    if (globalAudioRef.current) {
+      globalAudioRef.current.pause();
+      globalAudioRef.current.src = '';
+    }
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setAudioDuration(0);
+    setCurrentlyPlayingId(null);
+    
+    // Clear URLs
     fileUrls.forEach(url => URL.revokeObjectURL(url));
     setFileUrls(new Map());
     setFiles([]); 
@@ -91,10 +150,10 @@ export default function HomePage() {
     setSelectedCall(null); 
     setViewMode('upload'); 
   };
+  
   const canSubmit = files.length > 0 && !isLoading;
 
   const processFile = async (file: File, id: string): Promise<BulkCallResult> => {
-    // Create object URL for audio playback
     const audioUrl = URL.createObjectURL(file);
     setFileUrls(prev => new Map(prev).set(id, audioUrl));
     
@@ -120,7 +179,7 @@ export default function HomePage() {
       const result = await processFile(file, id);
       setBulkResults(prev => prev.map(r => (r.id === id ? result : r)));
     }
-    setIsLoading(false);
+      setIsLoading(false);
   }, [files]);
 
   const summary = useMemo(() => {
@@ -131,6 +190,7 @@ export default function HomePage() {
     const allStrengths = completed.flatMap(r => r.result?.coaching?.strengths || []);
     const allWeaknesses = completed.flatMap(r => r.result?.coaching?.weaknesses || []);
     const redFlags = completed.flatMap(r => r.result?.coaching?.redFlags || []);
+    const forcedSaleCases = completed.filter(r => r.result?.coaching?.forcedSale?.detected);
     const avgConversion = completed.reduce((a, r) => a + (r.result?.predictions?.conversionProbability || 0), 0) / completed.length;
     const countFreq = (arr: string[]) => {
       const freq: Record<string, number> = {};
@@ -142,9 +202,36 @@ export default function HomePage() {
       averageScore: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
       avgConversion: Math.round(avgConversion),
       sentimentBreakdown: { positive: sentiments.filter(s => s === 'positive').length, neutral: sentiments.filter(s => s === 'neutral').length, negative: sentiments.filter(s => s === 'negative').length },
-      commonStrengths: countFreq(allStrengths), commonWeaknesses: countFreq(allWeaknesses), redFlagCount: redFlags.length,
+      commonStrengths: countFreq(allStrengths), commonWeaknesses: countFreq(allWeaknesses), 
+      redFlagCount: redFlags.length,
+      forcedSaleCount: forcedSaleCases.length,
     };
   }, [bulkResults]);
+
+  // Audio player controls
+  const togglePlay = () => {
+    if (!globalAudioRef.current) return;
+    
+    // If trying to play a different call, load it first
+    if (selectedCall?.audioUrl && selectedCall.id !== currentlyPlayingId) {
+      globalAudioRef.current.src = selectedCall.audioUrl;
+      setCurrentlyPlayingId(selectedCall.id);
+    }
+    
+    if (isPlaying) {
+      globalAudioRef.current.pause();
+    } else {
+      globalAudioRef.current.play();
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = parseFloat(e.target.value);
+    if (globalAudioRef.current) {
+      globalAudioRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
 
   const onCopy = (text: string) => navigator.clipboard.writeText(text);
   const download = (filename: string, content: string, mime = 'application/json') => {
@@ -155,6 +242,7 @@ export default function HomePage() {
   const exportAllResults = () => download('bulk-analysis.json', JSON.stringify({ exportedAt: new Date().toISOString(), summary, calls: bulkResults.filter(r => r.status === 'completed').map(r => ({ fileName: r.fileName, ...r.result })) }, null, 2));
   const getScoreColor = (score: number) => score >= 80 ? '#7cffc7' : score >= 60 ? '#ffd166' : '#ff6b6b';
   const getRiskColor = (risk: string) => risk === 'high' ? '#ff6b6b' : risk === 'medium' ? '#ffd166' : '#7cffc7';
+  const getSeverityColor = (severity: string) => severity === 'severe' ? '#ff6b6b' : severity === 'moderate' ? '#ffa94d' : severity === 'mild' ? '#ffd166' : '#7cffc7';
   const getMomentIcon = (type: string) => {
     const icons: Record<string, string> = { complaint: '😤', compliment: '😊', objection: '🤔', competitor_mention: '🏢', pricing_discussion: '💰', commitment: '✅', breakthrough: '💡', escalation_risk: '⚠️', pain_point: '😣', positive_signal: '👍' };
     return icons[type] || '📌';
@@ -195,82 +283,57 @@ export default function HomePage() {
     </div>
   );
 
-  // Audio Player Component
-  const AudioPlayer = ({ audioUrl, duration }: { audioUrl?: string; duration?: number }) => {
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [audioDuration, setAudioDuration] = useState(duration || 0);
-    const playerRef = useRef<HTMLAudioElement>(null);
-
-    const togglePlay = () => {
-      if (playerRef.current) {
-        if (isPlaying) {
-          playerRef.current.pause();
-        } else {
-          playerRef.current.play();
-        }
-        setIsPlaying(!isPlaying);
-      }
-    };
-
-    const handleTimeUpdate = () => {
-      if (playerRef.current) {
-        setCurrentTime(playerRef.current.currentTime);
-      }
-    };
-
-    const handleLoadedMetadata = () => {
-      if (playerRef.current) {
-        setAudioDuration(playerRef.current.duration);
-      }
-    };
-
-    const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const time = parseFloat(e.target.value);
-      if (playerRef.current) {
-        playerRef.current.currentTime = time;
-        setCurrentTime(time);
-      }
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
+  // Persistent Audio Player Component
+  const AudioPlayer = ({ audioUrl, callId }: { audioUrl?: string; callId?: string }) => {
+    const isThisCallPlaying = currentlyPlayingId === callId && isPlaying;
+    const isThisCallLoaded = currentlyPlayingId === callId;
+    
     if (!audioUrl) return null;
 
     return (
       <div className="audio-player">
-        <audio 
-          ref={playerRef} 
-          src={audioUrl} 
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onEnded={handleEnded}
-        />
         <button className="play-btn" onClick={togglePlay}>
-          {isPlaying ? '⏸️' : '▶️'}
+          {isThisCallPlaying ? '⏸️' : '▶️'}
         </button>
         <div className="audio-progress">
-          <span className="time-display">{formatTime(currentTime)}</span>
+          <span className="time-display">{formatTime(isThisCallLoaded ? currentTime : 0)}</span>
           <input 
             type="range" 
             min="0" 
-            max={audioDuration || 100} 
-            value={currentTime}
+            max={isThisCallLoaded ? audioDuration : (selectedCall?.result?.durationSec || 100)}
+            value={isThisCallLoaded ? currentTime : 0}
             onChange={handleSeek}
             className="progress-slider"
           />
-          <span className="time-display">{formatTime(audioDuration)}</span>
+          <span className="time-display">{formatTime(isThisCallLoaded ? audioDuration : (selectedCall?.result?.durationSec || 0))}</span>
         </div>
-        <div className="audio-label">🎧 Listen to the original recording while reviewing the analysis</div>
+        <div className="audio-label">
+          {isThisCallPlaying ? '🎵 Playing...' : '🎧 Listen to the original recording while reviewing the analysis'}
+        </div>
+      </div>
+    );
+  };
+
+  // Floating audio player indicator when navigating away from detail
+  const FloatingAudioIndicator = () => {
+    if (!isPlaying || viewMode === 'detail') return null;
+    
+    const playingCall = bulkResults.find(r => r.id === currentlyPlayingId);
+    if (!playingCall) return null;
+
+    return (
+      <div className="floating-audio-indicator" onClick={() => { setSelectedCall(playingCall); setViewMode('detail'); }}>
+        <span className="playing-icon">🎵</span>
+        <span className="playing-text">Playing: {playingCall.fileName}</span>
+        <button className="stop-btn" onClick={(e) => { e.stopPropagation(); globalAudioRef.current?.pause(); }}>⏹️</button>
       </div>
     );
   };
 
   return (
     <div className="container">
+      <FloatingAudioIndicator />
+      
       <div className="header">
         <div className="tag"><span>🎧</span><strong>CallTranscribe</strong></div>
         <span className="muted">Advanced Call Intelligence • AI Coaching • Predictive Analytics</span>
@@ -326,6 +389,12 @@ export default function HomePage() {
                 <div className="stat-card"><div className="stat-value" style={{ color: getScoreColor(summary.avgConversion) }}>{summary.avgConversion}%</div><div className="stat-label">Avg. Conversion Prob.</div></div>
                 <div className="stat-card danger"><div className="stat-value">{summary.redFlagCount}</div><div className="stat-label">Red Flags</div></div>
               </div>
+              {summary.forcedSaleCount > 0 && (
+                <div className="forced-sale-alert">
+                  <span className="alert-icon">⚠️</span>
+                  <span><strong>{summary.forcedSaleCount}</strong> call{summary.forcedSaleCount > 1 ? 's' : ''} flagged for potential forced sale tactics. Review immediately.</span>
+                </div>
+              )}
               <div className="insights-grid">
                 <div className="insight-card"><h4>Top Strengths</h4><ul>{summary.commonStrengths.map((s, i) => <li key={i}>{s}</li>)}</ul></div>
                 <div className="insight-card"><h4>Common Weaknesses</h4><ul>{summary.commonWeaknesses.map((w, i) => <li key={i}>{w}</li>)}</ul></div>
@@ -335,11 +404,18 @@ export default function HomePage() {
           <div className="card calls-list-card">
             <h3>Individual Call Results</h3>
             <div className="calls-table">{bulkResults.map((call) => (
-              <div key={call.id} className={`call-row ${call.status}`} onClick={() => { if (call.status === 'completed') { setSelectedCall(call); setViewMode('detail'); } }}>
-                <div className="call-status"><span className={`status-dot ${call.status}`} /></div>
+              <div key={call.id} className={`call-row ${call.status} ${currentlyPlayingId === call.id && isPlaying ? 'playing' : ''}`} onClick={() => { if (call.status === 'completed') { setSelectedCall(call); setViewMode('detail'); } }}>
+                <div className="call-status">
+                  <span className={`status-dot ${call.status}`} />
+                  {currentlyPlayingId === call.id && isPlaying && <span className="now-playing-badge">▶️</span>}
+                </div>
                 <div className="call-info">
                   <span className="call-name">{call.fileName}</span>
-                  <span className="call-meta">{call.status === 'completed' ? `Score: ${call.result?.coaching?.overallScore || 0} | Conversion: ${call.result?.predictions?.conversionProbability || 0}%` : call.status === 'error' ? 'Failed' : call.status === 'processing' ? 'Processing...' : 'Waiting...'}</span>
+                  <span className="call-meta">
+                    {call.status === 'completed' 
+                      ? `Score: ${call.result?.coaching?.overallScore || 0} | Conversion: ${call.result?.predictions?.conversionProbability || 0}%${call.result?.coaching?.forcedSale?.detected ? ' | ⚠️ Forced Sale' : ''}`
+                      : call.status === 'error' ? 'Failed' : call.status === 'processing' ? 'Processing...' : 'Waiting...'}
+                  </span>
                 </div>
                 {call.status === 'completed' && <div className="call-score" style={{ color: getScoreColor(call.result?.coaching?.overallScore || 0) }}>{call.result?.coaching?.overallScore || '—'}</div>}
                 {call.status === 'completed' && <span className="view-arrow">→</span>}
@@ -356,9 +432,9 @@ export default function HomePage() {
           {/* Audio Player Card */}
           <div className="card audio-card">
             <h3>🎧 Original Recording</h3>
-            <AudioPlayer audioUrl={selectedCall.audioUrl} duration={selectedCall.result.durationSec} />
-          </div>
-          
+            <AudioPlayer audioUrl={selectedCall.audioUrl} callId={selectedCall.id} />
+      </div>
+
           <div className="card detail-header-card">
             <div className="detail-header">
               <div>
@@ -369,7 +445,7 @@ export default function HomePage() {
                   <span style={{ color: selectedCall.result.insights?.sentiment === 'Positive' ? '#7cffc7' : selectedCall.result.insights?.sentiment === 'Negative' ? '#ff6b6b' : '#ffd166' }}>
                     {selectedCall.result.insights?.sentiment === 'Positive' ? '😊' : selectedCall.result.insights?.sentiment === 'Negative' ? '😤' : '😐'} {selectedCall.result.insights?.sentiment}
                   </span>
-                </div>
+        </div>
               </div>
               <div className="header-scores">
                 <ScoreRing score={selectedCall.result.coaching?.overallScore || 0} size={70} />
@@ -377,7 +453,7 @@ export default function HomePage() {
                   <div className="mini-pred"><span>Conversion</span><strong style={{ color: getScoreColor(selectedCall.result.predictions?.conversionProbability || 0) }}>{selectedCall.result.predictions?.conversionProbability || 0}%</strong></div>
                   <div className="mini-pred"><span>Churn Risk</span><strong style={{ color: getRiskColor(selectedCall.result.predictions?.churnRisk || 'low') }}>{selectedCall.result.predictions?.churnRisk || 'low'}</strong></div>
                 </div>
-              </div>
+          </div>
             </div>
           </div>
 
@@ -462,8 +538,8 @@ export default function HomePage() {
                           <div className="segment-time">{seg.startTime} - {seg.endTime} ({seg.durationSec}s)</div>
                           {seg.notes && <div className="segment-notes">{seg.notes}</div>}
                         </div>
-                      ))}
-                    </div>
+                ))}
+              </div>
                   </div>
                 )}
 
@@ -504,6 +580,37 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Forced Sale Detection - Important Alert */}
+                {selectedCall.result.coaching.forcedSale && (
+                  <div className={`forced-sale-card ${selectedCall.result.coaching.forcedSale.severity}`}>
+                    <div className="forced-sale-header">
+                      <span className="forced-sale-icon">{selectedCall.result.coaching.forcedSale.detected ? '⚠️' : '✅'}</span>
+                      <div className="forced-sale-title">
+                        <h4>Forced Sale Analysis</h4>
+                        <span className={`severity-badge ${selectedCall.result.coaching.forcedSale.severity}`}>
+                          {selectedCall.result.coaching.forcedSale.severity === 'none' ? 'No Issues' : 
+                           selectedCall.result.coaching.forcedSale.severity === 'mild' ? 'Mild Pressure' :
+                           selectedCall.result.coaching.forcedSale.severity === 'moderate' ? 'Moderate Pressure' : 'Severe Pressure'}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="forced-sale-feedback">{selectedCall.result.coaching.forcedSale.feedback}</p>
+                    {selectedCall.result.coaching.forcedSale.indicators && selectedCall.result.coaching.forcedSale.indicators.length > 0 && (
+                      <div className="forced-sale-indicators">
+                        <strong>Detected Indicators:</strong>
+                        <ul>
+                          {selectedCall.result.coaching.forcedSale.indicators.map((ind, i) => (
+                            <li key={i}>{ind}</li>
+                          ))}
+                      </ul>
+                    </div>
+                    )}
+                    {!selectedCall.result.coaching.forcedSale.detected && (
+                      <p className="forced-sale-ok">✅ No forced sale tactics detected. The customer was given adequate decision-making space.</p>
+                    )}
+                  </div>
+                )}
 
                 {selectedCall.result.coaching.categoryScores && (
                   <div className="category-scores">
@@ -631,9 +738,9 @@ export default function HomePage() {
                 <p className="section-desc">Complete word-for-word record of the conversation. Speaker labels indicate who said what.</p>
                 <div className="transcript-content">
                   <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{selectedCall.result.transcription || 'No transcription'}</p>
-                </div>
-              </section>
-            )}
+                  </div>
+                </section>
+              )}
 
             {activeTab === 'summary' && (
               <div>
