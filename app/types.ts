@@ -1,24 +1,13 @@
-// Types for Enhanced Call Transcription and Analysis
+// Types for Call Transcription and Enhanced Analysis
 
+// Coaching Metrics
 export type CoachingMetric = {
   score: number;
   feedback: string;
 };
 
-export type CategoryScores = {
-  opening: number;
-  discovery: number;
-  solutionPresentation: number;
-  objectionHandling: number;
-  closing: number;
-  empathy: number;
-  clarity: number;
-  compliance: number;
-};
-
 export type Coaching = {
   overallScore: number;
-  categoryScores: CategoryScores;
   strengths: string[];
   weaknesses: string[];
   missedOpportunities: string[];
@@ -32,6 +21,7 @@ export type Coaching = {
   coachingSummary: string;
 };
 
+// MOM (Minutes of Meeting)
 export type MOM = {
   participants: string[];
   decisions: string[];
@@ -39,98 +29,143 @@ export type MOM = {
   nextSteps: string[];
 };
 
+// Basic Insights
 export type Insights = {
-  sentiment: string;
-  sentimentScore?: number;
-  topics: string[];
-  keywords: string[];
+  sentiment?: string;
+  topics?: string[];
+  keywords?: string[];
 };
 
-export type ConversationMetrics = {
-  agentTalkRatio: number;
-  customerTalkRatio: number;
-  silenceRatio: number;
-  totalQuestions: number;
-  openQuestions: number;
-  closedQuestions: number;
-  agentInterruptions: number;
-  customerInterruptions: number;
-  avgResponseTimeSec: number;
-  longestPauseSec: number;
-  wordsPerMinuteAgent: number;
-  wordsPerMinuteCustomer: number;
-};
-
+// NEW: Conversation Structure Segment
 export type ConversationSegment = {
   name: string;
-  startTime: string;
-  endTime: string;
-  durationSec: number;
-  quality: 'excellent' | 'good' | 'average' | 'poor';
-  notes: string;
+  startTime: number;
+  endTime: number;
+  duration: number;
+  quality: string;
+  summary: string;
 };
 
-export type KeyMomentType = 
-  | 'complaint' 
-  | 'compliment' 
-  | 'objection' 
-  | 'competitor_mention' 
-  | 'pricing_discussion' 
-  | 'commitment' 
-  | 'breakthrough' 
-  | 'escalation_risk' 
-  | 'pain_point' 
-  | 'positive_signal';
-
+// NEW: Key Moment Detection
 export type KeyMoment = {
   timestamp: string;
-  type: KeyMomentType;
-  speaker: 'agent' | 'customer';
+  type: 'complaint' | 'compliment' | 'objection' | 'commitment' | 'competitor_mention' | 'pricing_discussion' | 'escalation_risk' | 'breakthrough' | 'pain_point' | 'question';
   text: string;
-  sentiment: 'positive' | 'neutral' | 'negative';
+  sentiment: string;
   importance: 'high' | 'medium' | 'low';
 };
 
-export type Predictions = {
+// NEW: Conversation Metrics
+export type ConversationMetrics = {
+  talkRatios: {
+    agent: number;
+    customer: number;
+    silence: number;
+  };
+  questionAnalysis: {
+    totalQuestions: number;
+    openQuestions: number;
+    closedQuestions: number;
+    discoveryQuestions: number;
+    clarifyingQuestions: number;
+  };
+  interruptions: {
+    byAgent: number;
+    byCustomer: number;
+    total: number;
+  };
+  pacing: {
+    agentWordsPerMinute: number;
+    customerWordsPerMinute: number;
+    avgResponseTime: number;
+    longestPause: number;
+  };
+  engagement: {
+    activeListeningScore: number;
+    rapportScore: number;
+    energyLevel: string;
+  };
+};
+
+// NEW: Predictive Scores
+export type PredictiveScores = {
   conversionProbability: number;
   churnRisk: 'high' | 'medium' | 'low';
   escalationRisk: 'high' | 'medium' | 'low';
-  satisfactionLikely: 'high' | 'medium' | 'low';
-  followUpNeeded: boolean;
+  treatmentAdherence: 'high' | 'medium' | 'low';
+  satisfactionPrediction: number;
+  followUpLikelihood: number;
+};
+
+// NEW: Patient/Customer Insights
+export type CustomerInsights = {
+  communicationStyle: string;
+  decisionMakingStyle: string;
+  priceSensitivity: 'high' | 'medium' | 'low';
   urgencyLevel: 'high' | 'medium' | 'low';
+  emotionalState: string;
+  knowledgeLevel: string;
+  concernAreas: string[];
 };
 
-export type CustomerProfile = {
-  communicationStyle: 'detailed' | 'brief' | 'emotional' | 'analytical';
-  decisionStyle: 'quick' | 'deliberate' | 'needs_reassurance' | 'price_focused';
-  engagementLevel: 'high' | 'medium' | 'low';
-  pricesSensitivity: 'high' | 'medium' | 'low';
-  concerns: string[];
-  preferences: string[];
+// NEW: Compliance Check
+export type ComplianceCheck = {
+  overallCompliant: boolean;
+  scriptAdherence: number;
+  properGreeting: boolean;
+  properClosing: boolean;
+  disclosuresMade: boolean;
+  noMisrepresentation: boolean;
+  sensitiveInfoHandling: boolean;
+  issues: string[];
 };
 
+// NEW: Action Items
 export type ActionItems = {
   forAgent: string[];
   forManager: string[];
   forFollowUp: string[];
+  urgent: string[];
 };
 
+// Main API Result with all enhancements
 export type ApiResult = {
+  // Basic Info
   transcription: string;
   summary: string;
-  mom: MOM;
   language: string;
   durationSec?: number;
-  insights: Insights;
-  conversationMetrics?: ConversationMetrics;
-  conversationSegments?: ConversationSegment[];
-  keyMoments?: KeyMoment[];
+  
+  // Existing
+  mom: MOM;
+  insights?: Insights;
   coaching?: Coaching;
-  predictions?: Predictions;
-  customerProfile?: CustomerProfile;
+  
+  // NEW: Enhanced Analytics
+  conversationStructure?: {
+    segments: ConversationSegment[];
+    overallFlow: string;
+  };
+  keyMoments?: KeyMoment[];
+  metrics?: ConversationMetrics;
+  predictiveScores?: PredictiveScores;
+  customerInsights?: CustomerInsights;
+  compliance?: ComplianceCheck;
   actionItems?: ActionItems;
+  
+  // NEW: Healthcare Specific
+  healthcareMetrics?: {
+    symptomsCaptured: string[];
+    treatmentDiscussed: string[];
+    medicationsMentioned: string[];
+    followUpScheduled: boolean;
+    patientEducationScore: number;
+    painLevelMentioned?: number;
+    complianceIndicators: string[];
+  };
 };
 
+// Bulk Analysis Types
 export type BulkCallResult = {
   id: string;
   fileName: string;
@@ -150,71 +185,15 @@ export type BulkAnalysisSummary = {
     neutral: number;
     negative: number;
   };
-  avgTalkRatio: number;
-  avgQuestions: number;
   commonStrengths: string[];
   commonWeaknesses: string[];
   topImprovementAreas: string[];
   redFlagCount: number;
-  keyMomentsSummary: {
-    complaints: number;
-    compliments: number;
-    objections: number;
-    competitorMentions: number;
-  };
-};
-
-// Helper function to get moment type icon
-export const getMomentIcon = (type: KeyMomentType): string => {
-  const icons: Record<KeyMomentType, string> = {
-    complaint: '😤',
-    compliment: '😊',
-    objection: '🤔',
-    competitor_mention: '🏢',
-    pricing_discussion: '💰',
-    commitment: '🤝',
-    breakthrough: '💡',
-    escalation_risk: '⚠️',
-    pain_point: '😟',
-    positive_signal: '✨',
-  };
-  return icons[type] || '📍';
-};
-
-// Helper function to get moment type label
-export const getMomentLabel = (type: KeyMomentType): string => {
-  const labels: Record<KeyMomentType, string> = {
-    complaint: 'Complaint',
-    compliment: 'Compliment',
-    objection: 'Objection',
-    competitor_mention: 'Competitor Mention',
-    pricing_discussion: 'Pricing Discussion',
-    commitment: 'Commitment',
-    breakthrough: 'Breakthrough',
-    escalation_risk: 'Escalation Risk',
-    pain_point: 'Pain Point',
-    positive_signal: 'Positive Signal',
-  };
-  return labels[type] || type;
-};
-
-// Helper function to get quality color
-export const getQualityColor = (quality: string): string => {
-  const colors: Record<string, string> = {
-    excellent: '#7cffc7',
-    good: '#a8e6cf',
-    average: '#ffd166',
-    poor: '#ff6b6b',
-  };
-  return colors[quality] || '#888';
-};
-
-// Helper function to get risk color
-export const getRiskColor = (risk: string): string => {
-  const colors: Record<string, string> = {
-    high: '#ff6b6b',
-    medium: '#ffd166',
-    low: '#7cffc7',
-  };
-  return colors[risk] || '#888';
+  // NEW: Enhanced Summary
+  avgTalkRatio?: number;
+  avgConversionProbability?: number;
+  totalKeyMoments?: number;
+  commonComplaintTypes?: string[];
+  topPerformingMetrics?: string[];
+  trainingNeeds?: string[];
 };
