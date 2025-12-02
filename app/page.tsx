@@ -301,7 +301,7 @@ export default function HomePage() {
           <div className="script-cards">
             {coaching.scriptRecommendations.map((s, i) => (
               <div key={i} className="script-card">
-                <span>"{s}"</span>
+                <span>&ldquo;{s}&rdquo;</span>
                 <button className="copy-small" onClick={() => onCopy(s)}>Copy</button>
               </div>
             ))}
