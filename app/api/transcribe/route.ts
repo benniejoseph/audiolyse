@@ -2,7 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { processAudioForAnalysis, checkFileSize } from './audioUtils';
 
-const API_KEY = process.env.GOOGLE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+// Debug logging for env vars (masked)
+const k1 = process.env.GOOGLE_GEMINI_API_KEY;
+const k2 = process.env.GEMINI_API_KEY;
+const k3 = process.env.GOOGLE_API_KEY;
+
+console.log('[Debug] Env Vars Check:', {
+  GOOGLE_GEMINI_API_KEY: k1 ? `Present (${k1.length} chars)` : 'Missing',
+  GEMINI_API_KEY: k2 ? `Present (${k2.length} chars)` : 'Missing',
+  GOOGLE_API_KEY: k3 ? `Present (${k3.length} chars)` : 'Missing',
+});
+
+const API_KEY = k1 || k2 || k3;
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -13,15 +24,16 @@ const MODEL_FALLBACKS = [
   'gemini-1.5-flash-001',
   'gemini-1.5-pro',
   'gemini-1.5-pro-001',
-  'gemini-pro-vision', // Fallback for multimodal (though 1.0 vision might not take audio, it's a test)
+  'gemini-pro-vision', 
 ];
 
 export async function POST(req: NextRequest) {
   try {
     // 1. Validate API Configuration
     if (!API_KEY) {
+      console.error('[Error] No API Key found in environment variables.');
       return NextResponse.json({ 
-        error: 'Server Misconfigured: Missing GOOGLE_GEMINI_API_KEY environment variable. Please set this in your Vercel Project Settings.' 
+        error: 'Server Misconfigured: Missing GOOGLE_GEMINI_API_KEY environment variable. Debug info logged to server console.' 
       }, { status: 500 });
     }
 
@@ -40,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Transcribe] Processing: ${audio.name}, Size: ${Math.round(originalBuffer.length / 1024)}KB, Type: ${originalMimeType}`);
 
-    // 3. Size Check (Vercel limit ~4.5MB, but we check 20MB for safety if using blob storage later)
+    // 3. Size Check
     const sizeCheck = checkFileSize(originalBuffer, 20);
     if (!sizeCheck.ok) {
       return NextResponse.json({ 
@@ -267,7 +279,6 @@ If any field cannot be determined, use reasonable defaults (0 for numbers, "unkn
       responseMimeType: 'application/json'
     };
 
-    // 4. Try Models sequentially until one works
     let text = '';
     let usedModel = '';
     let lastError: any = null;
@@ -280,16 +291,15 @@ If any field cannot be determined, use reasonable defaults (0 for numbers, "unkn
         text = resp.response.text();
         usedModel = modelName;
         console.log(`[Transcribe] Success with model: ${modelName}`);
-        break; // Success!
+        break; 
       } catch (e: any) {
         console.warn(`[Transcribe] Failed with ${modelName}:`, e.message);
         lastError = e;
-        // Continue to next model
       }
     }
 
     if (!text && lastError) {
-      throw lastError; // Throw the last error if all failed
+      throw lastError; 
     }
 
     let data: unknown;
@@ -303,7 +313,7 @@ If any field cannot be determined, use reasonable defaults (0 for numbers, "unkn
     
     // Normalize with all enhanced fields
     const normalized = {
-      modelUsed: usedModel, // Include which model was used for debug
+      modelUsed: usedModel,
       language: d.language || 'unknown',
       durationSec: d.durationSec || 0,
       transcription: d.transcription || '',
@@ -432,7 +442,7 @@ If any field cannot be determined, use reasonable defaults (0 for numbers, "unkn
   } catch (e: any) {
     console.error('Transcribe API error:', e);
     
-    // Better error format for 404/400 from Google
+    // Better error format
     const errorMessage = e?.message || 'Unexpected error';
     const isModelNotFoundError = errorMessage.includes('404') && errorMessage.includes('models/');
     
