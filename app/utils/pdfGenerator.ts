@@ -115,7 +115,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
     body: overviewData,
     theme: 'plain',
     styles: { cellPadding: 1, fontSize: 10 },
-    columnStyles: { 0: { fontStyle: 'bold', width: 40 } },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } },
   });
   yPos = (doc as any).lastAutoTable.finalY + 10;
 
