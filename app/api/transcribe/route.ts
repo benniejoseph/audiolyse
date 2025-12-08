@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const processedAudio = processAudioForAnalysis(originalBuffer, originalMimeType, audio.name);
     console.log(`[Transcribe] Audio ready - Format: ${processedAudio.mimeType}, Size: ${Math.round(processedAudio.buffer.length / 1024)}KB`);
 
-    const model = gemini.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    const model = gemini.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
     const systemPrompt = `
 You are an expert call quality analyst, conversation intelligence specialist, and sales/support coach. Analyze this audio call between a patient/customer and a support agent, physiotherapy practitioner, or sales representative. The audio may be in English, Hindi, or Hinglish.
