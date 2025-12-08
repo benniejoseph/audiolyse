@@ -76,6 +76,35 @@ const formatDuration = (seconds: number): string => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
+// Normalize percentage values (API might return 0.62 for 62% or 62 for 62%)
+const normalizePercentage = (value: number): number => {
+  if (value === undefined || value === null) return 0;
+  // If value is between 0 and 1 (exclusive), it's a decimal - multiply by 100
+  if (value > 0 && value < 1) return Math.round(value * 100);
+  // If value is already 0-100, return as-is
+  return Math.round(value);
+};
+
+// Sanitize text to remove problematic Unicode characters
+const sanitizeText = (text: string): string => {
+  if (!text) return '';
+  return text
+    // Replace common currency symbols with text
+    .replace(/₹/g, 'Rs.')
+    .replace(/€/g, 'EUR ')
+    .replace(/£/g, 'GBP ')
+    .replace(/¥/g, 'JPY ')
+    // Replace other problematic characters
+    .replace(/[\u2018\u2019]/g, "'")  // Smart quotes
+    .replace(/[\u201C\u201D]/g, '"')  // Smart double quotes
+    .replace(/\u2013/g, '-')  // En dash
+    .replace(/\u2014/g, '--') // Em dash
+    .replace(/\u2026/g, '...') // Ellipsis
+    // Remove any remaining non-ASCII characters that might cause issues
+    .replace(/[^\x00-\x7F]/g, ' ')
+    .trim();
+};
+
 const getScoreColor = (score: number): [number, number, number] => {
   if (score >= 80) return COLORS.success;
   if (score >= 60) return COLORS.warning;
@@ -278,9 +307,12 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
   const coaching = result.coaching;
   const predictions = result.predictions;
   
-  // Score circles row
-  drawScoreCircle(doc, 35, y + 22, coaching?.overallScore || 0, 18, 'Overall Score');
-  drawScoreCircle(doc, 85, y + 22, predictions?.conversionProbability || 0, 18, 'Conversion %');
+  // Score circles row - normalize conversion probability
+  const overallScore = coaching?.overallScore || 0;
+  const conversionProb = normalizePercentage(predictions?.conversionProbability || 0);
+  
+  drawScoreCircle(doc, 35, y + 22, overallScore, 18, 'Overall Score');
+  drawScoreCircle(doc, 85, y + 22, conversionProb, 18, 'Conversion %');
   
   // Risk boxes
   const churnRisk = (predictions?.churnRisk || 'low').toUpperCase();
@@ -317,7 +349,8 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Severity: ${(coaching.forcedSale.severity || 'unknown').toUpperCase()} - ${(coaching.forcedSale.feedback || '').substring(0, 90)}`, 20, y + 16);
+    const feedbackText = sanitizeText(coaching.forcedSale.feedback || '').substring(0, 90);
+    doc.text(`Severity: ${(coaching.forcedSale.severity || 'unknown').toUpperCase()} - ${feedbackText}`, 20, y + 16);
     y += 28;
   }
   
@@ -328,7 +361,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...COLORS.dark);
-  const summaryText = result.summary || 'No summary available for this call.';
+  const summaryText = sanitizeText(result.summary || 'No summary available for this call.');
   const summaryLines = doc.splitTextToSize(summaryText, 178);
   doc.text(summaryLines.slice(0, 10), 16, y + 4);
   
@@ -352,9 +385,10 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
     // Stacked bar
     const barWidth = 170;
     const barHeight = 14;
-    const agentRatio = metrics.agentTalkRatio || 0;
-    const customerRatio = metrics.customerTalkRatio || 0;
-    const silenceRatio = metrics.silenceRatio || 0;
+    // Normalize percentages (API might return 0.62 for 62% or 62 for 62%)
+    const agentRatio = normalizePercentage(metrics.agentTalkRatio || 0);
+    const customerRatio = normalizePercentage(metrics.customerTalkRatio || 0);
+    const silenceRatio = normalizePercentage(metrics.silenceRatio || 0);
     
     const agentW = (agentRatio / 100) * barWidth;
     const customerW = (customerRatio / 100) * barWidth;
@@ -433,11 +467,11 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
     y = drawSectionHeader(doc, y, 'Conversation Flow');
     
     const segmentData = segments.map(seg => [
-      seg.name || '-',
+      sanitizeText(seg.name || '-'),
       `${seg.startTime || '0:00'} - ${seg.endTime || '0:00'}`,
       `${seg.durationSec || 0}s`,
       getQualityText(seg.quality),
-      (seg.notes || '-').substring(0, 50)
+      sanitizeText(seg.notes || '-').substring(0, 50)
     ]);
     
     autoTable(doc, {
@@ -522,7 +556,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
     doc.setTextColor(...COLORS.dark);
     let sY = y + 15;
     (coaching.strengths || []).slice(0, 5).forEach(s => {
-      const lines = doc.splitTextToSize('* ' + s, colWidth - 8);
+      const lines = doc.splitTextToSize('* ' + sanitizeText(s), colWidth - 8);
       doc.text(lines.slice(0, 2), 18, sY);
       sY += lines.length * 4 + 2;
     });
@@ -541,7 +575,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
     doc.setTextColor(...COLORS.dark);
     let wY = y + 15;
     (coaching.weaknesses || []).slice(0, 5).forEach(w => {
-      const lines = doc.splitTextToSize('* ' + w, colWidth - 8);
+      const lines = doc.splitTextToSize('* ' + sanitizeText(w), colWidth - 8);
       doc.text(lines.slice(0, 2), 110, wY);
       wY += lines.length * 4 + 2;
     });
@@ -569,7 +603,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
       doc.setTextColor(...COLORS.dark);
       let iY = y + 15;
       coaching.improvementSuggestions.slice(0, 4).forEach((s, i) => {
-        const lines = doc.splitTextToSize(`${i + 1}. ${s}`, 175);
+        const lines = doc.splitTextToSize(`${i + 1}. ${sanitizeText(s)}`, 175);
         doc.text(lines.slice(0, 2), 18, iY);
         iY += lines.length * 4 + 2;
       });
@@ -600,7 +634,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
       let rfY = y + 15;
       coaching.redFlags.slice(0, 3).forEach(rf => {
         if (rf && rf.trim()) {
-          doc.text('* ' + rf.substring(0, 90), 18, rfY);
+          doc.text('* ' + sanitizeText(rf).substring(0, 90), 18, rfY);
           rfY += 5;
         }
       });
@@ -623,8 +657,8 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
       
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
-      const summaryLines = doc.splitTextToSize(coaching.coachingSummary, 178);
-      doc.text(summaryLines.slice(0, 4), 16, y + 12);
+      const coachSummaryLines = doc.splitTextToSize(sanitizeText(coaching.coachingSummary), 178);
+      doc.text(coachSummaryLines.slice(0, 4), 16, y + 12);
       y += 30;
     }
   }
@@ -653,13 +687,16 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
       question: 'Question'
     };
     
-    const momentsData = keyMoments.slice(0, 15).map(m => [
-      m.timestamp || '-',
-      momentTypeLabels[m.type] || (m.type || '').replace(/_/g, ' '),
-      m.speaker || '-',
-      m.sentiment || '-',
-      (m.text || '').substring(0, 45) + ((m.text || '').length > 45 ? '...' : '')
-    ]);
+    const momentsData = keyMoments.slice(0, 15).map(m => {
+      const cleanText = sanitizeText(m.text || '');
+      return [
+        m.timestamp || '-',
+        momentTypeLabels[m.type] || (m.type || '').replace(/_/g, ' '),
+        m.speaker || '-',
+        m.sentiment || '-',
+        cleanText.substring(0, 45) + (cleanText.length > 45 ? '...' : '')
+      ];
+    });
     
     autoTable(doc, {
       startY: y,
@@ -698,8 +735,8 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
     y = drawSectionHeader(doc, y, 'Customer Profile');
     
     const profileData = [
-      ['Communication Style', profile.communicationStyle || '-', 'Decision Style', profile.decisionStyle || '-'],
-      ['Engagement Level', profile.engagementLevel || '-', 'Price Sensitivity', profile.pricesSensitivity || '-'],
+      ['Communication Style', sanitizeText(profile.communicationStyle || '-'), 'Decision Style', sanitizeText(profile.decisionStyle || '-')],
+      ['Engagement Level', sanitizeText(profile.engagementLevel || '-'), 'Price Sensitivity', sanitizeText(profile.pricesSensitivity || '-')],
     ];
     
     autoTable(doc, {
@@ -722,8 +759,10 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
       doc.setTextColor(...COLORS.dark);
       doc.text('Key Concerns:', 16, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(profile.concerns.join(', '), 48, y);
-      y += 8;
+      const concernsText = sanitizeText(profile.concerns.join(', '));
+      const concernLines = doc.splitTextToSize(concernsText, 140);
+      doc.text(concernLines.slice(0, 2), 48, y);
+      y += concernLines.length * 4 + 4;
     }
   }
   
@@ -745,21 +784,21 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
     y = drawSectionHeader(doc, y, 'Action Items');
     
     const allActions: string[][] = [];
-    (actions.forAgent || []).forEach(a => allActions.push(['Agent', a, '[ ]']));
-    (actions.forManager || []).forEach(a => allActions.push(['Manager', a, '[ ]']));
-    (actions.forFollowUp || []).forEach(a => allActions.push(['Follow-up', a, '[ ]']));
+    (actions.forAgent || []).forEach(a => allActions.push(['Agent', sanitizeText(a), '']));
+    (actions.forManager || []).forEach(a => allActions.push(['Manager', sanitizeText(a), '']));
+    (actions.forFollowUp || []).forEach(a => allActions.push(['Follow-up', sanitizeText(a), '']));
     
     autoTable(doc, {
       startY: y,
-      head: [['Assigned To', 'Action Item', 'Done']],
+      head: [['Assigned To', 'Action Item', 'Status']],
       body: allActions,
       theme: 'grid',
       headStyles: { fillColor: COLORS.success, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-      styles: { fontSize: 8, cellPadding: 2.5 },
+      styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak' },
       columnStyles: { 
-        0: { cellWidth: 25 },
-        1: { cellWidth: 140 },
-        2: { cellWidth: 15, halign: 'center' }
+        0: { cellWidth: 22 },
+        1: { cellWidth: 148 },
+        2: { cellWidth: 12, halign: 'center' }
       },
     });
     y = (doc as any).lastAutoTable.finalY + 10;
@@ -776,17 +815,17 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
   const mom = result.mom;
   if (mom) {
     const momData = [
-      ['Participants', (mom.participants || []).join(', ') || 'Not identified'],
-      ['Decisions Made', (mom.decisions || []).join('; ') || 'None recorded'],
-      ['Action Items', (mom.actionItems || []).join('; ') || 'None'],
-      ['Next Steps', (mom.nextSteps || []).join('; ') || 'None defined'],
+      ['Participants', sanitizeText((mom.participants || []).join(', ')) || 'Not identified'],
+      ['Decisions Made', sanitizeText((mom.decisions || []).join('; ')) || 'None recorded'],
+      ['Action Items', sanitizeText((mom.actionItems || []).join('; ')) || 'None'],
+      ['Next Steps', sanitizeText((mom.nextSteps || []).join('; ')) || 'None defined'],
     ];
     
     autoTable(doc, {
       startY: y,
       body: momData,
       theme: 'striped',
-      styles: { fontSize: 9, cellPadding: 4 },
+      styles: { fontSize: 9, cellPadding: 4, overflow: 'linebreak' },
       columnStyles: { 
         0: { fontStyle: 'bold', cellWidth: 35, fillColor: COLORS.light },
         1: { cellWidth: 145 }
@@ -804,7 +843,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
       doc.setFont('helvetica', 'bold');
       doc.text('Topics Discussed:', 16, y);
       doc.setFont('helvetica', 'normal');
-      const topicsText = result.insights.topics.join(', ');
+      const topicsText = sanitizeText(result.insights.topics.join(', '));
       const topicLines = doc.splitTextToSize(topicsText, 140);
       doc.text(topicLines.slice(0, 2), 52, y);
       y += topicLines.length * 4 + 4;
@@ -814,7 +853,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
       doc.setFont('helvetica', 'bold');
       doc.text('Keywords:', 16, y);
       doc.setFont('helvetica', 'normal');
-      const keywordsText = result.insights.keywords.join(', ');
+      const keywordsText = sanitizeText(result.insights.keywords.join(', '));
       const keywordLines = doc.splitTextToSize(keywordsText, 150);
       doc.text(keywordLines.slice(0, 2), 40, y);
       y += 10;
@@ -834,7 +873,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...COLORS.dark);
   
-  const transcript = result.transcription || 'No transcript available for this call.';
+  const transcript = sanitizeText(result.transcription || 'No transcript available for this call.');
   const transcriptLines = doc.splitTextToSize(transcript, 178);
   
   // Add transcript with auto page breaks
@@ -885,9 +924,10 @@ export const generateBulkAnalysisPDF = (results: BulkCallResult[]) => {
   const avgScore = completed.length > 0 
     ? completed.reduce((a, c) => a + (c.result?.coaching?.overallScore || 0), 0) / completed.length 
     : 0;
-  const avgConversion = completed.length > 0 
+  const avgConversionRaw = completed.length > 0 
     ? completed.reduce((a, c) => a + (c.result?.predictions?.conversionProbability || 0), 0) / completed.length 
     : 0;
+  const avgConversion = normalizePercentage(avgConversionRaw);
   const totalRedFlags = completed.reduce((a, c) => a + (c.result?.coaching?.redFlags?.filter(r => r && r !== 'None detected.').length || 0), 0);
   const forcedSales = completed.filter(r => r.result?.coaching?.forcedSale?.detected).length;
   
@@ -917,14 +957,15 @@ export const generateBulkAnalysisPDF = (results: BulkCallResult[]) => {
   
   const tableData = results.map(r => {
     if (r.status !== 'completed' || !r.result) {
-      return [r.fileName.substring(0, 28), '-', '-', '-', '-', r.status];
+      return [sanitizeText(r.fileName).substring(0, 28), '-', '-', '-', '-', r.status];
     }
     const res = r.result;
+    const convProb = normalizePercentage(res.predictions?.conversionProbability || 0);
     return [
-      r.fileName.substring(0, 28),
+      sanitizeText(r.fileName).substring(0, 28),
       String(res.coaching?.overallScore || 0),
       res.insights?.sentiment || '-',
-      `${res.predictions?.conversionProbability || 0}%`,
+      `${convProb}%`,
       res.predictions?.churnRisk || '-',
       res.coaching?.forcedSale?.detected ? 'YES' : 'No'
     ];
@@ -996,7 +1037,7 @@ export const generateBulkAnalysisPDF = (results: BulkCallResult[]) => {
   doc.setTextColor(...COLORS.dark);
   let sY = y + 15;
   countFreq(allStrengths).forEach(s => {
-    doc.text('* ' + s.substring(0, 45), 18, sY);
+    doc.text('* ' + sanitizeText(s).substring(0, 45), 18, sY);
     sY += 6;
   });
   
@@ -1014,7 +1055,7 @@ export const generateBulkAnalysisPDF = (results: BulkCallResult[]) => {
   doc.setTextColor(...COLORS.dark);
   let wY = y + 15;
   countFreq(allWeaknesses).forEach(w => {
-    doc.text('* ' + w.substring(0, 45), 110, wY);
+    doc.text('* ' + sanitizeText(w).substring(0, 45), 110, wY);
     wY += 6;
   });
   
