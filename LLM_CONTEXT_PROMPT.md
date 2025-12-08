@@ -35,7 +35,7 @@
     1.  Receives `FormData` (audio file).
     2.  Checks file size (limit ~20MB).
     3.  Sends audio buffer + huge system prompt to Gemini 1.5 Flash.
-    4.  **Consistency**: Uses `temperature: 0.1`, `topK: 20`, `topP: 0.85` for deterministic outputs.
+    4.  **Consistency**: Uses `temperature: 0.0`, `topK: 1` for deterministic outputs.
     5.  **Normalization**: Heavily sanitizes the JSON response to ensure frontend stability (defaults `0` for missing numbers, `[]` for missing arrays).
 
 ### Key Data Structures (`ApiResult`)

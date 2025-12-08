@@ -108,9 +108,9 @@ If any field cannot be determined, use defaults.
     ];
 
     const generationConfig = {
-      temperature: 0.1,
-      topK: 20,
-      topP: 0.85,
+      temperature: 0.0, // Absolute zero for maximum consistency
+      topK: 1,          // Greedy decoding (pick only the most likely token)
+      topP: 0.95,
       responseMimeType: 'application/json'
     };
 
