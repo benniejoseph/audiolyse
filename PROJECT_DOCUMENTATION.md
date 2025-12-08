@@ -1,7 +1,7 @@
 # CallTranscribe: AI-Powered Conversation Intelligence Platform
 
 ## Executive Summary
-CallTranscribe is an advanced conversation intelligence platform designed to transform raw audio calls into actionable business insights. By leveraging Google's Gemini 1.5 Pro AI model, it provides automated quality assurance, sales coaching, and predictive analytics for support and sales teams.
+CallTranscribe is an advanced conversation intelligence platform designed to transform raw audio calls into actionable business insights. By leveraging Google's Gemini 1.5 Flash AI model, it provides automated quality assurance, sales coaching, and predictive analytics for support and sales teams.
 
 The platform handles bulk audio processing, offers deep behavioral analysis, and detects critical risks like forced selling or customer churn indicators, all within a modern, secure web interface.
 
@@ -81,7 +81,7 @@ The detailed analysis is split into focused tabs:
 ---
 
 ## 🔒 Technical Specifications
-- **AI Model**: Google Gemini 1.5 Pro (Multimodal).
+- **AI Model**: Google Gemini 1.5 Flash (Multimodal).
 - **Architecture**: Next.js 14 (React Server Components) for high performance.
 - **Security**: Audio processed in-memory (streams) without permanent storage on intermediate servers.
 - **Deployment**: Edge-optimized via Vercel.

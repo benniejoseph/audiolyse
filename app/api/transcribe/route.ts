@@ -2,19 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { processAudioForAnalysis, checkFileSize } from './audioUtils';
 
-const API_KEY = process.env.GOOGLE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
-
-// We will also fallback to a build-time embedded key if user provided one in code comments.
-// NOTE: For production, always use environment variables in Vercel. The user asked to use a fixed key; we'll allow fallback.
-const HARDCODED_FALLBACK = "AIzaSyAITrV75kNkzbOdHTjWM7-ms7tC2lw-C7A";
-
-const gemini = new GoogleGenerativeAI(API_KEY || HARDCODED_FALLBACK);
+const API_KEY = process.env.GOOGLE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Validate API Configuration
+    if (!API_KEY) {
+      return NextResponse.json({ 
+        error: 'Server Misconfigured: Missing GOOGLE_GEMINI_API_KEY environment variable. Please set this in your Vercel Project Settings.' 
+      }, { status: 500 });
+    }
+
+    const gemini = new GoogleGenerativeAI(API_KEY);
+    
+    // 2. Parse Form Data
     const form = await req.formData();
     const audio = form.get('audio');
     if (!audio || !(audio instanceof File)) {
@@ -27,6 +31,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Transcribe] Processing: ${audio.name}, Size: ${Math.round(originalBuffer.length / 1024)}KB, Type: ${originalMimeType}`);
 
+    // 3. Size Check (Vercel limit ~4.5MB, but we check 20MB for safety if using blob storage later)
     const sizeCheck = checkFileSize(originalBuffer, 20);
     if (!sizeCheck.ok) {
       return NextResponse.json({ 
@@ -37,7 +42,8 @@ export async function POST(req: NextRequest) {
     const processedAudio = processAudioForAnalysis(originalBuffer, originalMimeType, audio.name);
     console.log(`[Transcribe] Audio ready - Format: ${processedAudio.mimeType}, Size: ${Math.round(processedAudio.buffer.length / 1024)}KB`);
 
-    const model = gemini.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    // 4. Initialize Model (Gemini 1.5 Flash is faster/cheaper and supports audio)
+    const model = gemini.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const systemPrompt = `
 You are an expert call quality analyst, conversation intelligence specialist, and sales/support coach. Analyze this audio call between a patient/customer and a support agent, physiotherapy practitioner, or sales representative. The audio may be in English, Hindi, or Hinglish.

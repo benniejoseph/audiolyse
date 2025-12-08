@@ -6,13 +6,13 @@
 ---
 
 ## 1. Project Overview
-`CallTranscribe` is a Next.js 14 application that performs bulk audio analysis using Google Gemini 1.5 Pro. It ingests audio files, transcribes them, and performs deep behavioral analysis, coaching, and predictive modeling.
+`CallTranscribe` is a Next.js 14 application that performs bulk audio analysis using Google Gemini 1.5 Flash. It ingests audio files, transcribes them, and performs deep behavioral analysis, coaching, and predictive modeling.
 
 ### Tech Stack
 -   **Framework**: Next.js 14 (App Router)
 -   **Language**: TypeScript
 -   **Styling**: Global CSS (Tailwind-like utility classes + custom component styles in `app/globals.css`)
--   **AI**: `@google/generative-ai` (Gemini 1.5 Pro)
+-   **AI**: `@google/generative-ai` (Gemini 1.5 Flash)
 -   **Deployment**: Vercel (Edge/Serverless functions)
 
 ---
@@ -34,7 +34,7 @@
 -   **Process**:
     1.  Receives `FormData` (audio file).
     2.  Checks file size (limit ~20MB).
-    3.  Sends audio buffer + huge system prompt to Gemini 1.5 Pro.
+    3.  Sends audio buffer + huge system prompt to Gemini 1.5 Flash.
     4.  **Consistency**: Uses `temperature: 0.1`, `topK: 20`, `topP: 0.85` for deterministic outputs.
     5.  **Normalization**: Heavily sanitizes the JSON response to ensure frontend stability (defaults `0` for missing numbers, `[]` for missing arrays).
 
