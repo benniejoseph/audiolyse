@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { generateCallAnalysisPDF, generateBulkAnalysisPDF } from './utils/pdfGenerator';
 
 type ApiResult = {
   transcription: string;
@@ -382,7 +383,12 @@ export default function HomePage() {
         <div className="dashboard">
           {summary && (
             <div className="card summary-card">
-              <div className="summary-header"><h2>Analysis Dashboard</h2><button className="export-btn" onClick={exportAllResults}>Export All Results</button></div>
+              <div className="summary-header"><h2>Analysis Dashboard</h2>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button className="export-btn" onClick={() => generateBulkAnalysisPDF(bulkResults)}>Download PDF Report</button>
+                  <button className="export-btn" onClick={exportAllResults}>Export JSON</button>
+                </div>
+              </div>
               <div className="stats-grid">
                 <div className="stat-card"><div className="stat-value">{summary.completedCalls}/{summary.totalCalls}</div><div className="stat-label">Calls Analyzed</div></div>
                 <div className="stat-card highlight"><div className="stat-value" style={{ color: getScoreColor(summary.averageScore) }}>{summary.averageScore}</div><div className="stat-label">Avg. Score</div></div>
@@ -777,7 +783,8 @@ export default function HomePage() {
           <div className="card">
             <div className="sectionTitle"><strong>Export Options</strong></div>
             <div className="export-buttons">
-              <button className="export-btn" onClick={() => download(`${selectedCall.fileName}-full.json`, JSON.stringify(selectedCall.result, null, 2))}>Export Full Analysis</button>
+              <button className="export-btn" onClick={() => generateCallAnalysisPDF(selectedCall)}>Download PDF Report</button>
+              <button className="export-btn" onClick={() => download(`${selectedCall.fileName}-full.json`, JSON.stringify(selectedCall.result, null, 2))}>Export JSON Analysis</button>
               <button className="export-btn" onClick={() => download(`${selectedCall.fileName}-transcript.txt`, selectedCall.result?.transcription || '', 'text/plain')}>Export Transcript</button>
               <button className="export-btn" onClick={() => download(`${selectedCall.fileName}-coaching.json`, JSON.stringify(selectedCall.result?.coaching, null, 2))}>Export Coaching</button>
             </div>
