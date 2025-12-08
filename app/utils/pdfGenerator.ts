@@ -928,7 +928,12 @@ export const generateBulkAnalysisPDF = (results: BulkCallResult[]) => {
     ? completed.reduce((a, c) => a + (c.result?.predictions?.conversionProbability || 0), 0) / completed.length 
     : 0;
   const avgConversion = normalizePercentage(avgConversionRaw);
-  const totalRedFlags = completed.reduce((a, c) => a + (c.result?.coaching?.redFlags?.filter(r => r && r !== 'None detected.').length || 0), 0);
+  // Filter out placeholder red flags
+  const isValidRedFlag = (rf: string) => rf && rf.trim() !== '' && 
+    !rf.toLowerCase().includes('none') && 
+    !rf.toLowerCase().includes('n/a') && 
+    !rf.toLowerCase().includes('no red flags');
+  const totalRedFlags = completed.reduce((a, c) => a + (c.result?.coaching?.redFlags?.filter(isValidRedFlag).length || 0), 0);
   const forcedSales = completed.filter(r => r.result?.coaching?.forcedSale?.detected).length;
   
   // Stats row 1

@@ -190,7 +190,13 @@ export default function HomePage() {
     const sentiments = completed.map(r => r.result?.insights?.sentiment?.toLowerCase() || '');
     const allStrengths = completed.flatMap(r => r.result?.coaching?.strengths || []);
     const allWeaknesses = completed.flatMap(r => r.result?.coaching?.weaknesses || []);
-    const redFlags = completed.flatMap(r => r.result?.coaching?.redFlags || []);
+    // Filter out empty/placeholder red flags
+    const redFlags = completed.flatMap(r => r.result?.coaching?.redFlags || []).filter(rf => 
+      rf && rf.trim() !== '' && 
+      !rf.toLowerCase().includes('none') && 
+      !rf.toLowerCase().includes('n/a') &&
+      !rf.toLowerCase().includes('no red flags')
+    );
     const forcedSaleCases = completed.filter(r => r.result?.coaching?.forcedSale?.detected);
     const avgConversion = completed.reduce((a, r) => a + (r.result?.predictions?.conversionProbability || 0), 0) / completed.length;
     const countFreq = (arr: string[]) => {
@@ -647,8 +653,8 @@ export default function HomePage() {
                   ))}</div></div>
                 )}
 
-                {selectedCall.result.coaching.redFlags?.length > 0 && (
-                  <div className="detail-section red-flags"><h5>🚨 Red Flags - Immediate Attention Needed</h5><p className="section-note">Serious issues that require immediate review and correction.</p><ul>{selectedCall.result.coaching.redFlags.map((r, i) => <li key={i}>{r}</li>)}</ul></div>
+                {selectedCall.result.coaching.redFlags?.filter(rf => rf && rf.trim() && !rf.toLowerCase().includes('none') && !rf.toLowerCase().includes('n/a')).length > 0 && (
+                  <div className="detail-section red-flags"><h5>🚨 Red Flags - Immediate Attention Needed</h5><p className="section-note">Serious issues that require immediate review and correction.</p><ul>{selectedCall.result.coaching.redFlags.filter(rf => rf && rf.trim() && !rf.toLowerCase().includes('none') && !rf.toLowerCase().includes('n/a')).map((r, i) => <li key={i}>{r}</li>)}</ul></div>
                 )}
               </div>
             )}

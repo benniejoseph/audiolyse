@@ -61,9 +61,22 @@ export async function POST(req: NextRequest) {
     let usedModel = '';
 
     const systemPrompt = `
-You are an expert call quality analyst, conversation intelligence specialist, and sales/support coach. Analyze this audio call between a patient/customer and a support agent, physiotherapy practitioner, or sales representative. The audio may be in English, Hindi, or Hinglish.
+You are an EXTREMELY STRICT and CRITICAL call quality analyst. You have very high standards and are known for being tough but fair. You analyze calls for a medical/healthcare company where quality matters greatly.
 
-Perform DEEP ANALYSIS and respond ONLY with strict JSON in this exact shape:
+Analyze this audio call between a patient/customer and a support agent. The audio may be in English, Hindi, or Hinglish.
+
+CRITICAL EVALUATION MINDSET:
+- BE HARSH. A score of 90+ should be EXCEPTIONAL and rare.
+- Average performance = 60-70 score, NOT 80+.
+- Always look for what the agent COULD have done better.
+- If the agent missed ANY opportunity to help, upsell, or improve the experience, note it.
+- Don't give the benefit of the doubt - judge based on what actually happened.
+- A "good enough" call is NOT excellent. Distinguish mediocrity from excellence.
+- If the agent didn't actively probe for needs, that's a weakness.
+- If the agent didn't offer additional services/solutions, that's a missed opportunity.
+- If the agent rushed the customer or didn't build rapport, penalize it.
+
+Respond ONLY with strict JSON in this exact shape:
 {
   "language": string,
   "durationSec": number,
@@ -80,18 +93,29 @@ Perform DEEP ANALYSIS and respond ONLY with strict JSON in this exact shape:
   "actionItems": { "forAgent": string[], "forManager": string[], "forFollowUp": string[] }
 }
 
+STRICT SCORING GUIDELINES:
+- 90-100: EXCEPTIONAL - Flawless execution, exceeded expectations, built strong rapport, no missed opportunities
+- 80-89: VERY GOOD - Minor issues only, mostly excellent
+- 70-79: GOOD - Solid performance with some areas for improvement
+- 60-69: AVERAGE - Did the job but nothing special, several improvement areas
+- 50-59: BELOW AVERAGE - Significant issues that need training
+- Below 50: POOR - Serious concerns, immediate coaching needed
+
 ANALYSIS REQUIREMENTS:
-1. TRANSCRIPTION: Full, natural transcription with speaker labels.
-2. SUMMARY: 6-10 crisp bullet points.
-3. CONVERSATION METRICS: Calculate precisely.
-4. CONVERSATION SEGMENTS: Break call into phases.
+1. TRANSCRIPTION: Full verbatim transcription with speaker labels (A: for Agent, C: for Customer).
+2. SUMMARY: 6-10 bullet points covering key discussion points.
+3. CONVERSATION METRICS: Calculate talk ratios as percentages (e.g., 45 for 45%, NOT 0.45).
+4. CONVERSATION SEGMENTS: Break call into distinct phases.
 5. KEY MOMENTS: Identify 5-10 critical moments.
-6. COACHING SCORES: 1-100 for each category.
-10. FORCED SALE DETECTION: Analyze pressure tactics.
-7. PREDICTIONS: Conversion, Churn, etc.
-8. CUSTOMER PROFILE: Infer psychographics.
-9. ACTION ITEMS: Specific follow-ups.
-If any field cannot be determined, use defaults.
+6. COACHING SCORES: Be STRICT. Average calls get 60-70, not 80+.
+7. WEAKNESSES: Always find at least 2-3 areas for improvement, even in good calls.
+8. MISSED OPPORTUNITIES: What could the agent have done better? Always find something.
+9. RED FLAGS: Serious issues only. Leave array EMPTY [] if none exist. Do NOT include "None detected" as an item.
+10. FORCED SALE DETECTION: Check for high-pressure tactics, urgency manipulation, not respecting customer's pace.
+11. PREDICTIONS: Be realistic, not optimistic.
+12. ACTION ITEMS: Specific, actionable follow-ups.
+
+IMPORTANT: For redFlags array - if there are no red flags, return an EMPTY ARRAY []. Do NOT return ["None detected"] or ["None"] or similar.
 `;
     
     const audioBase64 = processedAudio.buffer.toString('base64');
@@ -254,7 +278,18 @@ function normalizeData(d: any, usedModel: string) {
         },
         improvementSuggestions: d?.coaching?.improvementSuggestions || [],
         scriptRecommendations: d?.coaching?.scriptRecommendations || [],
-        redFlags: d?.coaching?.redFlags || [],
+        // Filter out empty/placeholder red flags
+        redFlags: (d?.coaching?.redFlags || []).filter((rf: string) => 
+          rf && 
+          rf.trim() !== '' && 
+          rf.toLowerCase() !== 'none' && 
+          rf.toLowerCase() !== 'none detected' && 
+          rf.toLowerCase() !== 'none detected.' &&
+          rf.toLowerCase() !== 'n/a' &&
+          rf.toLowerCase() !== 'no red flags' &&
+          rf.toLowerCase() !== 'no red flags detected' &&
+          rf.toLowerCase() !== 'no red flags detected.'
+        ),
         coachingSummary: d?.coaching?.coachingSummary || '',
       },
       
