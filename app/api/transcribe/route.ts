@@ -7,6 +7,15 @@ const API_KEY = process.env.GOOGLE_GEMINI_API_KEY || process.env.GEMINI_API_KEY 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
+// List of models to try in order of preference/speed/cost
+const MODEL_FALLBACKS = [
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-001',
+  'gemini-1.5-pro',
+  'gemini-1.5-pro-001',
+  'gemini-pro-vision', // Fallback for multimodal (though 1.0 vision might not take audio, it's a test)
+];
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Validate API Configuration
@@ -41,9 +50,6 @@ export async function POST(req: NextRequest) {
 
     const processedAudio = processAudioForAnalysis(originalBuffer, originalMimeType, audio.name);
     console.log(`[Transcribe] Audio ready - Format: ${processedAudio.mimeType}, Size: ${Math.round(processedAudio.buffer.length / 1024)}KB`);
-
-    // 4. Initialize Model (Gemini 1.5 Flash is faster/cheaper and supports audio)
-    const model = gemini.getGenerativeModel({ model: 'gemini-1.5-flash-001' });
 
     const systemPrompt = `
 You are an expert call quality analyst, conversation intelligence specialist, and sales/support coach. Analyze this audio call between a patient/customer and a support agent, physiotherapy practitioner, or sales representative. The audio may be in English, Hindi, or Hinglish.
@@ -254,25 +260,36 @@ If any field cannot be determined, use reasonable defaults (0 for numbers, "unkn
       },
     ];
 
-    // CONSISTENCY: Very low temperature for reproducible results
-    // Same call analyzed twice should produce nearly identical results
     const generationConfig = {
-      temperature: 0.1,  // Very low for consistency
-      topK: 20,          // Reduced for more deterministic output
-      topP: 0.85,        // Tighter probability distribution
+      temperature: 0.1,
+      topK: 20,
+      topP: 0.85,
       responseMimeType: 'application/json'
     };
 
-    let text: string = '';
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const resp = await model.generateContent({ contents, generationConfig });
-      text = resp.response.text();
+    // 4. Try Models sequentially until one works
+    let text = '';
+    let usedModel = '';
+    let lastError: any = null;
+
+    for (const modelName of MODEL_FALLBACKS) {
       try {
-        const parsed = JSON.parse(text);
-        if (parsed && typeof parsed.summary === 'string' && parsed.summary.trim().length > 10) {
-          break;
-        }
-      } catch {}
+        console.log(`[Transcribe] Attempting with model: ${modelName}`);
+        const model = gemini.getGenerativeModel({ model: modelName });
+        const resp = await model.generateContent({ contents, generationConfig });
+        text = resp.response.text();
+        usedModel = modelName;
+        console.log(`[Transcribe] Success with model: ${modelName}`);
+        break; // Success!
+      } catch (e: any) {
+        console.warn(`[Transcribe] Failed with ${modelName}:`, e.message);
+        lastError = e;
+        // Continue to next model
+      }
+    }
+
+    if (!text && lastError) {
+      throw lastError; // Throw the last error if all failed
     }
 
     let data: unknown;
@@ -286,6 +303,7 @@ If any field cannot be determined, use reasonable defaults (0 for numbers, "unkn
     
     // Normalize with all enhanced fields
     const normalized = {
+      modelUsed: usedModel, // Include which model was used for debug
       language: d.language || 'unknown',
       durationSec: d.durationSec || 0,
       transcription: d.transcription || '',
@@ -413,8 +431,20 @@ If any field cannot be determined, use reasonable defaults (0 for numbers, "unkn
     return NextResponse.json(normalized);
   } catch (e: any) {
     console.error('Transcribe API error:', e);
+    
+    // Better error format for 404/400 from Google
+    const errorMessage = e?.message || 'Unexpected error';
+    const isModelNotFoundError = errorMessage.includes('404') && errorMessage.includes('models/');
+    
+    if (isModelNotFoundError) {
+       return NextResponse.json({
+         error: 'AI Model configuration error. The server could not find a compatible Gemini model (Flash/Pro) for your API Key.',
+         details: errorMessage
+       }, { status: 500 });
+    }
+
     return NextResponse.json({
-      error: e?.message || 'Unexpected error',
+      error: errorMessage,
       stack: process.env.NODE_ENV !== 'production' ? e?.stack : undefined,
     }, { status: 500 });
   }
