@@ -12,13 +12,14 @@ const API_KEY = k1 || k2 || k3;
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
-// Expanded list including 1.0 models
+// Optimized list based on user's available models (2.0/2.5/Latest)
 const MODEL_FALLBACKS = [
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-001',
-  'gemini-1.5-pro',
-  'gemini-1.5-pro-001',
-  'gemini-pro', // 1.0 (Text only, might fail on audio but proves auth)
+  'gemini-flash-latest',       // 1. Valid alias in user's list
+  'gemini-2.0-flash',          // 2. High performance stable
+  'gemini-2.5-flash',          // 3. Newer stable
+  'gemini-2.0-flash-001',      // 4. Specific version
+  'gemini-pro-latest',         // 5. Pro fallback
+  'gemini-2.5-pro',            // 6. 2.5 Pro
 ];
 
 export async function POST(req: NextRequest) {
@@ -59,11 +60,39 @@ export async function POST(req: NextRequest) {
     let text = '';
     let usedModel = '';
 
-    const systemPrompt = `You are an expert call quality analyst... (truncated for brevity, same as before)`; // Use full prompt in real code
-    
-    // We need the FULL PROMPT here for it to work. I will use a placeholder in this chat block 
-    // but the actual write tool call MUST include the full prompt string.
-    // I will simply re-use the full prompt string from previous context.
+    const systemPrompt = `
+You are an expert call quality analyst, conversation intelligence specialist, and sales/support coach. Analyze this audio call between a patient/customer and a support agent, physiotherapy practitioner, or sales representative. The audio may be in English, Hindi, or Hinglish.
+
+Perform DEEP ANALYSIS and respond ONLY with strict JSON in this exact shape:
+{
+  "language": string,
+  "durationSec": number,
+  "transcription": string,
+  "summary": string,
+  "mom": { "participants": string[], "decisions": string[], "actionItems": string[], "nextSteps": string[] },
+  "insights": { "sentiment": "Positive" | "Neutral" | "Negative", "sentimentScore": number, "topics": string[], "keywords": string[] },
+  "conversationMetrics": { "agentTalkRatio": number, "customerTalkRatio": number, "silenceRatio": number, "totalQuestions": number, "openQuestions": number, "closedQuestions": number, "agentInterruptions": number, "customerInterruptions": number, "avgResponseTimeSec": number, "longestPauseSec": number, "wordsPerMinuteAgent": number, "wordsPerMinuteCustomer": number },
+  "conversationSegments": [ { "name": string, "startTime": string, "endTime": string, "durationSec": number, "quality": "excellent" | "good" | "average" | "poor", "notes": string } ],
+  "keyMoments": [ { "timestamp": string, "type": "complaint" | "compliment" | "objection" | "competitor_mention" | "pricing_discussion" | "commitment" | "breakthrough" | "escalation_risk" | "pain_point" | "positive_signal", "speaker": "agent" | "customer", "text": string, "sentiment": "positive" | "neutral" | "negative", "importance": "high" | "medium" | "low" } ],
+  "coaching": { "overallScore": number, "categoryScores": { "opening": number, "discovery": number, "solutionPresentation": number, "objectionHandling": number, "closing": number, "empathy": number, "clarity": number, "compliance": number }, "strengths": string[], "weaknesses": string[], "missedOpportunities": string[], "customerHandling": { "score": number, "feedback": string }, "communicationQuality": { "score": number, "feedback": string }, "pitchEffectiveness": { "score": number, "feedback": string }, "objectionHandling": { "score": number, "feedback": string }, "forcedSale": { "detected": boolean, "severity": "none" | "mild" | "moderate" | "severe", "indicators": string[], "feedback": string }, "improvementSuggestions": string[], "scriptRecommendations": string[], "redFlags": string[], "coachingSummary": string },
+  "predictions": { "conversionProbability": number, "churnRisk": "high" | "medium" | "low", "escalationRisk": "high" | "medium" | "low", "satisfactionLikely": "high" | "medium" | "low", "followUpNeeded": boolean, "urgencyLevel": "high" | "medium" | "low" },
+  "customerProfile": { "communicationStyle": "detailed" | "brief" | "emotional" | "analytical", "decisionStyle": "quick" | "deliberate" | "needs_reassurance" | "price_focused", "engagementLevel": "high" | "medium" | "low", "pricesSensitivity": "high" | "medium" | "low", "concerns": string[], "preferences": string[] },
+  "actionItems": { "forAgent": string[], "forManager": string[], "forFollowUp": string[] }
+}
+
+ANALYSIS REQUIREMENTS:
+1. TRANSCRIPTION: Full, natural transcription with speaker labels.
+2. SUMMARY: 6-10 crisp bullet points.
+3. CONVERSATION METRICS: Calculate precisely.
+4. CONVERSATION SEGMENTS: Break call into phases.
+5. KEY MOMENTS: Identify 5-10 critical moments.
+6. COACHING SCORES: 1-100 for each category.
+10. FORCED SALE DETECTION: Analyze pressure tactics.
+7. PREDICTIONS: Conversion, Churn, etc.
+8. CUSTOMER PROFILE: Infer psychographics.
+9. ACTION ITEMS: Specific follow-ups.
+If any field cannot be determined, use defaults.
+`;
     
     const audioBase64 = processedAudio.buffer.toString('base64');
     const finalMimeType = processedAudio.mimeType;
@@ -72,8 +101,7 @@ export async function POST(req: NextRequest) {
       {
         role: 'user',
         parts: [
-          // IMPORTANT: I need to restore the full system prompt here.
-          { text: getSystemPrompt() }, 
+          { text: systemPrompt },
           { inlineData: { mimeType: finalMimeType, data: audioBase64 } },
         ],
       },
@@ -102,7 +130,6 @@ export async function POST(req: NextRequest) {
     }
 
     if (!text) {
-      // Return ALL errors to help debug
       return NextResponse.json({
         error: 'All AI models failed to respond.',
         debug_errors: errors
@@ -117,8 +144,6 @@ export async function POST(req: NextRequest) {
     }
 
     const d: any = data || {};
-    // ... (rest of normalization logic)
-    // I will include the normalization logic in the actual tool call
     const normalized = normalizeData(d, usedModel);
 
     return NextResponse.json(normalized);
@@ -129,43 +154,6 @@ export async function POST(req: NextRequest) {
       stack: process.env.NODE_ENV !== 'production' ? e?.stack : undefined,
     }, { status: 500 });
   }
-}
-
-// Helper functions to keep file clean
-function getSystemPrompt() {
-  return `
-You are an expert call quality analyst, conversation intelligence specialist, and sales/support coach. Analyze this audio call between a patient/customer and a support agent, physiotherapy practitioner, or sales representative. The audio may be in English, Hindi, or Hinglish.
-
-Perform DEEP ANALYSIS and respond ONLY with strict JSON in this exact shape:
-{
-  "language": string,
-  "durationSec": number,
-  "transcription": string,
-  "summary": string,
-  "mom": { "participants": string[], "decisions": string[], "actionItems": string[], "nextSteps": string[] },
-  "insights": { "sentiment": "Positive" | "Neutral" | "Negative", "sentimentScore": number, "topics": string[], "keywords": string[] },
-  "conversationMetrics": { "agentTalkRatio": number, "customerTalkRatio": number, "silenceRatio": number, "totalQuestions": number, "openQuestions": number, "closedQuestions": number, "agentInterruptions": number, "customerInterruptions": number, "avgResponseTimeSec": number, "longestPauseSec": number, "wordsPerMinuteAgent": number, "wordsPerMinuteCustomer": number },
-  "conversationSegments": [ { "name": string, "startTime": string, "endTime": string, "durationSec": number, "quality": "excellent" | "good" | "average" | "poor", "notes": string } ],
-  "keyMoments": [ { "timestamp": string, "type": "complaint" | "compliment" | "objection" | "competitor_mention" | "pricing_discussion" | "commitment" | "breakthrough" | "escalation_risk" | "pain_point" | "positive_signal", "speaker": "agent" | "customer", "text": string, "sentiment": "positive" | "neutral" | "negative", "importance": "high" | "medium" | "low" } ],
-  "coaching": { "overallScore": number, "categoryScores": { "opening": number, "discovery": number, "solutionPresentation": number, "objectionHandling": number, "closing": number, "empathy": number, "clarity": number, "compliance": number }, "strengths": string[], "weaknesses": string[], "missedOpportunities": string[], "customerHandling": { "score": number, "feedback": string }, "communicationQuality": { "score": number, "feedback": string }, "pitchEffectiveness": { "score": number, "feedback": string }, "objectionHandling": { "score": number, "feedback": string }, "forcedSale": { "detected": boolean, "severity": "none" | "mild" | "moderate" | "severe", "indicators": string[], "feedback": string }, "improvementSuggestions": string[], "scriptRecommendations": string[], "redFlags": string[], "coachingSummary": string },
-  "predictions": { "conversionProbability": number, "churnRisk": "high" | "medium" | "low", "escalationRisk": "high" | "medium" | "low", "satisfactionLikely": "high" | "medium" | "low", "followUpNeeded": boolean, "urgencyLevel": "high" | "medium" | "low" },
-  "customerProfile": { "communicationStyle": "detailed" | "brief" | "emotional" | "analytical", "decisionStyle": "quick" | "deliberate" | "needs_reassurance" | "price_focused", "engagementLevel": "high" | "medium" | "low", "pricesSensitivity": "high" | "medium" | "low", "concerns": string[], "preferences": string[] },
-  "actionItems": { "forAgent": string[], "forManager": string[], "forFollowUp": string[] }
-}
-
-ANALYSIS REQUIREMENTS:
-1. TRANSCRIPTION: Full, natural transcription with speaker labels.
-2. SUMMARY: 6-10 crisp bullet points.
-3. CONVERSATION METRICS: Calculate precisely (Talk ratios, questions, interruptions).
-4. CONVERSATION SEGMENTS: Break call into phases.
-5. KEY MOMENTS: Identify 5-10 critical moments.
-6. COACHING SCORES: 1-100 for each category.
-10. FORCED SALE DETECTION: Analyze pressure tactics.
-7. PREDICTIONS: Conversion, Churn, etc.
-8. CUSTOMER PROFILE: Infer psychographics.
-9. ACTION ITEMS: Specific follow-ups.
-If any field cannot be determined, use defaults.
-`;
 }
 
 function normalizeData(d: any, usedModel: string) {
