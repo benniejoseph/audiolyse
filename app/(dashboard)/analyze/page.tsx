@@ -82,6 +82,7 @@ export default function AnalyzePage() {
   // Auth & organization state
   const [org, setOrg] = useState<Organization | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [limitReached, setLimitReached] = useState(false);
   
@@ -108,6 +109,17 @@ export default function AnalyzePage() {
         
         setUserId(user.id);
 
+        // Get user profile to check admin status
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.is_admin) {
+          setIsAdmin(true);
+        }
+
         // Get organization
         const { data: membership } = await supabase
           .from('organization_members')
@@ -123,8 +135,10 @@ export default function AnalyzePage() {
             .single();
           
           if (organization) {
-            setOrg(organization);
-            setLimitReached(organization.calls_used >= organization.calls_limit);
+            setOrg(organization as Organization);
+            // Admin users never hit limits
+            const isLimitReached = !profile?.is_admin && organization.calls_used >= organization.calls_limit;
+            setLimitReached(isLimitReached);
           }
         }
       } catch (error) {
@@ -249,10 +263,13 @@ export default function AnalyzePage() {
 
   // Check if user can analyze more calls
   const canAnalyze = useMemo(() => {
+    // Admins can always analyze
+    if (isAdmin) return files.length > 0;
+    // Need org to check limits
     if (!org) return false;
     const remainingCalls = org.calls_limit - org.calls_used;
     return remainingCalls > 0 && files.length <= remainingCalls;
-  }, [org, files.length]);
+  }, [org, files.length, isAdmin]);
 
   // Save analysis result to database
   const saveAnalysis = async (result: BulkCallResult) => {

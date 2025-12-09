@@ -22,6 +22,7 @@ export interface Database {
           phone: string | null;
           country: string | null;
           currency: 'INR' | 'USD';
+          is_admin: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -33,6 +34,7 @@ export interface Database {
           phone?: string | null;
           country?: string | null;
           currency?: 'INR' | 'USD';
+          is_admin?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -44,6 +46,7 @@ export interface Database {
           phone?: string | null;
           country?: string | null;
           currency?: 'INR' | 'USD';
+          is_admin?: boolean;
           created_at?: string;
           updated_at?: string;
         };
