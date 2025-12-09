@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import './styles/landing.css';
+import './styles/legal.css';
 
 export const metadata: Metadata = {
   title: 'Audiolyse - Precision Intelligence for Every Conversation',

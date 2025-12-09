@@ -367,8 +367,10 @@ export default function LandingPage() {
             </div>
             <div className="link-group">
               <span className="group-title">Legal</span>
-              <Link href="/terms">Terms</Link>
-              <Link href="/privacy">Privacy</Link>
+              <Link href="/terms">Terms of Service</Link>
+              <Link href="/privacy">Privacy Policy</Link>
+              <Link href="/cancellation-refunds">Cancellation & Refunds</Link>
+              <Link href="/delivery">Delivery Policy</Link>
             </div>
           </div>
         </div>
