@@ -35,8 +35,8 @@ export default function LandingPage() {
       {/* Header */}
       <header className="landing-header">
         <div className="header-brand">
-          <span className="brand-icon">🎧</span>
-          <span className="brand-name">CallTranscribe</span>
+          <span className="brand-icon">🎯</span>
+          <span className="brand-name">Audiolyse</span>
         </div>
         <nav className="header-nav">
           <Link href="/pricing">Pricing</Link>
@@ -51,11 +51,11 @@ export default function LandingPage() {
         <div className="hero-content">
           <h1>
             AI-Powered Call Analysis<br />
-            <span className="gradient-text">for Better Customer Experience</span>
+            <span className="gradient-text">& Marketing Strategy</span>
           </h1>
           <p className="hero-subtitle">
-            Transcribe, analyze, and improve your customer calls with advanced AI. 
-            Get actionable coaching insights, performance scores, and predictive analytics.
+            Transform your customer calls into actionable insights. Get AI-powered transcription, 
+            coaching scores, conversion predictions, and strategic marketing recommendations.
           </p>
           <div className="hero-cta">
             <Link href="/signup" className="cta-primary">
@@ -161,8 +161,8 @@ export default function LandingPage() {
 
       {/* CTA Section */}
       <section className="final-cta">
-        <h2>Ready to Improve Your Call Quality?</h2>
-        <p>Join hundreds of teams using CallTranscribe to enhance customer experience</p>
+        <h2>Ready to Transform Your Calls?</h2>
+        <p>Join hundreds of teams using Audiolyse for smarter call analysis & marketing strategy</p>
         <Link href="/signup" className="cta-primary large">
           Get Started Free →
         </Link>
@@ -171,8 +171,8 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="landing-footer">
         <div className="footer-brand">
-          <span className="brand-icon">🎧</span>
-          <span>CallTranscribe</span>
+          <span className="brand-icon">🎯</span>
+          <span>Audiolyse</span>
         </div>
         <div className="footer-links">
           <Link href="/pricing">Pricing</Link>
@@ -180,7 +180,7 @@ export default function LandingPage() {
           <Link href="/terms">Terms</Link>
           <Link href="/privacy">Privacy</Link>
         </div>
-        <p className="footer-copy">© 2024 CallTranscribe. All rights reserved.</p>
+        <p className="footer-copy">© 2024 Audiolyse. All rights reserved.</p>
       </footer>
     </div>
   );

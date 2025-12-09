@@ -230,7 +230,7 @@ const addPageHeader = (doc: jsPDF, fileName: string) => {
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...COLORS.medium);
-  doc.text('CallTranscribe AI - Call Analysis Report', 14, 12);
+  doc.text('Audiolyse - Call Analysis Report', 14, 12);
   
   // File name (truncated)
   const displayName = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
@@ -334,7 +334,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
   drawInfoBox(doc, 134, y, 62, 22, 'Urgency Level', urgency, getRiskColor(predictions?.urgencyLevel || 'low'));
   
   y += 30;
-  
+
   // Forced Sale Alert
   if (coaching?.forcedSale?.detected) {
     doc.setFillColor(...COLORS.dangerLight);
@@ -439,8 +439,8 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
       ['Customer WPM', String(metrics.wordsPerMinuteCustomer || 0), '', ''],
     ];
     
-    autoTable(doc, {
-      startY: y,
+  autoTable(doc, {
+    startY: y,
       body: metricsData,
       theme: 'striped',
       styles: { fontSize: 9, cellPadding: 3 },
@@ -473,9 +473,9 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
       getQualityText(seg.quality),
       sanitizeText(seg.notes || '-').substring(0, 50)
     ]);
-    
-    autoTable(doc, {
-      startY: y,
+  
+  autoTable(doc, {
+    startY: y,
       head: [['Phase', 'Time Range', 'Duration', 'Quality', 'Notes']],
       body: segmentData,
       theme: 'grid',
@@ -515,7 +515,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
         const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
         const numScore = typeof score === 'number' ? score : 0;
         
-        doc.setFontSize(9);
+  doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...COLORS.dark);
         doc.text(label, 16, y + 3);
@@ -667,7 +667,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
   doc.addPage();
   addPageHeader(doc, fileName);
   y = 22;
-  
+
   // Key Moments
   const keyMoments = result.keyMoments;
   if (keyMoments && keyMoments.length > 0) {
@@ -893,7 +893,7 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
     doc.setPage(i);
     addPageFooter(doc, i, totalPages);
   }
-  
+
   // Save
   const cleanFileName = fileName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
   doc.save(`CallAnalysis_${cleanFileName}_${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -1009,7 +1009,7 @@ export const generateBulkAnalysisPDF = (results: BulkCallResult[]) => {
   
   // Team Insights
   if (y > 200) {
-    doc.addPage();
+  doc.addPage();
     y = 20;
   }
   
@@ -1050,7 +1050,7 @@ export const generateBulkAnalysisPDF = (results: BulkCallResult[]) => {
   doc.setFillColor(...COLORS.dangerLight);
   doc.roundedRect(106, y, colWidth, boxHeight, 2, 2, 'F');
   
-  doc.setFontSize(10);
+    doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLORS.danger);
   doc.text('COMMON ISSUES', 110, y + 8);

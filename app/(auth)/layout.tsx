@@ -9,14 +9,14 @@ export default function AuthLayout({
     <div className="auth-layout">
       <div className="auth-container">
         <div className="auth-brand">
-          <div className="brand-icon">🎧</div>
-          <h1>CallTranscribe</h1>
-          <p>AI-Powered Call Analysis Platform</p>
+          <div className="brand-icon">🎯</div>
+          <h1>Audiolyse</h1>
+          <p>Call Analysis & Marketing Strategy</p>
         </div>
         {children}
       </div>
       <div className="auth-features">
-        <h2>Why CallTranscribe?</h2>
+        <h2>Why Audiolyse?</h2>
         <ul>
           <li>
             <span className="feature-icon">📊</span>

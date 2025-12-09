@@ -18,8 +18,8 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-header">
         <Link href="/dashboard" className="sidebar-logo">
-          <span className="logo-icon">🎧</span>
-          <span className="logo-text">CallTranscribe</span>
+          <span className="logo-icon">🎯</span>
+          <span className="logo-text">Audiolyse</span>
         </Link>
       </div>
 

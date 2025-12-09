@@ -86,8 +86,8 @@ export default function PricingPage() {
       <div className="pricing-header">
         <Link href={isLoggedIn ? '/dashboard' : '/'} className="back-link">← Back</Link>
         <div className="pricing-brand">
-          <span className="brand-icon">🎧</span>
-          <span>CallTranscribe</span>
+          <span className="brand-icon">🎯</span>
+          <span>Audiolyse</span>
         </div>
       </div>
 
@@ -149,7 +149,7 @@ export default function PricingPage() {
       </div>
 
       <footer className="pricing-footer">
-        <p>© 2024 CallTranscribe. All rights reserved.</p>
+        <p>© 2024 Audiolyse. All rights reserved.</p>
       </footer>
     </div>
   );

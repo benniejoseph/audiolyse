@@ -61,7 +61,7 @@ function LoginForm() {
   return (
     <div className="auth-card">
       <h2>Welcome Back</h2>
-      <p className="auth-subtitle">Sign in to continue to CallTranscribe</p>
+      <p className="auth-subtitle">Sign in to continue to Audiolyse</p>
 
       {error && <div className="auth-error">{error}</div>}
 

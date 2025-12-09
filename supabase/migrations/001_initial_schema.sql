@@ -1,4 +1,4 @@
--- CallTranscribe Database Schema
+-- Audiolyse Database Schema
 -- Run this in Supabase SQL Editor
 
 -- Enable UUID extension

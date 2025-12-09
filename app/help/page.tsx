@@ -34,7 +34,7 @@ export default function HelpPage() {
         <h2>📊 Overview: What Does This Tool Do?</h2>
         
         <div className="help-content">
-          <p><strong>CallTranscribe</strong> is an AI-powered tool that listens to phone calls between your team (agents) and customers/patients, then provides detailed analysis to help you:</p>
+          <p><strong>Audiolyse</strong> is an AI-powered call analysis & marketing strategy platform that listens to phone calls between your team (agents) and customers/patients, then provides detailed analysis to help you:</p>
           
           <div className="benefit-grid">
             <div className="benefit-card">
