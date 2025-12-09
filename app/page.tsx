@@ -18,7 +18,7 @@ export default function LandingPage() {
         router.push('/dashboard');
       } else {
         setIsLoggedIn(false);
-      }
+    }
     }
     checkAuth();
   }, [supabase, router]);
@@ -75,8 +75,8 @@ export default function LandingPage() {
         <div className="hero-badge">
           <span className="badge-dot"></span>
           <span>Trusted by 500+ teams worldwide</span>
-        </div>
-        
+      </div>
+
         <h1 className="hero-title">
           <span className="title-line">Precision Intelligence</span>
           <span className="title-line gradient-text-v2">for Every Conversation</span>
@@ -111,7 +111,7 @@ export default function LandingPage() {
           <div className="stat-item">
             <span className="stat-value">2.5s</span>
             <span className="stat-label">Avg Analysis</span>
-          </div>
+            </div>
           <div className="stat-divider"></div>
           <div className="stat-item">
             <span className="stat-value">15+</span>
@@ -128,9 +128,9 @@ export default function LandingPage() {
               <span className="control red"></span>
               <span className="control yellow"></span>
               <span className="control green"></span>
-            </div>
+      </div>
             <span className="demo-title">Live Analysis Preview</span>
-          </div>
+        </div>
           <div className="demo-content-v2">
             <div className="demo-left">
               <div className="waveform">
@@ -144,7 +144,7 @@ export default function LandingPage() {
               <div className="audio-info">
                 <span className="file-name">customer_call_2024.mp3</span>
                 <span className="duration">03:24</span>
-              </div>
+          </div>
             </div>
             <div className="demo-right">
               <div className="score-ring">
@@ -172,12 +172,12 @@ export default function LandingPage() {
                   <span>Pitch</span>
                   <div className="metric-bar"><div style={{ width: '85%' }}></div></div>
                   <span>85</span>
-                </div>
+                  </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+                  </div>
+                </section>
 
       {/* Features Section */}
       <section id="features" className="features-v2">
@@ -238,8 +238,8 @@ export default function LandingPage() {
             <h3>Executive Reports</h3>
             <p>One-click PDF exports with visualizations for training and compliance.</p>
           </div>
-        </div>
-      </section>
+                  </div>
+                </section>
 
       {/* Pricing Section */}
       <section id="pricing" className="pricing-v2">
@@ -260,14 +260,14 @@ export default function LandingPage() {
               <span className="currency">₹</span>
               <span className="amount">0</span>
               <span className="period">/forever</span>
-            </div>
+                  </div>
             <ul className="price-features-v2">
               <li><span className="check">✓</span>3 calls/month</li>
               <li><span className="check">✓</span>Basic analysis</li>
               <li><span className="check">✓</span>7 days history</li>
               <li className="disabled"><span className="x">✗</span>PDF export</li>
               <li className="disabled"><span className="x">✗</span>Team features</li>
-            </ul>
+                      </ul>
             <Link href="/signup" className="price-btn-v2">Get Started</Link>
           </div>
 
@@ -281,14 +281,14 @@ export default function LandingPage() {
               <span className="currency">₹</span>
               <span className="amount">499</span>
               <span className="period">/month</span>
-            </div>
+                    </div>
             <ul className="price-features-v2">
               <li><span className="check">✓</span>50 calls/month</li>
               <li><span className="check">✓</span>Full analysis suite</li>
               <li><span className="check">✓</span>30 days history</li>
               <li><span className="check">✓</span>PDF export</li>
               <li><span className="check">✓</span>Bulk upload</li>
-            </ul>
+                      </ul>
             <Link href="/signup" className="price-btn-v2">Start Trial</Link>
           </div>
 
@@ -303,14 +303,14 @@ export default function LandingPage() {
               <span className="currency">₹</span>
               <span className="amount">1,999</span>
               <span className="period">/month</span>
-            </div>
+                    </div>
             <ul className="price-features-v2">
               <li><span className="check">✓</span>300 calls/month</li>
               <li><span className="check">✓</span>Up to 10 users</li>
               <li><span className="check">✓</span>90 days history</li>
               <li><span className="check">✓</span>Team management</li>
               <li><span className="check">✓</span>Priority support</li>
-            </ul>
+                      </ul>
             <Link href="/signup" className="price-btn-v2 primary">Start Trial</Link>
           </div>
 
@@ -324,18 +324,18 @@ export default function LandingPage() {
               <span className="currency">₹</span>
               <span className="amount">4,999</span>
               <span className="period">/month</span>
-            </div>
+                    </div>
             <ul className="price-features-v2">
               <li><span className="check">✓</span>1,000 calls/month</li>
               <li><span className="check">✓</span>Unlimited users</li>
               <li><span className="check">✓</span>1 year history</li>
               <li><span className="check">✓</span>API access</li>
               <li><span className="check">✓</span>Custom branding</li>
-            </ul>
+                      </ul>
             <Link href="/signup" className="price-btn-v2">Contact Sales</Link>
-          </div>
-        </div>
-      </section>
+                    </div>
+                  </div>
+                </section>
 
       {/* CTA Section */}
       <section className="cta-v2">
@@ -348,10 +348,10 @@ export default function LandingPage() {
               <span className="btn-shine"></span>
             </Link>
             <Link href="/pricing" className="btn-ghost">View All Plans</Link>
-          </div>
-        </div>
+                    </div>
+                  </div>
         <div className="cta-glow"></div>
-      </section>
+                </section>
 
       {/* Footer */}
       <footer className="footer-v2">
@@ -390,7 +390,7 @@ export default function LandingPage() {
         </div>
         <div className="footer-bottom">
           <span>© 2024 Audiolyse. All rights reserved.</span>
-        </div>
+      </div>
       </footer>
     </div>
   );

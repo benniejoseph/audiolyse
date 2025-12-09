@@ -111,6 +111,15 @@
 .auth-logo-v2 .logo-image {
   height: auto;
   width: auto;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+.mobile-auth-logo .logo-image {
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
 }
 
 .auth-headline {

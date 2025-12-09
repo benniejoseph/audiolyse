@@ -637,8 +637,8 @@ export const generateCallAnalysisPDF = (call: BulkCallResult) => {
           doc.text('* ' + sanitizeText(rf).substring(0, 90), 18, rfY);
           rfY += 5;
         }
-      });
-      
+  });
+
       y += 35;
     }
     
@@ -905,7 +905,7 @@ export const generateBulkAnalysisPDF = (results: BulkCallResult[]) => {
   let y = 0;
   
   const completed = results.filter(r => r.status === 'completed' && r.result);
-  
+
   // Cover
   doc.setFillColor(...COLORS.primary);
   doc.rect(0, 0, 210, 50, 'F');
@@ -1045,7 +1045,7 @@ export const generateBulkAnalysisPDF = (results: BulkCallResult[]) => {
     doc.text('* ' + sanitizeText(s).substring(0, 45), 18, sY);
     sY += 6;
   });
-  
+    
   // Common Issues
   doc.setFillColor(...COLORS.dangerLight);
   doc.roundedRect(106, y, colWidth, boxHeight, 2, 2, 'F');

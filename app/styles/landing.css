@@ -90,6 +90,9 @@
 .logo-image {
   height: auto;
   width: auto;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
 }
 
 .nav-v2 {
@@ -808,6 +811,12 @@
   grid-template-columns: 1fr 2fr;
   gap: 60px;
   margin-bottom: 40px;
+}
+
+.footer-brand-v2 .logo-image {
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
 }
 
 .footer-brand-v2 p {

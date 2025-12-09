@@ -117,7 +117,7 @@ ANALYSIS REQUIREMENTS:
 
 IMPORTANT: For redFlags array - if there are no red flags, return an EMPTY ARRAY []. Do NOT return ["None detected"] or ["None"] or similar.
 `;
-    
+
     const audioBase64 = processedAudio.buffer.toString('base64');
     const finalMimeType = processedAudio.mimeType;
 
@@ -142,11 +142,11 @@ IMPORTANT: For redFlags array - if there are no red flags, return an EMPTY ARRAY
       try {
         console.log(`[Transcribe] Attempting with model: ${modelName}`);
         const model = gemini.getGenerativeModel({ model: modelName });
-        const resp = await model.generateContent({ contents, generationConfig });
-        text = resp.response.text();
+      const resp = await model.generateContent({ contents, generationConfig });
+      text = resp.response.text();
         usedModel = modelName;
         console.log(`[Transcribe] Success with model: ${modelName}`);
-        break; 
+          break;
       } catch (e: any) {
         console.warn(`[Transcribe] Failed with ${modelName}:`, e.message);
         errors.push(`${modelName}: ${e.message}`);
