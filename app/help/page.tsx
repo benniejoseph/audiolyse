@@ -71,38 +71,78 @@ export default function HelpPage() {
         <h2>🎯 Understanding Scores (0-100)</h2>
         
         <div className="help-content">
+          <div className="important-note" style={{ background: '#fef3c7', borderColor: '#f59e0b', marginBottom: '20px' }}>
+            <h4>⚠️ Strict Evaluation Standard</h4>
+            <p>Our AI uses <strong>strict evaluation criteria</strong>. We believe in high standards that drive real improvement. A score of 90+ is rare and exceptional - most good calls score in the 70-80 range. Don&apos;t expect inflated scores; expect honest, actionable feedback.</p>
+          </div>
+
           <p>Throughout the analysis, you will see scores from 0 to 100. Here is what they mean:</p>
           
           <div className="score-guide">
+            <div className="score-row exceptional">
+              <div className="score-range">90-100</div>
+              <div className="score-color" style={{ background: '#22c55e' }}></div>
+              <div className="score-meaning">
+                <strong>EXCEPTIONAL</strong>
+                <p>Truly outstanding. Flawless execution, exceeded expectations, built excellent rapport, no missed opportunities. This is rare and worth celebrating. Use as a training example.</p>
+              </div>
+            </div>
             <div className="score-row excellent">
-              <div className="score-range">80-100</div>
+              <div className="score-range">80-89</div>
               <div className="score-color" style={{ background: '#7cffc7' }}></div>
               <div className="score-meaning">
-                <strong>Excellent</strong>
-                <p>Outstanding performance. The agent handled this aspect very well. No immediate action needed - this is behavior to reinforce and celebrate.</p>
+                <strong>VERY GOOD</strong>
+                <p>Strong performance with only minor issues. The agent did most things right. Reinforce this behavior while noting small areas for polish.</p>
               </div>
             </div>
             <div className="score-row good">
-              <div className="score-range">60-79</div>
+              <div className="score-range">70-79</div>
               <div className="score-color" style={{ background: '#ffd166' }}></div>
               <div className="score-meaning">
-                <strong>Good / Needs Improvement</strong>
-                <p>Acceptable performance with room for improvement. The agent is doing okay but could benefit from targeted coaching on specific areas.</p>
+                <strong>GOOD</strong>
+                <p>Solid performance with some clear improvement areas. This is a competent agent who can grow with targeted coaching.</p>
+              </div>
+            </div>
+            <div className="score-row average">
+              <div className="score-range">60-69</div>
+              <div className="score-color" style={{ background: '#fbbf24' }}></div>
+              <div className="score-meaning">
+                <strong>AVERAGE</strong>
+                <p>Did the job but nothing special. Several areas need improvement. This agent needs coaching to move to the next level.</p>
+              </div>
+            </div>
+            <div className="score-row below-average">
+              <div className="score-range">50-59</div>
+              <div className="score-color" style={{ background: '#f97316' }}></div>
+              <div className="score-meaning">
+                <strong>BELOW AVERAGE</strong>
+                <p>Significant issues that need training. Multiple areas require attention. Schedule coaching session soon.</p>
               </div>
             </div>
             <div className="score-row poor">
-              <div className="score-range">0-59</div>
+              <div className="score-range">0-49</div>
               <div className="score-color" style={{ background: '#ff6b6b' }}></div>
               <div className="score-meaning">
-                <strong>Needs Attention</strong>
-                <p>Below expectations. This area requires immediate focus and training. Review the specific feedback and improvement suggestions carefully.</p>
+                <strong>POOR / NEEDS IMMEDIATE ATTENTION</strong>
+                <p>Serious concerns. This call had major issues that need immediate review and correction. Manager escalation recommended.</p>
               </div>
             </div>
           </div>
 
           <div className="example-box">
-            <h4>Example</h4>
-            <p>If an agent scores <strong>72 in Empathy</strong>, it means they showed decent understanding of the customer&apos;s feelings, but there were moments where they could have been more supportive or acknowledging. Check the coaching feedback for specific suggestions.</p>
+            <h4>💡 Why Strict Scoring?</h4>
+            <p>Inflated scores feel good but don&apos;t drive improvement. Our strict scoring ensures:</p>
+            <ul>
+              <li><strong>Honest feedback:</strong> Agents know exactly where they stand</li>
+              <li><strong>Room to grow:</strong> Even good agents have areas to improve</li>
+              <li><strong>Meaningful progress:</strong> When scores improve, it&apos;s real improvement</li>
+              <li><strong>Fair comparison:</strong> Scores are consistent across all calls and agents</li>
+            </ul>
+          </div>
+
+          <div className="example-box">
+            <h4>Example Interpretation</h4>
+            <p>If an agent scores <strong>72 in Empathy</strong>, it means they showed good understanding of the customer&apos;s feelings, but there were specific moments where they could have been more supportive. This is a solid score - the agent is competent but has room to become excellent. Check the coaching feedback for specific suggestions on how to move from &ldquo;good&rdquo; to &ldquo;very good.&rdquo;</p>
           </div>
         </div>
       </section>
@@ -503,4 +543,5 @@ export default function HelpPage() {
     </div>
   );
 }
+
 

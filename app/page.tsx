@@ -586,10 +586,26 @@ export default function HomePage() {
                     <h4>Overall Assessment</h4>
                     <p>{selectedCall.result.coaching.coachingSummary || 'No summary available'}</p>
                     <div className="score-interpretation">
-                      {selectedCall.result.coaching.overallScore >= 80 ? '🌟 Excellent performance! Keep up the great work.' :
-                       selectedCall.result.coaching.overallScore >= 60 ? '👍 Good call with room for improvement.' :
-                       '⚠️ This call needs attention. Review the suggestions below.'}
+                      {selectedCall.result.coaching.overallScore >= 90 ? '🏆 EXCEPTIONAL - Truly outstanding performance!' :
+                       selectedCall.result.coaching.overallScore >= 80 ? '🌟 VERY GOOD - Strong performance with minor areas to polish.' :
+                       selectedCall.result.coaching.overallScore >= 70 ? '👍 GOOD - Solid performance with clear improvement areas.' :
+                       selectedCall.result.coaching.overallScore >= 60 ? '📊 AVERAGE - Did the job, needs coaching to level up.' :
+                       selectedCall.result.coaching.overallScore >= 50 ? '⚠️ BELOW AVERAGE - Significant training needed.' :
+                       '🚨 POOR - Immediate attention required.'}
                     </div>
+                  </div>
+                </div>
+                
+                {/* Score Legend */}
+                <div className="score-legend-box">
+                  <div className="legend-title">📊 Scoring Guide (Strict Evaluation)</div>
+                  <div className="legend-items">
+                    <span className="legend-item"><span className="legend-dot" style={{background: '#22c55e'}}></span>90-100 Exceptional</span>
+                    <span className="legend-item"><span className="legend-dot" style={{background: '#7cffc7'}}></span>80-89 Very Good</span>
+                    <span className="legend-item"><span className="legend-dot" style={{background: '#ffd166'}}></span>70-79 Good</span>
+                    <span className="legend-item"><span className="legend-dot" style={{background: '#fbbf24'}}></span>60-69 Average</span>
+                    <span className="legend-item"><span className="legend-dot" style={{background: '#f97316'}}></span>50-59 Below Avg</span>
+                    <span className="legend-item"><span className="legend-dot" style={{background: '#ff6b6b'}}></span>0-49 Poor</span>
                   </div>
                 </div>
 
