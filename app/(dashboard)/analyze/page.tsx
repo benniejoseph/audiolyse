@@ -122,25 +122,44 @@ export default function AnalyzePage() {
         }
 
         // Get organization
-        const { data: membership } = await supabase
+        const { data: membership, error: membershipError } = await supabase
           .from('organization_members')
           .select('organization_id')
           .eq('user_id', user.id)
-          .single();
+          .limit(1)
+          .maybeSingle();
 
-        if (membership) {
-          const { data: organization } = await supabase
-            .from('organizations')
-            .select('*')
-            .eq('id', membership.organization_id)
-            .single();
-          
-          if (organization) {
-            setOrg(organization as Organization);
-            // Admin users never hit limits
-            const isLimitReached = !profile?.is_admin && organization.calls_used >= organization.calls_limit;
-            setLimitReached(isLimitReached);
-          }
+        if (membershipError) {
+          console.error('Error fetching membership:', membershipError);
+          return;
+        }
+
+        if (!membership) {
+          console.warn('No organization membership found for user');
+          return;
+        }
+
+        console.log('Found organization ID:', membership.organization_id);
+
+        const { data: organization, error: orgError } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', membership.organization_id)
+          .single();
+        
+        if (orgError) {
+          console.error('Error fetching organization:', orgError);
+          return;
+        }
+        
+        if (organization) {
+          console.log('Organization loaded:', organization.name, 'ID:', organization.id);
+          setOrg(organization as Organization);
+          // Admin users never hit limits
+          const isLimitReached = !profile?.is_admin && organization.calls_used >= organization.calls_limit;
+          setLimitReached(isLimitReached);
+        } else {
+          console.warn('Organization not found');
         }
       } catch (error) {
         console.error('Auth error:', error);
@@ -280,7 +299,12 @@ export default function AnalyzePage() {
     }
     
     try {
-      console.log('Saving analysis to database:', result.fileName);
+      console.log('Saving analysis to database:', {
+        fileName: result.fileName,
+        orgId: org.id,
+        userId: userId,
+        hasResult: !!result.result
+      });
       
       const { data, error } = await supabase
         .from('call_analyses')

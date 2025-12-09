@@ -15,68 +15,118 @@ export default function DashboardPage() {
     topPerformer: '-',
   });
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const supabase = createClient();
 
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          console.error('Error getting user:', userError);
+          return;
+        }
+        if (!user) {
+          console.log('No user found');
+          return;
+        }
+
+        console.log('Loading dashboard for user:', user.id);
 
         // Get organization
-        const { data: membership } = await supabase
+        const { data: membership, error: membershipError } = await supabase
           .from('organization_members')
           .select('organization_id')
           .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (membershipError) {
+          console.error('Error fetching membership:', membershipError);
+          return;
+        }
+
+        if (!membership) {
+          console.warn('No organization membership found for user');
+          return;
+        }
+
+        console.log('Found organization ID:', membership.organization_id);
+
+        const { data: organization, error: orgError } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', membership.organization_id)
           .single();
 
-        if (membership) {
-          const { data: organization } = await supabase
-            .from('organizations')
+        if (orgError) {
+          console.error('Error fetching organization:', orgError);
+          return;
+        }
+
+        if (!organization) {
+          console.warn('Organization not found');
+          return;
+        }
+
+        console.log('Organization loaded:', organization.name);
+        setOrg(organization);
+
+        // Get recent calls
+        const { data: calls, error: callsError } = await supabase
+          .from('call_analyses')
+          .select('*')
+          .eq('organization_id', organization.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (callsError) {
+          console.error('Error fetching calls:', callsError);
+          return;
+        }
+
+        console.log(`Loaded ${calls?.length || 0} recent calls from database`);
+        if (calls) {
+          setRecentCalls(calls);
+          
+          // Calculate stats - get all calls for accurate stats
+          const { data: allCalls } = await supabase
+            .from('call_analyses')
             .select('*')
-            .eq('id', membership.organization_id)
-            .single();
+            .eq('organization_id', organization.id);
 
-          if (organization) {
-            setOrg(organization);
+          if (allCalls) {
+            const completed = allCalls.filter(c => c.status === 'completed');
+            const scores = completed.map(c => c.overall_score).filter(Boolean) as number[];
+            const avgScore = scores.length > 0 
+              ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+              : 0;
 
-            // Get recent calls
-            const { data: calls } = await supabase
-              .from('call_analyses')
-              .select('*')
-              .eq('organization_id', organization.id)
-              .order('created_at', { ascending: false })
-              .limit(5);
-
-            if (calls) {
-              setRecentCalls(calls);
-              
-              // Calculate stats
-              const completed = calls.filter(c => c.status === 'completed');
-              const scores = completed.map(c => c.overall_score).filter(Boolean) as number[];
-              const avgScore = scores.length > 0 
-                ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-                : 0;
-
-              setStats({
-                totalCalls: calls.length,
-                avgScore,
-                callsThisMonth: organization.calls_used || 0,
-                topPerformer: '-',
-              });
-            }
+            setStats({
+              totalCalls: allCalls.length,
+              avgScore,
+              callsThisMonth: organization.calls_used || 0,
+              topPerformer: '-',
+            });
           }
+        } else {
+          console.warn('Calls data is null or undefined');
         }
       } catch (error) {
-        console.error('Error loading dashboard:', error);
+        console.error('Unexpected error loading dashboard:', error);
       } finally {
         setLoading(false);
       }
     }
 
     loadDashboard();
-  }, [supabase]);
+  }, [supabase, refreshKey]);
+
+  const handleRefresh = () => {
+    setLoading(true);
+    setRefreshKey(prev => prev + 1);
+  };
 
   if (loading) {
     return (
@@ -94,9 +144,14 @@ export default function DashboardPage() {
           <h1>Welcome back!</h1>
           <p>Here&apos;s an overview of your call analytics</p>
         </div>
-        <Link href="/analyze" className="cta-button">
-          <span>🎙️</span> Analyze New Call
-        </Link>
+        <div className="header-actions">
+          <button onClick={handleRefresh} className="refresh-btn" disabled={loading}>
+            🔄 {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <Link href="/analyze" className="cta-button">
+            <span>🎙️</span> Analyze New Call
+          </Link>
+        </div>
       </div>
 
       {/* Usage Alert */}

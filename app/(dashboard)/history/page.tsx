@@ -14,53 +14,96 @@ export default function HistoryPage() {
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
   const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'failed'>('all');
   const [selectedCall, setSelectedCall] = useState<CallAnalysis | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const supabase = createClient();
 
   useEffect(() => {
     async function loadHistory() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          console.error('Error getting user:', userError);
+          return;
+        }
+        if (!user) {
+          console.log('No user found');
+          return;
+        }
+
+        console.log('Loading history for user:', user.id);
 
         // Get organization
-        const { data: membership } = await supabase
+        const { data: membership, error: membershipError } = await supabase
           .from('organization_members')
           .select('organization_id')
           .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (membershipError) {
+          console.error('Error fetching membership:', membershipError);
+          return;
+        }
+
+        if (!membership) {
+          console.warn('No organization membership found for user');
+          return;
+        }
+
+        console.log('Found organization ID:', membership.organization_id);
+
+        const { data: organization, error: orgError } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', membership.organization_id)
           .single();
 
-        if (membership) {
-          const { data: organization } = await supabase
-            .from('organizations')
-            .select('*')
-            .eq('id', membership.organization_id)
-            .single();
+        if (orgError) {
+          console.error('Error fetching organization:', orgError);
+          return;
+        }
 
-          if (organization) {
-            setOrg(organization);
+        if (!organization) {
+          console.warn('Organization not found');
+          return;
+        }
 
-            // Get call history
-            const { data: callHistory } = await supabase
-              .from('call_analyses')
-              .select('*')
-              .eq('organization_id', organization.id)
-              .order('created_at', { ascending: false });
+        console.log('Organization loaded:', organization.name);
+        setOrg(organization);
 
-            if (callHistory) {
-              setCalls(callHistory);
-            }
-          }
+        // Get call history
+        const { data: callHistory, error: callsError } = await supabase
+          .from('call_analyses')
+          .select('*')
+          .eq('organization_id', organization.id)
+          .order('created_at', { ascending: false });
+
+        if (callsError) {
+          console.error('Error fetching call history:', callsError);
+          return;
+        }
+
+        console.log(`Loaded ${callHistory?.length || 0} calls from database`);
+        if (callHistory) {
+          setCalls(callHistory);
+        } else {
+          console.warn('Call history is null or undefined');
         }
       } catch (error) {
-        console.error('Error loading history:', error);
+        console.error('Unexpected error loading history:', error);
       } finally {
         setLoading(false);
       }
     }
 
     loadHistory();
-  }, [supabase]);
+  }, [supabase, refreshKey]);
+
+  const handleRefresh = () => {
+    setLoading(true);
+    setRefreshKey(prev => prev + 1);
+  };
 
   const filteredCalls = calls
     .filter(call => {
@@ -119,9 +162,14 @@ export default function HistoryPage() {
           <h1>Call History</h1>
           <p>View and manage your analyzed calls</p>
         </div>
-        <div className="history-info">
-          <span className="history-count">{calls.length} calls</span>
-          <span className="history-retention">Retention: {historyDays} days</span>
+        <div className="history-actions">
+          <button onClick={handleRefresh} className="refresh-btn" disabled={loading}>
+            🔄 {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <div className="history-info">
+            <span className="history-count">{calls.length} calls</span>
+            <span className="history-retention">Retention: {historyDays} days</span>
+          </div>
         </div>
       </div>
 
