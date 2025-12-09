@@ -31,7 +31,7 @@ export function Logo({ size = 'md', showText = true, showTagline = false }: Logo
         }}
       >
         <Image
-          src="/logo.png"
+          src="/audiolyseLogo.png"
           alt="Audiolyse Logo"
           width={s.icon}
           height={s.icon}
@@ -49,17 +49,18 @@ export function Logo({ size = 'md', showText = true, showTagline = false }: Logo
           <span 
             className="logo-text-main"
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
               fontSize: `${s.text}px`,
               fontWeight: 700,
-              letterSpacing: '2px',
-              background: 'linear-gradient(135deg, #1a5a6e 0%, #2a7a92 50%, #1a5a6e 100%)',
+              letterSpacing: '1.5px',
+              background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 50%, #fbbf24 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
+              textTransform: 'uppercase',
             }}
           >
-            AUDIOLYSE
+            Audiolyse
           </span>
           {showTagline && (
             <span 
@@ -68,12 +69,13 @@ export function Logo({ size = 'md', showText = true, showTagline = false }: Logo
                 fontFamily: "'Inter', sans-serif",
                 fontSize: `${s.tagline}px`,
                 fontWeight: 400,
-                letterSpacing: '0.5px',
-                color: '#c9a227',
-                marginTop: '-2px',
+                letterSpacing: '0.8px',
+                color: '#94a3b8',
+                marginTop: '2px',
+                textTransform: 'uppercase',
               }}
             >
-              PRECISION INTELLIGENCE
+              Precision Intelligence
             </span>
           )}
         </div>
@@ -93,7 +95,7 @@ export function LogoIcon({ size = 32 }: { size?: number }) {
       }}
     >
       <Image
-        src="/logo.png"
+        src="/audiolyseLogo.png"
         alt="Audiolyse Logo"
         width={size}
         height={size}
