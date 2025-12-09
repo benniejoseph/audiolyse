@@ -362,7 +362,7 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, {
   price: { INR: number; USD: number };
 }> = {
   free: {
-    calls: 3,
+    calls: 5, // 5 calls per day
     users: 1,
     storageMb: 50,
     historyDays: 7,

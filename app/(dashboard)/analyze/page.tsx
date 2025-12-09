@@ -663,7 +663,7 @@ export default function AnalyzePage() {
         {org && (
           <div className="usage-info">
             <span>
-              {org.calls_used}/{org.calls_limit} calls used this month
+              {org.calls_used}/{org.calls_limit} calls used {org.subscription_tier === 'free' ? 'today' : 'this month'}
             </span>
             {org.calls_used >= org.calls_limit && (
               <a href="/pricing" className="upgrade-btn">Upgrade →</a>
@@ -676,7 +676,7 @@ export default function AnalyzePage() {
           <div className="limit-alert">
             <span className="alert-icon">⚠️</span>
             <div>
-              <strong>Monthly limit reached</strong>
+              <strong>{org?.subscription_tier === 'free' ? 'Daily' : 'Monthly'} limit reached</strong>
               <p>Upgrade your plan to analyze more calls</p>
             </div>
             <a href="/pricing" className="alert-cta">View Plans</a>
@@ -722,7 +722,7 @@ export default function AnalyzePage() {
             
             {!canAnalyze && files.length > (org?.calls_limit || 0) - (org?.calls_used || 0) && (
               <p className="warning-text">
-                You can only analyze {(org?.calls_limit || 0) - (org?.calls_used || 0)} more calls this month
+                You can only analyze {(org?.calls_limit || 0) - (org?.calls_used || 0)} more calls {org?.subscription_tier === 'free' ? 'today' : 'this month'}
               </p>
             )}
             

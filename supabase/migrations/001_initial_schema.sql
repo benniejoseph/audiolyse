@@ -40,7 +40,7 @@ CREATE TABLE organizations (
   subscription_id TEXT, -- Payment gateway subscription ID
   
   -- Limits
-  calls_limit INTEGER DEFAULT 3,
+  calls_limit INTEGER DEFAULT 5, -- Free tier: 5 calls per day
   calls_used INTEGER DEFAULT 0,
   storage_limit_mb INTEGER DEFAULT 50,
   storage_used_mb DECIMAL(10,2) DEFAULT 0,

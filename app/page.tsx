@@ -255,7 +255,7 @@ export default function LandingPage() {
               <span className="period">/forever</span>
             </div>
             <ul className="price-features-v2">
-              <li><span className="check">✓</span>3 calls/month</li>
+              <li><span className="check">✓</span>5 calls/day</li>
               <li><span className="check">✓</span>Basic analysis</li>
               <li><span className="check">✓</span>7 days history</li>
               <li className="disabled"><span className="x">✗</span>PDF export</li>

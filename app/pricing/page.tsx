@@ -120,7 +120,7 @@ export default function PricingPage() {
               </div>
 
               <ul className="tier-features">
-                <li><span className="check">✓</span><span>{limits.calls} calls/month</span></li>
+                <li><span className="check">✓</span><span>{limits.calls} calls/{tier.id === 'free' ? 'day' : 'month'}</span></li>
                 <li><span className="check">✓</span><span>{limits.users === 999 ? 'Unlimited' : limits.users} user{limits.users > 1 ? 's' : ''}</span></li>
                 <li><span className="check">✓</span><span>{limits.storageMb >= 1000 ? `${limits.storageMb / 1000}GB` : `${limits.storageMb}MB`} storage</span></li>
                 <li><span className="check">✓</span><span>{limits.historyDays} days history</span></li>
@@ -143,7 +143,7 @@ export default function PricingPage() {
         <div className="faq-grid">
           <div className="faq-item"><h4>What happens if I exceed my call limit?</h4><p>You will need to upgrade or wait for the next billing cycle.</p></div>
           <div className="faq-item"><h4>Can I downgrade my plan?</h4><p>Yes, changes take effect at the next billing cycle.</p></div>
-          <div className="faq-item"><h4>Is there a free trial?</h4><p>The Free tier gives you 3 calls/month to try core features.</p></div>
+          <div className="faq-item"><h4>Is there a free trial?</h4><p>The Free tier gives you 5 calls/day to try core features.</p></div>
           <div className="faq-item"><h4>What payment methods do you accept?</h4><p>Credit/debit cards, UPI, and net banking for India.</p></div>
         </div>
       </div>
