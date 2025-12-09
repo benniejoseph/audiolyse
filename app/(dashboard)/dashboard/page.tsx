@@ -192,7 +192,7 @@ export default function DashboardPage() {
             <span className="stat-value">
               {org?.calls_used || 0}/{org?.calls_limit || 3}
             </span>
-            <span className="stat-label">Calls This Month</span>
+            <span className="stat-label">Calls {org?.subscription_tier === 'free' ? 'Today' : 'This Month'}</span>
           </div>
         </div>
 
