@@ -100,26 +100,19 @@
   max-width: 520px;
 }
 
-.auth-logo-v2 {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 60px;
+
+.auth-logo-link {
   text-decoration: none;
+  display: inline-block;
+  margin-bottom: 40px;
 }
 
-.auth-logo-v2 .logo-image {
-  height: auto;
-  width: auto;
-  background: #fff;
-  border-radius: 8px;
-  padding: 6px 12px;
+.auth-logo-link .logo-container {
+  transition: transform 0.2s ease;
 }
 
-.mobile-auth-logo .logo-image {
-  background: #fff;
-  border-radius: 8px;
-  padding: 6px 12px;
+.auth-logo-link:hover .logo-container {
+  transform: scale(1.02);
 }
 
 .auth-headline {
@@ -482,9 +475,9 @@
   text-decoration: none;
 }
 
-.mobile-auth-logo .logo-image {
-  height: auto;
-  width: auto;
+.mobile-auth-header a {
+  text-decoration: none;
+  display: inline-block;
 }
 
 @media (max-width: 1024px) {

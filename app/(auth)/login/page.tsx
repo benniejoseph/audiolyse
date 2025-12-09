@@ -3,8 +3,8 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { Logo } from '@/components/Logo';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -61,14 +61,8 @@ function LoginForm() {
     <div className="auth-card-v2">
       {/* Mobile Logo */}
       <div className="mobile-auth-header">
-        <Link href="/" className="mobile-auth-logo">
-          <Image 
-            src="/logo.png" 
-            alt="Audiolyse" 
-            width={160} 
-            height={43}
-            className="logo-image"
-          />
+        <Link href="/">
+          <Logo size="md" showText={true} />
         </Link>
       </div>
 
@@ -195,15 +189,8 @@ export default function LoginPage() {
       {/* Left Panel - Branding */}
       <div className="auth-panel-left">
         <div className="auth-brand">
-          <Link href="/" className="auth-logo-v2">
-            <Image 
-              src="/logo.png" 
-              alt="Audiolyse" 
-              width={200} 
-              height={54}
-              className="logo-image"
-              priority
-            />
+          <Link href="/" className="auth-logo-link">
+            <Logo size="lg" showText={true} showTagline={true} />
           </Link>
 
           <h1 className="auth-headline">

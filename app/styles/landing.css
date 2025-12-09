@@ -80,19 +80,20 @@
   justify-content: space-between;
 }
 
-.logo-v2 {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.logo-link {
   text-decoration: none;
 }
 
-.logo-image {
-  height: auto;
-  width: auto;
-  background: #fff;
-  border-radius: 8px;
-  padding: 6px 12px;
+.logo-container {
+  transition: transform 0.2s ease;
+}
+
+.logo-container:hover {
+  transform: scale(1.02);
+}
+
+.logo-icon-svg {
+  flex-shrink: 0;
 }
 
 .nav-v2 {
@@ -811,12 +812,6 @@
   grid-template-columns: 1fr 2fr;
   gap: 60px;
   margin-bottom: 40px;
-}
-
-.footer-brand-v2 .logo-image {
-  background: #fff;
-  border-radius: 8px;
-  padding: 6px 12px;
 }
 
 .footer-brand-v2 p {
