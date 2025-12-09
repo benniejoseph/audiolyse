@@ -6,6 +6,10 @@ import './styles/legal.css';
 export const metadata: Metadata = {
   title: 'Audiolyse - Precision Intelligence for Every Conversation',
   description: 'AI-powered call analysis platform. Get transcription, coaching scores, conversion predictions, and strategic marketing insights from your customer calls.',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({
