@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type SubscriptionTier = 'free' | 'individual' | 'team' | 'enterprise';
+export type SubscriptionTier = 'free' | 'individual' | 'team' | 'enterprise' | 'payg';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing';
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
 
@@ -66,6 +66,8 @@ export interface Database {
           storage_limit_mb: number;
           storage_used_mb: number;
           users_limit: number;
+          credits_balance: number | null;
+          daily_reset_date: string | null;
           billing_email: string | null;
           created_at: string;
           updated_at: string;
@@ -106,6 +108,8 @@ export interface Database {
           storage_limit_mb?: number;
           storage_used_mb?: number;
           users_limit?: number;
+          credits_balance?: number | null;
+          daily_reset_date?: string | null;
           billing_email?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -362,9 +366,9 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, {
   price: { INR: number; USD: number };
 }> = {
   free: {
-    calls: 5, // 5 calls per day
+    calls: 10, // 10 calls per day (doubled)
     users: 1,
-    storageMb: 50,
+    storageMb: 100, // Doubled
     historyDays: 7,
     features: {
       bulkUpload: false,
@@ -377,9 +381,9 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, {
     price: { INR: 0, USD: 0 },
   },
   individual: {
-    calls: 50,
+    calls: 100, // Doubled from 50
     users: 1,
-    storageMb: 500,
+    storageMb: 1000, // Doubled
     historyDays: 30,
     features: {
       bulkUpload: true,
@@ -392,9 +396,9 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, {
     price: { INR: 499, USD: 6 },
   },
   team: {
-    calls: 300,
+    calls: 600, // Doubled from 300
     users: 10,
-    storageMb: 5000,
+    storageMb: 10000, // Doubled
     historyDays: 90,
     features: {
       bulkUpload: true,
@@ -407,9 +411,9 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, {
     price: { INR: 1999, USD: 24 },
   },
   enterprise: {
-    calls: 1000,
+    calls: 2000, // Doubled from 1000
     users: 999, // Effectively unlimited
-    storageMb: 50000,
+    storageMb: 100000, // Doubled
     historyDays: 365,
     features: {
       bulkUpload: true,
@@ -420,6 +424,21 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, {
       customBranding: true,
     },
     price: { INR: 4999, USD: 60 },
+  },
+  payg: {
+    calls: 0, // Pay-as-you-go: uses credits instead
+    users: 1,
+    storageMb: 500,
+    historyDays: 30,
+    features: {
+      bulkUpload: true,
+      pdfExport: true,
+      teamManagement: false,
+      apiAccess: false,
+      prioritySupport: false,
+      customBranding: false,
+    },
+    price: { INR: 0, USD: 0 }, // No monthly fee, pay per credit
   },
 };
 

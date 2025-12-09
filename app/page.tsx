@@ -255,7 +255,7 @@ export default function LandingPage() {
               <span className="period">/forever</span>
             </div>
             <ul className="price-features-v2">
-              <li><span className="check">✓</span>5 calls/day</li>
+              <li><span className="check">✓</span>10 calls/day</li>
               <li><span className="check">✓</span>Basic analysis</li>
               <li><span className="check">✓</span>7 days history</li>
               <li className="disabled"><span className="x">✗</span>PDF export</li>
@@ -276,7 +276,7 @@ export default function LandingPage() {
               <span className="period">/month</span>
             </div>
             <ul className="price-features-v2">
-              <li><span className="check">✓</span>50 calls/month</li>
+              <li><span className="check">✓</span>100 calls/month</li>
               <li><span className="check">✓</span>Full analysis suite</li>
               <li><span className="check">✓</span>30 days history</li>
               <li><span className="check">✓</span>PDF export</li>
@@ -298,7 +298,7 @@ export default function LandingPage() {
               <span className="period">/month</span>
             </div>
             <ul className="price-features-v2">
-              <li><span className="check">✓</span>300 calls/month</li>
+              <li><span className="check">✓</span>600 calls/month</li>
               <li><span className="check">✓</span>Up to 10 users</li>
               <li><span className="check">✓</span>90 days history</li>
               <li><span className="check">✓</span>Team management</li>
@@ -319,13 +319,34 @@ export default function LandingPage() {
               <span className="period">/month</span>
             </div>
             <ul className="price-features-v2">
-              <li><span className="check">✓</span>1,000 calls/month</li>
+              <li><span className="check">✓</span>2,000 calls/month</li>
               <li><span className="check">✓</span>Unlimited users</li>
               <li><span className="check">✓</span>1 year history</li>
               <li><span className="check">✓</span>API access</li>
               <li><span className="check">✓</span>Custom branding</li>
             </ul>
             <Link href="/signup" className="price-btn-v2">Contact Sales</Link>
+          </div>
+
+          {/* Pay-as-You-Go */}
+          <div className="price-card-v2">
+            <div className="price-header-v2">
+              <span className="price-name">Pay-as-You-Go</span>
+              <span className="price-desc">Flexible usage</span>
+            </div>
+            <div className="price-amount-v2">
+              <span className="currency">₹</span>
+              <span className="amount">5</span>
+              <span className="period">/credit</span>
+            </div>
+            <ul className="price-features-v2">
+              <li><span className="check">✓</span>Pay per call - No commitment</li>
+              <li><span className="check">✓</span>1 credit = 1 call analysis</li>
+              <li><span className="check">✓</span>Credits never expire</li>
+              <li><span className="check">✓</span>Bulk discounts available</li>
+              <li><span className="check">✓</span>All premium features</li>
+            </ul>
+            <Link href="/signup" className="price-btn-v2">Buy Credits</Link>
           </div>
         </div>
       </section>

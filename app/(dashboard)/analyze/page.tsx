@@ -156,7 +156,16 @@ export default function AnalyzePage() {
           console.log('Organization loaded:', organization.name, 'ID:', organization.id);
           setOrg(organization as Organization);
           // Admin users never hit limits
-          const isLimitReached = !profile?.is_admin && organization.calls_used >= organization.calls_limit;
+          let isLimitReached = false;
+          if (!profile?.is_admin) {
+            if (organization.subscription_tier === 'payg') {
+              // For payg, check if credits are available
+              isLimitReached = (organization.credits_balance || 0) < 1;
+            } else {
+              // For other tiers, check call limits
+              isLimitReached = organization.calls_used >= organization.calls_limit;
+            }
+          }
           setLimitReached(isLimitReached);
         } else {
           console.warn('Organization not found');
@@ -287,6 +296,14 @@ export default function AnalyzePage() {
     if (isAdmin) return files.length > 0;
     // Need org to check limits
     if (!org) return false;
+    
+    // For payg tier, check credits balance
+    if (org.subscription_tier === 'payg') {
+      const creditsBalance = org.credits_balance || 0;
+      return creditsBalance >= files.length;
+    }
+    
+    // For other tiers, check call limits
     const remainingCalls = org.calls_limit - org.calls_used;
     return remainingCalls > 0 && files.length <= remainingCalls;
   }, [org, files.length, isAdmin]);
@@ -337,26 +354,52 @@ export default function AnalyzePage() {
       
       console.log('Analysis saved with ID:', data.id);
       
-      // Increment usage
-      const { error: updateError } = await supabase
-        .from('organizations')
-        .update({
-          calls_used: (org.calls_used || 0) + 1,
-          storage_used_mb: (org.storage_used_mb || 0) + (result.fileSize / (1024 * 1024)),
-        })
-        .eq('id', org.id);
-      
-      if (updateError) {
-        console.error('Error updating organization usage:', updateError);
-        // Don't throw - the analysis is saved, usage update can fail
+      // Increment usage - use database function for payg tier, direct update for others
+      if (org.subscription_tier === 'payg') {
+        // For payg, credits are handled by database function
+        // Just update storage
+        const { error: storageError } = await supabase
+          .from('organizations')
+          .update({
+            storage_used_mb: (org.storage_used_mb || 0) + (result.fileSize / (1024 * 1024)),
+          })
+          .eq('id', org.id);
+        
+        if (storageError) {
+          console.error('Error updating storage:', storageError);
+        }
+        
+        // Refresh org to get updated credits balance
+        const { data: updatedOrg } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', org.id)
+          .single();
+        
+        if (updatedOrg) {
+          setOrg(updatedOrg as Organization);
+        }
+      } else {
+        // For other tiers, update calls_used
+        const { error: updateError } = await supabase
+          .from('organizations')
+          .update({
+            calls_used: (org.calls_used || 0) + 1,
+            storage_used_mb: (org.storage_used_mb || 0) + (result.fileSize / (1024 * 1024)),
+          })
+          .eq('id', org.id);
+        
+        if (updateError) {
+          console.error('Error updating organization usage:', updateError);
+        }
+        
+        // Update local org state
+        setOrg(prev => prev ? {
+          ...prev,
+          calls_used: prev.calls_used + 1,
+          storage_used_mb: Number(prev.storage_used_mb) + (result.fileSize / (1024 * 1024)),
+        } : null);
       }
-      
-      // Update local org state
-      setOrg(prev => prev ? {
-        ...prev,
-        calls_used: prev.calls_used + 1,
-        storage_used_mb: Number(prev.storage_used_mb) + (result.fileSize / (1024 * 1024)),
-      } : null);
       
       // Log usage
       const { error: logError } = await supabase
@@ -663,10 +706,16 @@ export default function AnalyzePage() {
         {org && (
           <div className="usage-info">
             <span>
-              {org.calls_used}/{org.calls_limit} calls used {org.subscription_tier === 'free' ? 'today' : 'this month'}
+              {org.subscription_tier === 'payg' ? (
+                <>{(org.credits_balance || 0)} credits available</>
+              ) : (
+                <>{org.calls_used}/{org.calls_limit} calls used {org.subscription_tier === 'free' ? 'today' : 'this month'}</>
+              )}
             </span>
-            {org.calls_used >= org.calls_limit && (
-              <a href="/pricing" className="upgrade-btn">Upgrade →</a>
+            {(org.subscription_tier === 'payg' ? (org.credits_balance || 0) < files.length : org.calls_used >= org.calls_limit) && (
+              <a href="/pricing" className="upgrade-btn">
+                {org.subscription_tier === 'payg' ? 'Buy Credits →' : 'Upgrade →'}
+              </a>
             )}
           </div>
         )}
@@ -676,7 +725,13 @@ export default function AnalyzePage() {
           <div className="limit-alert">
             <span className="alert-icon">⚠️</span>
             <div>
-              <strong>{org?.subscription_tier === 'free' ? 'Daily' : 'Monthly'} limit reached</strong>
+              <strong>
+              {org?.subscription_tier === 'payg' 
+                ? 'Insufficient credits' 
+                : org?.subscription_tier === 'free' 
+                  ? 'Daily limit reached' 
+                  : 'Monthly limit reached'}
+            </strong>
               <p>Upgrade your plan to analyze more calls</p>
             </div>
             <a href="/pricing" className="alert-cta">View Plans</a>
@@ -722,7 +777,9 @@ export default function AnalyzePage() {
             
             {!canAnalyze && files.length > (org?.calls_limit || 0) - (org?.calls_used || 0) && (
               <p className="warning-text">
-                You can only analyze {(org?.calls_limit || 0) - (org?.calls_used || 0)} more calls {org?.subscription_tier === 'free' ? 'today' : 'this month'}
+                {org?.subscription_tier === 'payg' 
+                  ? `You need ${files.length - (org?.credits_balance || 0)} more credits to analyze ${files.length} call${files.length > 1 ? 's' : ''}`
+                  : `You can only analyze ${(org?.calls_limit || 0) - (org?.calls_used || 0)} more calls ${org?.subscription_tier === 'free' ? 'today' : 'this month'}`}
               </p>
             )}
             
