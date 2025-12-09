@@ -486,20 +486,28 @@ export default function AnalyzePage() {
     );
   };
 
-  const TalkRatioBar = ({ agent, customer, silence }: { agent: number; customer: number; silence: number }) => (
-    <div className="talk-ratio-container">
-      <div className="talk-ratio-bar">
-        <div className="ratio-segment agent" style={{ width: `${agent * 100}%` }} title={`Agent: ${(agent * 100).toFixed(1)}%`} />
-        <div className="ratio-segment customer" style={{ width: `${customer * 100}%` }} title={`Customer: ${(customer * 100).toFixed(1)}%`} />
-        <div className="ratio-segment silence" style={{ width: `${silence * 100}%` }} title={`Silence: ${(silence * 100).toFixed(1)}%`} />
+  const TalkRatioBar = ({ agent, customer, silence }: { agent: number; customer: number; silence: number }) => {
+    // Normalize: API should return decimals (0-1), but handle edge case where it might be percentages
+    const normalize = (val: number) => val > 1 ? val / 100 : val;
+    const agentPct = normalize(agent) * 100;
+    const customerPct = normalize(customer) * 100;
+    const silencePct = normalize(silence) * 100;
+    
+    return (
+      <div className="talk-ratio-container">
+        <div className="talk-ratio-bar">
+          <div className="ratio-segment agent" style={{ width: `${agentPct}%` }} title={`Agent: ${agentPct.toFixed(1)}%`} />
+          <div className="ratio-segment customer" style={{ width: `${customerPct}%` }} title={`Customer: ${customerPct.toFixed(1)}%`} />
+          <div className="ratio-segment silence" style={{ width: `${silencePct}%` }} title={`Silence: ${silencePct.toFixed(1)}%`} />
+        </div>
+        <div className="ratio-legend">
+          <span><span className="dot agent" /> Agent {agentPct.toFixed(1)}%</span>
+          <span><span className="dot customer" /> Customer {customerPct.toFixed(1)}%</span>
+          <span><span className="dot silence" /> Silence {silencePct.toFixed(1)}%</span>
+        </div>
       </div>
-      <div className="ratio-legend">
-        <span><span className="dot agent" /> Agent {(agent * 100).toFixed(1)}%</span>
-        <span><span className="dot customer" /> Customer {(customer * 100).toFixed(1)}%</span>
-        <span><span className="dot silence" /> Silence {(silence * 100).toFixed(1)}%</span>
-      </div>
-    </div>
-  );
+    );
+  };
 
   // Persistent Audio Player Component
   const AudioPlayer = ({ audioUrl, callId }: { audioUrl?: string; callId?: string }) => {

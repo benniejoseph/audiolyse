@@ -203,9 +203,19 @@ function normalizeData(d: any, usedModel: string) {
       },
       
       conversationMetrics: {
-        agentTalkRatio: d?.conversationMetrics?.agentTalkRatio || 0,
-        customerTalkRatio: d?.conversationMetrics?.customerTalkRatio || 0,
-        silenceRatio: d?.conversationMetrics?.silenceRatio || 0,
+        // Normalize ratios: if > 1, assume it's a percentage and convert to decimal
+        agentTalkRatio: (() => {
+          const val = d?.conversationMetrics?.agentTalkRatio || 0;
+          return val > 1 ? val / 100 : val;
+        })(),
+        customerTalkRatio: (() => {
+          const val = d?.conversationMetrics?.customerTalkRatio || 0;
+          return val > 1 ? val / 100 : val;
+        })(),
+        silenceRatio: (() => {
+          const val = d?.conversationMetrics?.silenceRatio || 0;
+          return val > 1 ? val / 100 : val;
+        })(),
         totalQuestions: d?.conversationMetrics?.totalQuestions || 0,
         openQuestions: d?.conversationMetrics?.openQuestions || 0,
         closedQuestions: d?.conversationMetrics?.closedQuestions || 0,
