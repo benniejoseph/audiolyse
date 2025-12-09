@@ -274,9 +274,14 @@ export default function AnalyzePage() {
 
   // Save analysis result to database
   const saveAnalysis = async (result: BulkCallResult) => {
-    if (!org || !userId || !result.result) return null;
+    if (!org || !userId || !result.result) {
+      console.error('Cannot save analysis: missing org, userId, or result', { org: !!org, userId: !!userId, hasResult: !!result.result });
+      return null;
+    }
     
     try {
+      console.log('Saving analysis to database:', result.fileName);
+      
       const { data, error } = await supabase
         .from('call_analyses')
         .insert({
@@ -296,16 +301,31 @@ export default function AnalyzePage() {
         .select('id')
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Database insert error:', error);
+        throw error;
+      }
+      
+      if (!data?.id) {
+        console.error('No ID returned from insert');
+        throw new Error('Failed to save analysis: No ID returned');
+      }
+      
+      console.log('Analysis saved with ID:', data.id);
       
       // Increment usage
-      await supabase
+      const { error: updateError } = await supabase
         .from('organizations')
         .update({
           calls_used: (org.calls_used || 0) + 1,
           storage_used_mb: (org.storage_used_mb || 0) + (result.fileSize / (1024 * 1024)),
         })
         .eq('id', org.id);
+      
+      if (updateError) {
+        console.error('Error updating organization usage:', updateError);
+        // Don't throw - the analysis is saved, usage update can fail
+      }
       
       // Update local org state
       setOrg(prev => prev ? {
@@ -315,19 +335,26 @@ export default function AnalyzePage() {
       } : null);
       
       // Log usage
-      await supabase
+      const { error: logError } = await supabase
         .from('usage_logs')
         .insert({
           organization_id: org.id,
           user_id: userId,
           action: 'call_analyzed',
-          call_analysis_id: data?.id,
+          call_analysis_id: data.id,
           metadata: { file_name: result.fileName, file_size: result.fileSize },
         });
       
-      return data?.id;
+      if (logError) {
+        console.error('Error logging usage:', logError);
+        // Don't throw - the analysis is saved, logging can fail
+      }
+      
+      return data.id;
     } catch (error) {
       console.error('Error saving analysis:', error);
+      // Show error to user
+      alert(`Failed to save analysis to database: ${error instanceof Error ? error.message : 'Unknown error'}. The analysis completed but may not appear in history.`);
       return null;
     }
   };
@@ -347,6 +374,9 @@ export default function AnalyzePage() {
     }));
     
     setBulkResults(initialResults);
+    
+    let savedCount = 0;
+    let failedCount = 0;
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -378,13 +408,23 @@ export default function AnalyzePage() {
           result,
         };
         
+        console.log(`Saving analysis ${i + 1}/${files.length} to database...`);
         const dbId = await saveAnalysis(completedResult);
+        
+        if (dbId) {
+          console.log(`✅ Analysis ${i + 1} saved successfully with ID: ${dbId}`);
+          savedCount++;
+        } else {
+          console.warn(`⚠️ Analysis ${i + 1} completed but failed to save to database`);
+        }
         
         setBulkResults(prev =>
           prev.map((r, idx) => idx === i ? { ...completedResult, dbId: dbId || undefined } : r)
         );
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
+        failedCount++;
+        console.error(`❌ Analysis ${i + 1} failed:`, errorMessage);
         setBulkResults(prev =>
           prev.map((r, idx) => idx === i ? { ...r, status: 'error', error: errorMessage } : r)
         );
@@ -392,6 +432,18 @@ export default function AnalyzePage() {
     }
     
     setIsLoading(false);
+    
+    // Show completion summary
+    const completedCount = files.length - failedCount;
+    if (completedCount > 0) {
+      const message = `✅ Analysis complete! ${completedCount} call${completedCount > 1 ? 's' : ''} analyzed. ${savedCount} saved to database.${failedCount > 0 ? ` ${failedCount} failed.` : ''}`;
+      console.log(message);
+      
+      // Show warning if some analyses weren't saved
+      if (savedCount < completedCount) {
+        console.warn(`⚠️ Only ${savedCount} of ${completedCount} analyses were saved to database. Check console for details.`);
+      }
+    }
   };
 
   const summary = useMemo(() => {
@@ -620,13 +672,12 @@ export default function AnalyzePage() {
           <input
             type="file"
             accept="audio/*,video/mpeg,.mp3,.wav,.m4a,.mpeg,.mpga,.ogg,.webm"
-            multiple={canBulkUpload}
+            multiple
             onChange={handleFileSelect}
             disabled={limitReached}
           />
           <span className="upload-formats">
             Supports: MP3, WAV, M4A, MPEG, OGG, WebM
-            {!canBulkUpload && <span className="upgrade-note"> • Bulk upload requires Pro</span>}
           </span>
         </div>
 
