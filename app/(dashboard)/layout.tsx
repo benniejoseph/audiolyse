@@ -1,4 +1,5 @@
 import '../globals.css';
+import '../styles/design-system.css';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { TopBar } from '@/components/dashboard/TopBar';
 

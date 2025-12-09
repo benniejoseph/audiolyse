@@ -12,12 +12,14 @@ const navItems = [
   { href: '/history', icon: '📁', label: 'History' },
   { href: '/team', icon: '👥', label: 'Team', badge: 'PRO' },
   { href: '/settings', icon: '⚙️', label: 'Settings' },
+  { href: '/credits', icon: '💳', label: 'Buy Credits', showForPayg: true },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
   const [usage, setUsage] = useState({ used: 0, limit: 3 });
+  const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -46,12 +48,13 @@ export function Sidebar() {
       if (membership) {
         const { data: org } = await supabase
           .from('organizations')
-          .select('calls_used, calls_limit')
+          .select('calls_used, calls_limit, subscription_tier')
           .eq('id', membership.organization_id)
           .single();
         
         if (org) {
           setUsage({ used: org.calls_used, limit: org.calls_limit });
+          setSubscriptionTier(org.subscription_tier);
         }
       }
     }
@@ -70,17 +73,23 @@ export function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`nav-item ${pathname === item.href ? 'active' : ''}`}
-          >
-            <span className="nav-icon">{item.icon}</span>
-            <span className="nav-label">{item.label}</span>
-            {item.badge && <span className="nav-badge">{item.badge}</span>}
-          </Link>
-        ))}
+        {navItems.map((item) => {
+          // Hide credits link unless user is on payg tier
+          if (item.showForPayg && subscriptionTier !== 'payg') {
+            return null;
+          }
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`nav-item ${pathname === item.href ? 'active' : ''}`}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-label">{item.label}</span>
+              {item.badge && <span className="nav-badge">{item.badge}</span>}
+            </Link>
+          );
+        })}
         
         {/* Admin Link */}
         {isAdmin && (
