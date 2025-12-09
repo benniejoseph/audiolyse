@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2>1. Introduction</h2>
             <p>
-              Welcome to Audiolyse ("we," "our," or "us"). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our call analysis platform.
+              Welcome to Audiolyse (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our call analysis platform.
             </p>
           </section>
 
@@ -126,7 +126,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2>10. Children's Privacy</h2>
+            <h2>10. Children&apos;s Privacy</h2>
             <p>
               Our services are not intended for individuals under the age of 18. We do not knowingly collect personal information from children. If you believe we have collected information from a child, please contact us immediately.
             </p>
@@ -135,7 +135,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2>11. Changes to This Privacy Policy</h2>
             <p>
-              We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the "Last Updated" date. Your continued use of our services after changes become effective constitutes acceptance of the updated policy.
+              We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the &quot;Last Updated&quot; date. Your continued use of our services after changes become effective constitutes acceptance of the updated policy.
             </p>
           </section>
 

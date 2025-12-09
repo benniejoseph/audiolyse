@@ -50,7 +50,7 @@ export default function ContactPage() {
         <div className="legal-container contact-container">
           <h1>Contact Us</h1>
           <p className="contact-intro">
-            Have a question, feedback, or need support? We're here to help. Reach out to us through the form below or use one of our direct contact methods.
+            Have a question, feedback, or need support? We&apos;re here to help. Reach out to us through the form below or use one of our direct contact methods.
           </p>
 
           <div className="contact-grid">
@@ -59,7 +59,7 @@ export default function ContactPage() {
                 <div className="success-message">
                   <div className="success-icon">✓</div>
                   <h2>Thank You!</h2>
-                  <p>Your message has been sent successfully. We'll get back to you within 24-48 hours.</p>
+                  <p>Your message has been sent successfully. We&apos;ll get back to you within 24-48 hours.</p>
                   <button onClick={() => setSubmitted(false)} className="submit-another">
                     Send Another Message
                   </button>

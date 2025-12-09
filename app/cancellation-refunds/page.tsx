@@ -94,7 +94,7 @@ export default function CancellationRefundsPage() {
             <ul>
               <li>You may downgrade your subscription at any time</li>
               <li>Downgrades take effect at the end of your current billing period</li>
-              <li>You will retain access to your current plan's features until the period ends</li>
+              <li>You will retain access to your current plan&apos;s features until the period ends</li>
               <li>No refund is provided for the difference in plan costs</li>
             </ul>
 

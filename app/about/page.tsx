@@ -167,7 +167,7 @@ export default function AboutPage() {
           <section>
             <h2>Contact Us</h2>
             <p>
-              Have questions? We'd love to hear from you:
+              Have questions? We&apos;d love to hear from you:
             </p>
             <ul>
               <li><strong>General Inquiries:</strong> <a href="mailto:info@audiolyse.com">info@audiolyse.com</a></li>

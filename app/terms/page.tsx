@@ -24,7 +24,7 @@ export default function TermsOfServicePage() {
           <section>
             <h2>1. Agreement to Terms</h2>
             <p>
-              By accessing or using Audiolyse ("the Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.
+              By accessing or using Audiolyse (&quot;the Service&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you disagree with any part of these terms, you may not access the Service.
             </p>
           </section>
 
@@ -66,7 +66,7 @@ export default function TermsOfServicePage() {
             <ul>
               <li>We offer various subscription tiers (Free, Individual, Team, Enterprise)</li>
               <li>Subscription fees are billed monthly or annually as selected</li>
-              <li>Prices are subject to change with 30 days' notice to existing subscribers</li>
+              <li>Prices are subject to change with 30 days&apos; notice to existing subscribers</li>
             </ul>
 
             <h3>4.2 Payment Terms</h3>
@@ -138,7 +138,7 @@ export default function TermsOfServicePage() {
           <section>
             <h2>9. Disclaimers</h2>
             <p>
-              THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+              THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
             </p>
             <p>
               We do not warrant that:
@@ -204,7 +204,7 @@ export default function TermsOfServicePage() {
           <section>
             <h2>14. Changes to Terms</h2>
             <p>
-              We reserve the right to modify these Terms at any time. We will notify you of material changes by posting the updated Terms on this page and updating the "Last Updated" date. Your continued use of the Service after changes become effective constitutes acceptance of the updated Terms.
+              We reserve the right to modify these Terms at any time. We will notify you of material changes by posting the updated Terms on this page and updating the &quot;Last Updated&quot; date. Your continued use of the Service after changes become effective constitutes acceptance of the updated Terms.
             </p>
           </section>
 
