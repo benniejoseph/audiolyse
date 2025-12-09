@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
@@ -18,8 +19,13 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-header">
         <Link href="/dashboard" className="sidebar-logo">
-          <span className="logo-icon">🎯</span>
-          <span className="logo-text">Audiolyse</span>
+          <Image 
+            src="/logo.png" 
+            alt="Audiolyse" 
+            width={140} 
+            height={38}
+            className="sidebar-logo-img"
+          />
         </Link>
       </div>
 
@@ -54,5 +60,3 @@ export function Sidebar() {
     </aside>
   );
 }
-
-

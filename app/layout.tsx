@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './styles/landing.css';
 
 export const metadata: Metadata = {
-  title: 'Audiolyse - Call Analysis & Marketing Strategy',
+  title: 'Audiolyse - Precision Intelligence for Every Conversation',
   description: 'AI-powered call analysis platform. Get transcription, coaching scores, conversion predictions, and strategic marketing insights from your customer calls.',
 };
 
@@ -13,9 +14,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link rel="icon" type="image/png" href="/logo.png" />
+      </head>
       <body>{children}</body>
     </html>
   );
 }
-
-

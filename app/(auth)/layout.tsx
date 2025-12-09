@@ -1,4 +1,10 @@
+import '../styles/auth.css';
 import '../globals.css';
+
+export const metadata = {
+  title: 'Audiolyse - Sign In',
+  description: 'Sign in to Audiolyse - Precision Intelligence for Every Conversation',
+};
 
 export default function AuthLayout({
   children,
@@ -6,50 +12,15 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="auth-layout">
-      <div className="auth-container">
-        <div className="auth-brand">
-          <div className="brand-icon">🎯</div>
-          <h1>Audiolyse</h1>
-          <p>Call Analysis & Marketing Strategy</p>
-        </div>
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </head>
+      <body>
         {children}
-      </div>
-      <div className="auth-features">
-        <h2>Why Audiolyse?</h2>
-        <ul>
-          <li>
-            <span className="feature-icon">📊</span>
-            <div>
-              <strong>Deep Analytics</strong>
-              <p>Get detailed insights from every call with AI-powered analysis</p>
-            </div>
-          </li>
-          <li>
-            <span className="feature-icon">🎯</span>
-            <div>
-              <strong>Coaching Scores</strong>
-              <p>Improve team performance with actionable feedback</p>
-            </div>
-          </li>
-          <li>
-            <span className="feature-icon">🔮</span>
-            <div>
-              <strong>Predictive Insights</strong>
-              <p>Conversion probability, churn risk, and more</p>
-            </div>
-          </li>
-          <li>
-            <span className="feature-icon">👥</span>
-            <div>
-              <strong>Team Management</strong>
-              <p>Manage teams and track performance across your organization</p>
-            </div>
-          </li>
-        </ul>
-      </div>
-    </div>
+      </body>
+    </html>
   );
 }
-
-
