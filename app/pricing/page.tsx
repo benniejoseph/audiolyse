@@ -86,7 +86,24 @@ export default function PricingPage() {
       return;
     }
 
-    alert(`Payment gateway coming soon! You selected the ${tier.charAt(0).toUpperCase() + tier.slice(1)} plan at ${formatPrice(tier)}/month.`);
+    // For pay-as-you-go, redirect to credits page
+    if (tier === 'payg') {
+      window.location.href = '/credits';
+      return;
+    }
+
+    // For subscription tiers (individual, team, enterprise)
+    // TODO: Implement subscription payment flow
+    // For now, show contact message for enterprise, or redirect to credits for others
+    if (tier === 'enterprise') {
+      alert('For Enterprise plans, please contact our sales team at sales@audiolyse.com or visit /contact');
+      return;
+    }
+
+    // For individual and team, redirect to credits page for now
+    // (You can implement subscription flow later)
+    alert(`Subscription management coming soon! For now, you can use Pay-as-You-Go credits. Redirecting to credits page...`);
+    window.location.href = '/credits';
   };
 
   return (
