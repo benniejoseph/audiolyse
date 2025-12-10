@@ -9,13 +9,15 @@ DROP POLICY IF EXISTS "Admins can manage org members" ON organization_members;
 CREATE OR REPLACE FUNCTION is_org_member(org_id UUID, user_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
+  -- SECURITY DEFINER with SET search_path to ensure RLS bypass
+  SET LOCAL search_path = public;
   RETURN EXISTS (
     SELECT 1 FROM organization_members
     WHERE organization_id = org_id
     AND user_id = user_uuid
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Policy 1: Users can always see their own membership (no recursion)
 CREATE POLICY "Users can view own membership"
@@ -55,6 +57,8 @@ CREATE POLICY "Owners can insert members"
 CREATE OR REPLACE FUNCTION is_org_admin(org_id UUID, user_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
+  -- SECURITY DEFINER with SET search_path to ensure RLS bypass
+  SET LOCAL search_path = public;
   RETURN EXISTS (
     SELECT 1 FROM organization_members
     WHERE organization_id = org_id
@@ -62,7 +66,7 @@ BEGIN
     AND role IN ('owner', 'admin')
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Policy for UPDATE: Only owners/admins can update (using helper functions to avoid recursion)
 CREATE POLICY "Admins can update members"
