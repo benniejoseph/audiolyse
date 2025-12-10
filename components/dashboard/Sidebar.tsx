@@ -19,7 +19,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [usage, setUsage] = useState({ used: 0, limit: 3 });
+  const [usage, setUsage] = useState({ used: 0, limit: 10 });
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
   const supabase = createClient();
 

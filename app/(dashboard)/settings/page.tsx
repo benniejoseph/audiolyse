@@ -232,7 +232,7 @@ export default function SettingsPage() {
               <div className="stats-grid">
                 <div className="stat">
                   <span className="stat-label">Calls Used</span>
-                  <span className="stat-value">{org?.calls_used || 0} / {org?.calls_limit || 3}</span>
+                  <span className="stat-value">{org?.calls_used || 0} / {org?.calls_limit || 10}</span>
                 </div>
                 <div className="stat">
                   <span className="stat-label">Storage Used</span>

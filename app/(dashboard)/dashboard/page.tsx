@@ -170,7 +170,7 @@ export default function DashboardPage() {
           <div className="stat-icon">📈</div>
           <div className="stat-content">
             <span className="stat-value">
-              {org?.calls_used || 0}/{org?.calls_limit || 3}
+              {org?.calls_used || 0}/{org?.calls_limit || 10}
             </span>
             <span className="stat-label">Calls {org?.subscription_tier === 'free' ? 'Today' : 'This Month'}</span>
           </div>
