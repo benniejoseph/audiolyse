@@ -31,33 +31,23 @@ export default function TransactionsPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data: membership } = await supabase
-          .from('organization_members')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .single();
+        // Use API route to bypass RLS issues
+        const response = await fetch('/api/organization/me');
+        const data = await response.json();
 
-        if (membership) {
-          const { data: organization } = await supabase
-            .from('organizations')
+        if (response.ok && data.organization) {
+          setOrg(data.organization as Organization);
+
+          // Load transactions
+          const { data: txns, error } = await supabase
+            .from('credits_transactions')
             .select('*')
-            .eq('id', membership.organization_id)
-            .single();
+            .eq('organization_id', data.organization.id)
+            .order('created_at', { ascending: false })
+            .limit(100);
 
-          if (organization) {
-            setOrg(organization as Organization);
-
-            // Load transactions
-            const { data: txns, error } = await supabase
-              .from('credits_transactions')
-              .select('*')
-              .eq('organization_id', organization.id)
-              .order('created_at', { ascending: false })
-              .limit(100);
-
-            if (!error && txns) {
-              setTransactions(txns as CreditTransaction[]);
-            }
+          if (!error && txns) {
+            setTransactions(txns as CreditTransaction[]);
           }
         }
       } catch (error) {

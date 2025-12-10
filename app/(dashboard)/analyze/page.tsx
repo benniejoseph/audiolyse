@@ -121,55 +121,36 @@ export default function AnalyzePage() {
           setIsAdmin(true);
         }
 
-        // Get organization
-        const { data: membership, error: membershipError } = await supabase
-          .from('organization_members')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle();
+        // Use API route to bypass RLS issues
+        const response = await fetch('/api/organization/me');
+        const data = await response.json();
 
-        if (membershipError) {
-          console.error('Error fetching membership:', membershipError);
+        if (!response.ok) {
+          console.error('Error fetching organization:', data.error);
           return;
         }
 
-        if (!membership) {
-          console.warn('No organization membership found for user');
+        if (!data.organization) {
+          console.warn('No organization found for user');
           return;
         }
 
-        console.log('Found organization ID:', membership.organization_id);
-
-        const { data: organization, error: orgError } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', membership.organization_id)
-          .single();
+        const organization = data.organization;
+        console.log('Organization loaded:', organization.name, 'ID:', organization.id);
+        setOrg(organization as Organization);
         
-        if (orgError) {
-          console.error('Error fetching organization:', orgError);
-          return;
-        }
-        
-        if (organization) {
-          console.log('Organization loaded:', organization.name, 'ID:', organization.id);
-          setOrg(organization as Organization);
-          // Admin users never hit limits
-          let isLimitReached = false;
-          if (!profile?.is_admin) {
-            if (organization.subscription_tier === 'payg') {
-              // For payg, check if credits are available
-              isLimitReached = (organization.credits_balance || 0) < 1;
-            } else {
-              // For other tiers, check call limits
-              isLimitReached = organization.calls_used >= organization.calls_limit;
-            }
+        // Admin users never hit limits
+        let isLimitReached = false;
+        if (!profile?.is_admin) {
+          if (organization.subscription_tier === 'payg') {
+            // For payg, check if credits are available
+            isLimitReached = (organization.credits_balance || 0) < 1;
+          } else {
+            // For other tiers, check call limits
+            isLimitReached = organization.calls_used >= organization.calls_limit;
           }
-          setLimitReached(isLimitReached);
-        } else {
-          console.warn('Organization not found');
         }
+        setLimitReached(isLimitReached);
       } catch (error) {
         console.error('Auth error:', error);
       } finally {

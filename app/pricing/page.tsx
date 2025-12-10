@@ -27,22 +27,16 @@ export default function PricingPage() {
       setIsLoggedIn(!!user);
 
       if (user) {
-        const { data: membership } = await supabase
-          .from('organization_members')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .single();
+        // Use API route to bypass RLS issues
+        try {
+          const response = await fetch('/api/organization/me');
+          const data = await response.json();
 
-        if (membership) {
-          const { data: organization } = await supabase
-            .from('organizations')
-            .select('*')
-            .eq('id', membership.organization_id)
-            .single();
-
-          if (organization) {
-            setCurrentTier(organization.subscription_tier);
+          if (response.ok && data.organization) {
+            setCurrentTier(data.organization.subscription_tier);
           }
+        } catch (error) {
+          console.error('Error fetching organization:', error);
         }
       }
 

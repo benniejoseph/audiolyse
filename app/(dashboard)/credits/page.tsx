@@ -31,32 +31,16 @@ export default function CreditsPage() {
           return;
         }
 
-        const { data: membership, error: membershipError } = await supabase
-          .from('organization_members')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        // Use API route to bypass RLS issues
+        const response = await fetch('/api/organization/me');
+        const data = await response.json();
 
-        if (membershipError) {
-          console.error('Error loading organization membership:', membershipError);
-          setLoading(false);
-          return;
-        }
-
-        if (membership && membership.organization_id) {
-          const { data: organization, error: orgError } = await supabase
-            .from('organizations')
-            .select('*')
-            .eq('id', membership.organization_id)
-            .maybeSingle();
-
-          if (orgError) {
-            console.error('Error loading organization:', orgError);
-          } else if (organization) {
-            setOrg(organization as Organization);
-          }
+        if (response.ok && data.organization) {
+          setOrg(data.organization as Organization);
+        } else if (!data.organization) {
+          console.warn('No organization found for user');
         } else {
-          console.warn('No organization found for user:', user.id);
+          console.error('Error loading organization:', data.error);
         }
 
         // Detect currency

@@ -35,42 +35,21 @@ export default function DashboardPage() {
 
         console.log('Loading dashboard for user:', user.id);
 
-        // Get organization
-        const { data: membership, error: membershipError } = await supabase
-          .from('organization_members')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle();
+        // Use API route to bypass RLS issues
+        const response = await fetch('/api/organization/me');
+        const data = await response.json();
 
-        if (membershipError) {
-          console.error('Error fetching membership:', membershipError);
+        if (!response.ok) {
+          console.error('Error fetching organization:', data.error);
           return;
         }
 
-        if (!membership) {
-          console.warn('No organization membership found for user');
+        if (!data.organization) {
+          console.warn('No organization found for user');
           return;
         }
 
-        console.log('Found organization ID:', membership.organization_id);
-
-        const { data: organization, error: orgError } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', membership.organization_id)
-          .single();
-
-        if (orgError) {
-          console.error('Error fetching organization:', orgError);
-          return;
-        }
-
-        if (!organization) {
-          console.warn('Organization not found');
-          return;
-        }
-
+        const organization = data.organization;
         console.log('Organization loaded:', organization.name);
         setOrg(organization);
 

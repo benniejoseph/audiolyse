@@ -39,24 +39,20 @@ export function Sidebar() {
         setIsAdmin(true);
       }
 
-      // Get usage
-      const { data: membership } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
+      // Use API route to bypass RLS issues
+      try {
+        const response = await fetch('/api/organization/me');
+        const data = await response.json();
 
-      if (membership) {
-        const { data: org } = await supabase
-          .from('organizations')
-          .select('calls_used, calls_limit, subscription_tier')
-          .eq('id', membership.organization_id)
-          .single();
-        
-        if (org) {
-          setUsage({ used: org.calls_used, limit: org.calls_limit });
-          setSubscriptionTier(org.subscription_tier);
+        if (response.ok && data.organization) {
+          setUsage({ 
+            used: data.organization.calls_used, 
+            limit: data.organization.calls_limit 
+          });
+          setSubscriptionTier(data.organization.subscription_tier);
         }
+      } catch (error) {
+        console.error('Error fetching organization:', error);
       }
     }
 
