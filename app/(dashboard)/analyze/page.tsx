@@ -621,6 +621,7 @@ export default function AnalyzePage() {
     for (const index of failedIndices) {
       await retryAnalysis(index);
     }
+  };
 
   const summary = useMemo(() => {
     const completed = bulkResults.filter(r => r.status === 'completed' && r.result);
