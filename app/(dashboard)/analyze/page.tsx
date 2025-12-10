@@ -349,11 +349,14 @@ export default function AnalyzePage() {
         hasResult: !!result.result
       });
       
-      const { data, error } = await supabase
-        .from('call_analyses')
-        .insert({
+      // Use API endpoint that bypasses RLS with service role key
+      const response = await fetch('/api/analysis/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           organization_id: org.id,
-          uploaded_by: userId,
           file_name: result.fileName,
           file_size_bytes: result.fileSize,
           duration_sec: result.result.durationSec,
@@ -364,86 +367,39 @@ export default function AnalyzePage() {
           sentiment: result.result.insights?.sentiment,
           analysis_json: result.result as any,
           status: 'completed',
-        })
-        .select('id')
-        .single();
+        }),
+      });
       
-      if (error) {
-        console.error('Database insert error:', error);
-        throw error;
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        console.error('API error saving analysis:', responseData);
+        throw new Error(responseData.error || `HTTP ${response.status}: ${responseData.details || 'Unknown error'}`);
       }
       
-      if (!data?.id) {
-        console.error('No ID returned from insert');
+      if (!responseData.id) {
+        console.error('No ID returned from API');
         throw new Error('Failed to save analysis: No ID returned');
       }
       
-      console.log('Analysis saved with ID:', data.id);
+      console.log('Analysis saved with ID:', responseData.id);
       
-      // Increment usage - use database function for payg tier, direct update for others
-      if (org.subscription_tier === 'payg') {
-        // For payg, credits are handled by database function
-        // Just update storage
-        const { error: storageError } = await supabase
-          .from('organizations')
-          .update({
-            storage_used_mb: (org.storage_used_mb || 0) + (result.fileSize / (1024 * 1024)),
-          })
-          .eq('id', org.id);
-        
-        if (storageError) {
-          console.error('Error updating storage:', storageError);
+      // Refresh org to get updated usage/credits
+      // Use the /api/organization/me endpoint to get updated org data
+      try {
+        const orgResponse = await fetch('/api/organization/me');
+        if (orgResponse.ok) {
+          const orgData = await orgResponse.json();
+          if (orgData.success && orgData.organization) {
+            setOrg(orgData.organization as Organization);
+          }
         }
-        
-        // Refresh org to get updated credits balance
-        const { data: updatedOrg } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', org.id)
-          .single();
-        
-        if (updatedOrg) {
-          setOrg(updatedOrg as Organization);
-        }
-      } else {
-        // For other tiers, update calls_used
-        const { error: updateError } = await supabase
-          .from('organizations')
-          .update({
-            calls_used: (org.calls_used || 0) + 1,
-            storage_used_mb: (org.storage_used_mb || 0) + (result.fileSize / (1024 * 1024)),
-          })
-          .eq('id', org.id);
-        
-        if (updateError) {
-          console.error('Error updating organization usage:', updateError);
-        }
-        
-        // Update local org state
-        setOrg(prev => prev ? {
-          ...prev,
-          calls_used: prev.calls_used + 1,
-          storage_used_mb: Number(prev.storage_used_mb) + (result.fileSize / (1024 * 1024)),
-        } : null);
+      } catch (refreshError) {
+        console.error('Error refreshing org data:', refreshError);
+        // Don't fail the save if refresh fails
       }
       
-      // Log usage
-      const { error: logError } = await supabase
-        .from('usage_logs')
-        .insert({
-          organization_id: org.id,
-          user_id: userId,
-          action: 'call_analyzed',
-          call_analysis_id: data.id,
-          metadata: { file_name: result.fileName, file_size: result.fileSize },
-        });
-      
-      if (logError) {
-        console.error('Error logging usage:', logError);
-        // Don't throw - the analysis is saved, logging can fail
-      }
-      
-      return data.id;
+      return responseData.id;
     } catch (error) {
       console.error('Error saving analysis:', error);
       // Show error to user via toast

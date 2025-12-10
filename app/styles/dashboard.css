@@ -25,9 +25,20 @@
   background-clip: text;
 }
 
+[data-theme="light"] .dashboard-header h1 {
+  background: linear-gradient(135deg, #0284c7, #7c3aed, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .dashboard-header p {
   color: rgba(255, 255, 255, 0.6);
   margin: 0.25rem 0 0;
+}
+
+[data-theme="light"] .dashboard-header p {
+  color: rgba(15, 23, 42, 0.7);
 }
 
 .header-actions {
@@ -38,10 +49,7 @@
 
 .refresh-button {
   padding: 0.75rem 1.5rem;
-  background: rgba(30, 31, 58, 0.6);
-  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 0.75rem;
-  color: #fff;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -49,9 +57,27 @@
   backdrop-filter: blur(10px);
 }
 
-.refresh-button:hover:not(:disabled) {
+[data-theme="dark"] .refresh-button {
+  background: rgba(30, 31, 58, 0.6);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #fff;
+}
+
+[data-theme="dark"] .refresh-button:hover:not(:disabled) {
   border-color: rgba(0, 217, 255, 0.5);
   background: rgba(30, 31, 58, 0.8);
+  transform: translateY(-2px);
+}
+
+[data-theme="light"] .refresh-button {
+  background: rgba(240, 249, 255, 0.8);
+  border: 1px solid rgba(2, 132, 199, 0.3);
+  color: var(--text);
+}
+
+[data-theme="light"] .refresh-button:hover:not(:disabled) {
+  border-color: rgba(2, 132, 199, 0.5);
+  background: rgba(240, 249, 255, 1);
   transform: translateY(-2px);
 }
 
@@ -65,19 +91,33 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.75rem;
-  background: linear-gradient(135deg, #00d9ff 0%, #8b5cf6 100%);
-  color: #ffffff;
   text-decoration: none;
   font-size: 0.95rem;
   font-weight: 600;
   border-radius: 0.75rem;
   transition: all 0.25s ease;
+}
+
+[data-theme="dark"] .cta-button {
+  background: linear-gradient(135deg, #00d9ff 0%, #8b5cf6 100%);
+  color: #ffffff;
   box-shadow: 0 4px 16px rgba(0, 217, 255, 0.3);
 }
 
-.cta-button:hover {
+[data-theme="dark"] .cta-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 32px rgba(0, 217, 255, 0.5), 0 0 60px rgba(139, 92, 246, 0.3);
+}
+
+[data-theme="light"] .cta-button {
+  background: linear-gradient(135deg, #0284c7 0%, #7c3aed 50%, #ec4899 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.3);
+}
+
+[data-theme="light"] .cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(2, 132, 199, 0.4), 0 0 60px rgba(124, 58, 237, 0.3);
 }
 
 .stats-grid {
@@ -141,9 +181,16 @@
 
 .stat-label {
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+[data-theme="dark"] .stat-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="light"] .stat-label {
+  color: rgba(15, 23, 42, 0.6);
 }
 
 .recent-calls-card {
@@ -159,7 +206,14 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0 0 1.5rem;
+}
+
+[data-theme="dark"] .recent-calls-card h2 {
   color: #ffffff;
+}
+
+[data-theme="light"] .recent-calls-card h2 {
+  color: var(--text);
 }
 
 .calls-list {
@@ -192,13 +246,27 @@
 
 .call-item-name {
   font-weight: 600;
-  color: #ffffff;
   margin-bottom: 0.25rem;
+}
+
+[data-theme="dark"] .call-item-name {
+  color: #ffffff;
+}
+
+[data-theme="light"] .call-item-name {
+  color: var(--text);
 }
 
 .call-item-meta {
   font-size: 0.875rem;
+}
+
+[data-theme="dark"] .call-item-meta {
   color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .call-item-meta {
+  color: var(--muted);
 }
 
 .call-item-score {
@@ -211,12 +279,23 @@
 }
 
 .call-item-link {
-  color: rgba(255, 255, 255, 0.5);
   transition: color 0.25s ease;
 }
 
-.call-item:hover .call-item-link {
+[data-theme="dark"] .call-item-link {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .call-item:hover .call-item-link {
   color: #00d9ff;
+}
+
+[data-theme="light"] .call-item-link {
+  color: var(--muted);
+}
+
+[data-theme="light"] .call-item:hover .call-item-link {
+  color: #0284c7;
 }
 
 .dashboard-loading {
@@ -244,7 +323,14 @@
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
+}
+
+[data-theme="dark"] .empty-state {
   color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .empty-state {
+  color: var(--muted);
 }
 
 .empty-state-icon {
@@ -256,7 +342,14 @@
 .empty-state h3 {
   font-size: 1.25rem;
   margin: 0 0 0.5rem;
+}
+
+[data-theme="dark"] .empty-state h3 {
   color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .empty-state h3 {
+  color: var(--text);
 }
 
 .empty-state p {
