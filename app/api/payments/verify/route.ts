@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 // Dynamic import for Razorpay
 let Razorpay: any;
@@ -21,11 +21,21 @@ function getRazorpayInstance() {
 
 export async function POST(request: Request) {
   try {
+    // Use regular client for auth check
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Use service client to bypass RLS
+    let serviceClient;
+    try {
+      serviceClient = createServiceClient();
+    } catch (e) {
+      console.error('Service client not configured, using regular client');
+      serviceClient = supabase;
     }
 
     const body = await request.json();
@@ -54,8 +64,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Payment not successful' }, { status: 400 });
     }
 
-    // Get organization
-    const { data: membership, error: membershipError } = await supabase
+    // Get organization using service client (bypasses RLS)
+    const { data: membership, error: membershipError } = await serviceClient
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
@@ -77,8 +87,8 @@ export async function POST(request: Request) {
       }, { status: 404 });
     }
 
-    // Add credits to the organization
-    const { data: transactionId, error: creditError } = await supabase.rpc('add_credits', {
+    // Add credits to the organization using service client
+    const { data: transactionId, error: creditError } = await serviceClient.rpc('add_credits', {
       org_id: membership.organization_id,
       user_id: user.id,
       credits: credits,
@@ -94,7 +104,7 @@ export async function POST(request: Request) {
 
     // Send email receipt
     try {
-      const { data: profile } = await supabase
+      const { data: profile } = await serviceClient
         .from('profiles')
         .select('email')
         .eq('id', user.id)
@@ -137,4 +147,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

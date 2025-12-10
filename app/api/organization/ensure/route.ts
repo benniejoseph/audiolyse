@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 /**
  * Ensures the user has an organization. Creates one if it doesn't exist.
@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function POST(request: Request) {
   try {
+    // Use regular client for auth check
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -14,8 +15,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Use service client to bypass RLS for all database operations
+    let serviceClient;
+    try {
+      serviceClient = createServiceClient();
+    } catch (e) {
+      console.error('Service client not configured, using regular client');
+      serviceClient = supabase;
+    }
+
     // Check if user has a profile
-    let { data: profile, error: profileError } = await supabase
+    let { data: profile, error: profileError } = await serviceClient
       .from('profiles')
       .select('*')
       .eq('id', user.id)
@@ -28,7 +38,7 @@ export async function POST(request: Request) {
                        user.email?.split('@')[0] || 
                        'User';
       
-      const { data: newProfile, error: createProfileError } = await supabase
+      const { data: newProfile, error: createProfileError } = await serviceClient
         .from('profiles')
         .insert({
           id: user.id,
@@ -50,7 +60,7 @@ export async function POST(request: Request) {
     }
 
     // Check if user has an organization membership
-    const { data: membership, error: membershipError } = await supabase
+    const { data: membership, error: membershipError } = await serviceClient
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
@@ -66,7 +76,7 @@ export async function POST(request: Request) {
 
     // If organization exists, return it
     if (membership && membership.organization_id) {
-      const { data: organization, error: orgError } = await supabase
+      const { data: organization, error: orgError } = await serviceClient
         .from('organizations')
         .select('*')
         .eq('id', membership.organization_id)
@@ -95,7 +105,7 @@ export async function POST(request: Request) {
       ? (user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 10))
       : ('user-' + Math.random().toString(36).substring(2, 10));
 
-    const { data: newOrg, error: createOrgError } = await supabase
+    const { data: newOrg, error: createOrgError } = await serviceClient
       .from('organizations')
       .insert({
         name: `${user_name}'s Workspace`,
@@ -124,7 +134,7 @@ export async function POST(request: Request) {
     }
 
     // Add user as owner of the organization
-    const { error: memberError } = await supabase
+    const { error: memberError } = await serviceClient
       .from('organization_members')
       .insert({
         organization_id: newOrg.id,
@@ -153,4 +163,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

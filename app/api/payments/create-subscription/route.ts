@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { SUBSCRIPTION_LIMITS, type SubscriptionTier } from '@/lib/types/database';
 
 // Dynamic import for Razorpay
@@ -21,11 +21,21 @@ function getRazorpayInstance() {
 
 export async function POST(request: Request) {
   try {
+    // Use regular client for auth check
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Use service client to bypass RLS
+    let serviceClient;
+    try {
+      serviceClient = createServiceClient();
+    } catch (e) {
+      console.error('Service client not configured, using regular client');
+      serviceClient = supabase;
     }
 
     const body = await request.json();
@@ -41,8 +51,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid subscription tier' }, { status: 400 });
     }
 
-    // Get organization
-    const { data: membership, error: membershipError } = await supabase
+    // Get organization using service client (bypasses RLS)
+    const { data: membership, error: membershipError } = await serviceClient
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
@@ -153,4 +163,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

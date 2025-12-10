@@ -23,12 +23,15 @@ FROM_NAME=Audiolyse
 NEXT_PUBLIC_SITE_URL=https://audiolyse.vercel.app
 ```
 
-### Existing Variables (Already Configured)
+### Supabase Configuration
 ```bash
 GOOGLE_GEMINI_API_KEY=your_gemini_api_key
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
+
+**IMPORTANT**: `SUPABASE_SERVICE_ROLE_KEY` is required for payment processing. It bypasses Row Level Security (RLS) for server-side operations. Find it in your Supabase project settings → API → Service Role Key.
 
 ## How to Add in Vercel
 

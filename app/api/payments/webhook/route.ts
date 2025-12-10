@@ -1,11 +1,28 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 // Dynamic import for Razorpay
 let Razorpay: any;
 if (typeof window === 'undefined') {
   Razorpay = require('razorpay');
+}
+
+// Create a service client for webhooks (bypasses RLS)
+function createServiceClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase URL or Service Role Key not configured');
+  }
+
+  return createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
 
 // Initialize Razorpay
@@ -59,8 +76,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid order metadata' }, { status: 400 });
       }
 
+      // Use service client to bypass RLS
+      const supabase = createServiceClient();
+      
       // Add credits (if not already added)
-      const supabase = createClient();
       const { data: transactionId, error: creditError } = await supabase.rpc('add_credits', {
         org_id: organizationId,
         user_id: userId,
@@ -112,4 +131,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

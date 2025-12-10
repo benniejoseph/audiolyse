@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 // Dynamic import for Razorpay
 let Razorpay: any;
@@ -20,6 +20,7 @@ function getRazorpayInstance() {
 
 export async function POST(request: Request) {
   try {
+    // Use regular client for auth check
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -42,8 +43,17 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Get organization
-    let { data: membership, error: membershipError } = await supabase
+    // Use service role client to bypass RLS for organization lookup
+    let serviceClient;
+    try {
+      serviceClient = createServiceClient();
+    } catch (e) {
+      console.error('Service client not configured, using regular client');
+      serviceClient = supabase;
+    }
+
+    // Get organization using service client (bypasses RLS)
+    let { data: membership, error: membershipError } = await serviceClient
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
@@ -57,7 +67,7 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    // If no organization, try to create one
+    // If no organization, try to create one using service client
     if (!membership || !membership.organization_id) {
       console.warn('No organization found for user, attempting to create one:', user.id);
       
@@ -67,15 +77,15 @@ export async function POST(request: Request) {
                        user.email?.split('@')[0] || 
                        'User';
       
-      // Ensure profile exists
-      const { data: profile } = await supabase
+      // Ensure profile exists (using service client)
+      const { data: profile } = await serviceClient
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
       if (!profile) {
-        await supabase
+        await serviceClient
           .from('profiles')
           .insert({
             id: user.id,
@@ -84,12 +94,12 @@ export async function POST(request: Request) {
           });
       }
 
-      // Create organization
+      // Create organization (using service client)
       const org_slug = user.email 
         ? (user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 10))
         : ('user-' + Math.random().toString(36).substring(2, 10));
 
-      const { data: newOrg, error: createOrgError } = await supabase
+      const { data: newOrg, error: createOrgError } = await serviceClient
         .from('organizations')
         .insert({
           name: `${user_name}'s Workspace`,
@@ -117,8 +127,8 @@ export async function POST(request: Request) {
         }, { status: 500 });
       }
 
-      // Create membership
-      const { error: memberError } = await supabase
+      // Create membership (using service client)
+      const { error: memberError } = await serviceClient
         .from('organization_members')
         .insert({
           organization_id: newOrg.id,
@@ -138,7 +148,7 @@ export async function POST(request: Request) {
     }
 
     // Get user profile for name (optional - not required for order creation)
-    const { data: profile } = await supabase
+    const { data: profile } = await serviceClient
       .from('profiles')
       .select('email, full_name')
       .eq('id', user.id)

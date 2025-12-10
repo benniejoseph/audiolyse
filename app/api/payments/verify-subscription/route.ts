@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import Razorpay from 'razorpay';
 import { SUBSCRIPTION_LIMITS, type SubscriptionTier } from '@/lib/types/database';
 
@@ -17,11 +17,21 @@ function getRazorpayInstance() {
 
 export async function POST(request: Request) {
   try {
+    // Use regular client for auth check
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Use service client to bypass RLS
+    let serviceClient;
+    try {
+      serviceClient = createServiceClient();
+    } catch (e) {
+      console.error('Service client not configured, using regular client');
+      serviceClient = supabase;
     }
 
     const body = await request.json();
@@ -50,8 +60,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Payment not successful' }, { status: 400 });
     }
 
-    // Get organization
-    const { data: membership, error: membershipError } = await supabase
+    // Get organization using service client (bypasses RLS)
+    const { data: membership, error: membershipError } = await serviceClient
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
@@ -73,13 +83,13 @@ export async function POST(request: Request) {
       }, { status: 404 });
     }
 
-    // Update organization subscription
+    // Update organization subscription using service client
     const limits = SUBSCRIPTION_LIMITS[tier as SubscriptionTier];
     const now = new Date();
     const nextMonth = new Date(now);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceClient
       .from('organizations')
       .update({
         subscription_tier: tier as SubscriptionTier,
@@ -101,7 +111,7 @@ export async function POST(request: Request) {
 
     // Send email receipt
     try {
-      const { data: profile } = await supabase
+      const { data: profile } = await serviceClient
         .from('profiles')
         .select('email')
         .eq('id', user.id)
@@ -145,4 +155,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
