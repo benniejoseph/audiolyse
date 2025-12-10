@@ -8,6 +8,51 @@ import { generateCallAnalysisPDF, generateBulkAnalysisPDF } from '@/app/utils/pd
 import type { Organization } from '@/lib/types/database';
 import { SUBSCRIPTION_LIMITS } from '@/lib/types/database';
 
+// Simple toast notification function
+const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+  const container = document.getElementById('toast-container') || createToastContainer();
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '⚠' : 'ℹ'}</span>
+    <span class="toast-message">${message}</span>
+    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 6000);
+};
+
+const createToastContainer = () => {
+  const container = document.createElement('div');
+  container.id = 'toast-container';
+  container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;display:flex;flex-direction:column;gap:10px;max-width:420px;';
+  document.body.appendChild(container);
+  
+  // Add styles if not already present
+  if (!document.getElementById('toast-styles')) {
+    const styles = document.createElement('style');
+    styles.id = 'toast-styles';
+    styles.textContent = `
+      .toast{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;background:rgba(20,20,30,0.95);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);box-shadow:0 8px 32px rgba(0,0,0,0.3);animation:slideIn 0.3s ease-out}
+      @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+      .toast-icon{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;flex-shrink:0}
+      .toast-success .toast-icon{background:rgba(124,255,199,0.2);color:#7cffc7}
+      .toast-error .toast-icon{background:rgba(255,107,107,0.2);color:#ff6b6b}
+      .toast-warning .toast-icon{background:rgba(255,209,102,0.2);color:#ffd166}
+      .toast-info .toast-icon{background:rgba(0,217,255,0.2);color:#00d9ff}
+      .toast-message{flex:1;color:#fff;font-size:14px;line-height:1.4}
+      .toast-close{background:none;border:none;color:rgba(255,255,255,0.5);font-size:18px;cursor:pointer;padding:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+      .toast-close:hover{color:#fff;background:rgba(255,255,255,0.1)}
+      .toast-success{border-color:rgba(124,255,199,0.3)}
+      .toast-error{border-color:rgba(255,107,107,0.3)}
+      .toast-warning{border-color:rgba(255,209,102,0.3)}
+      .toast-info{border-color:rgba(0,217,255,0.3)}
+    `;
+    document.head.appendChild(styles);
+  }
+  return container;
+};
+
 type ApiResult = {
   transcription: string;
   summary: string;
@@ -401,8 +446,8 @@ export default function AnalyzePage() {
       return data.id;
     } catch (error) {
       console.error('Error saving analysis:', error);
-      // Show error to user
-      alert(`Failed to save analysis to database: ${error instanceof Error ? error.message : 'Unknown error'}. The analysis completed but may not appear in history.`);
+      // Show error to user via toast
+      showToast(`Failed to save analysis: ${error instanceof Error ? error.message : 'Unknown error'}. Analysis completed but may not appear in history.`, 'error');
       return null;
     }
   };
@@ -481,18 +526,101 @@ export default function AnalyzePage() {
     
     setIsLoading(false);
     
-    // Show completion summary
+    // Show completion summary via toast
     const completedCount = files.length - failedCount;
     if (completedCount > 0) {
-      const message = `✅ Analysis complete! ${completedCount} call${completedCount > 1 ? 's' : ''} analyzed. ${savedCount} saved to database.${failedCount > 0 ? ` ${failedCount} failed.` : ''}`;
-      console.log(message);
-      
-      // Show warning if some analyses weren't saved
-      if (savedCount < completedCount) {
-        console.warn(`⚠️ Only ${savedCount} of ${completedCount} analyses were saved to database. Check console for details.`);
+      if (failedCount > 0) {
+        showToast(`Analysis complete! ${completedCount} succeeded, ${failedCount} failed. Click retry on failed items.`, 'warning');
+      } else if (savedCount < completedCount) {
+        showToast(`${completedCount} calls analyzed. ${savedCount} saved to database. Some may not appear in history.`, 'warning');
+      } else {
+        showToast(`Successfully analyzed ${completedCount} call${completedCount > 1 ? 's' : ''}!`, 'success');
       }
+    } else if (failedCount > 0) {
+      showToast(`All ${failedCount} analyses failed. Please retry.`, 'error');
     }
   };
+
+  // Retry a single failed analysis
+  const retryAnalysis = async (index: number) => {
+    const failedResult = bulkResults[index];
+    if (!failedResult || failedResult.status !== 'error') return;
+    
+    // Find the original file
+    const file = files.find(f => f.name === failedResult.fileName);
+    if (!file) {
+      showToast('Original file not found. Please re-upload.', 'error');
+      return;
+    }
+    
+    // Update status to processing
+    setBulkResults(prev =>
+      prev.map((r, idx) => idx === index ? { ...r, status: 'processing', error: undefined } : r)
+    );
+    
+    try {
+      const formData = new FormData();
+      formData.append('audio', file);
+      
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error: ${response.status}`);
+      }
+      
+      const result: ApiResult = await response.json();
+      
+      // Create completed result
+      const completedResult: BulkCallResult = {
+        ...failedResult,
+        status: 'completed',
+        result,
+        error: undefined,
+      };
+      
+      // Save to database
+      const dbId = await saveAnalysis(completedResult);
+      
+      // Update state
+      setBulkResults(prev =>
+        prev.map((r, idx) => idx === index ? { ...completedResult, dbId: dbId || undefined } : r)
+      );
+      
+      showToast(`${file.name} analyzed successfully!`, 'success');
+      
+      // Update org usage if saved
+      if (dbId && org) {
+        setOrg(prev => prev ? { ...prev, calls_used: prev.calls_used + 1 } : prev);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
+      setBulkResults(prev =>
+        prev.map((r, idx) => idx === index ? { ...r, status: 'error', error: errorMessage } : r)
+      );
+      showToast(`Retry failed: ${errorMessage}`, 'error');
+    }
+  };
+
+  // Retry all failed analyses
+  const retryAllFailed = async () => {
+    const failedIndices = bulkResults
+      .map((r, i) => r.status === 'error' ? i : -1)
+      .filter(i => i >= 0);
+    
+    if (failedIndices.length === 0) {
+      showToast('No failed analyses to retry', 'info');
+      return;
+    }
+    
+    showToast(`Retrying ${failedIndices.length} failed analyses...`, 'info');
+    
+    for (const index of failedIndices) {
+      await retryAnalysis(index);
+    }
 
   const summary = useMemo(() => {
     const completed = bulkResults.filter(r => r.status === 'completed' && r.result);
@@ -821,9 +949,18 @@ export default function AnalyzePage() {
           </div>
         )}
 
+        {/* Retry All Failed Button */}
+        {bulkResults.some(r => r.status === 'error') && (
+          <div className="retry-all-section">
+            <button className="retry-all-btn" onClick={retryAllFailed}>
+              🔄 Retry All Failed ({bulkResults.filter(r => r.status === 'error').length})
+            </button>
+          </div>
+        )}
+
         {/* Results List */}
         <div className="results-list">
-          {bulkResults.map((call) => (
+          {bulkResults.map((call, index) => (
             <div 
               key={call.id} 
               className={`result-item ${call.status}`}
@@ -832,6 +969,9 @@ export default function AnalyzePage() {
               <div className="result-info">
                 <span className="result-name">{call.fileName}</span>
                 <span className="result-size">{(call.fileSize / (1024 * 1024)).toFixed(2)} MB</span>
+                {call.status === 'error' && call.error && (
+                  <span className="result-error" title={call.error}>❌ {call.error.substring(0, 50)}{call.error.length > 50 ? '...' : ''}</span>
+                )}
               </div>
               <div className="result-meta">
                 {call.status === 'completed' && call.result?.coaching?.overallScore && (
@@ -841,6 +981,14 @@ export default function AnalyzePage() {
                   >
                     {call.result.coaching.overallScore}
                   </span>
+                )}
+                {call.status === 'error' && (
+                  <button 
+                    className="retry-btn"
+                    onClick={(e) => { e.stopPropagation(); retryAnalysis(index); }}
+                  >
+                    🔄 Retry
+                  </button>
                 )}
                 <span className={`result-status status-${call.status}`}>
                   {call.status === 'processing' && <span className="spinner"></span>}
