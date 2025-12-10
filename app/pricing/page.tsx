@@ -116,6 +116,19 @@ export default function PricingPage() {
         return;
       }
 
+      // Ensure organization exists
+      const ensureResponse = await fetch('/api/organization/ensure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const ensureData = await ensureResponse.json();
+
+      if (!ensureData.success) {
+        alert(ensureData.error || 'Failed to set up your account. Please contact support.');
+        return;
+      }
+
       const price = SUBSCRIPTION_LIMITS[tier].price[currency];
       
       // Create subscription order

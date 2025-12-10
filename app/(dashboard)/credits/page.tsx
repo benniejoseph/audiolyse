@@ -90,7 +90,33 @@ export default function CreditsPage() {
   }, []);
 
   const handlePurchase = async (packageItem: typeof CREDIT_PACKAGES[0]) => {
-    if (!org) {
+    let currentOrg = org;
+    
+    if (!currentOrg) {
+      // Try to create organization if it doesn't exist
+      try {
+        const ensureResponse = await fetch('/api/organization/ensure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        const ensureData = await ensureResponse.json();
+
+        if (ensureData.success && ensureData.organization) {
+          currentOrg = ensureData.organization as Organization;
+          setOrg(currentOrg);
+        } else {
+          alert(ensureData.error || 'Organization not found. Please contact support to set up your account.');
+          return;
+        }
+      } catch (error) {
+        console.error('Error ensuring organization:', error);
+        alert('Failed to set up your account. Please contact support.');
+        return;
+      }
+    }
+
+    if (!currentOrg) {
       alert('Organization not found. Please contact support to set up your account.');
       return;
     }
@@ -199,12 +225,12 @@ export default function CreditsPage() {
           if (verifyData.success) {
             alert(`Success! ${packageItem.credits} credits have been added to your account. A receipt has been sent to your email.`);
             
-            // Refresh organization data
-            const { data: updatedOrg } = await supabase
-              .from('organizations')
-              .select('*')
-              .eq('id', org.id)
-              .single();
+              // Refresh organization data
+              const { data: updatedOrg } = await supabase
+                .from('organizations')
+                .select('*')
+                .eq('id', currentOrg.id)
+                .single();
             
             if (updatedOrg) {
               setOrg(updatedOrg as Organization);

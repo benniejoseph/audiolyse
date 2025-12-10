@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     // Get organization
-    const { data: membership, error: membershipError } = await supabase
+    let { data: membership, error: membershipError } = await supabase
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
@@ -49,12 +49,84 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
+    // If no organization, try to create one
     if (!membership || !membership.organization_id) {
-      console.error('No organization found for user:', user.id);
-      return NextResponse.json({ 
-        error: 'No organization found. Please contact support.',
-        details: 'Your account may not have an organization set up. Please contact support to resolve this issue.'
-      }, { status: 404 });
+      console.warn('No organization found for user, attempting to create one:', user.id);
+      
+      // Call the ensure organization endpoint logic inline
+      const user_name = user.user_metadata?.full_name || 
+                       user.user_metadata?.name || 
+                       user.email?.split('@')[0] || 
+                       'User';
+      
+      // Ensure profile exists
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile) {
+        await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            email: user.email || '',
+            full_name: user_name,
+          });
+      }
+
+      // Create organization
+      const org_slug = user.email 
+        ? (user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 10))
+        : ('user-' + Math.random().toString(36).substring(2, 10));
+
+      const { data: newOrg, error: createOrgError } = await supabase
+        .from('organizations')
+        .insert({
+          name: `${user_name}'s Workspace`,
+          slug: org_slug,
+          owner_id: user.id,
+          billing_email: user.email || null,
+          subscription_tier: 'free',
+          subscription_status: 'active',
+          calls_limit: 10,
+          calls_used: 0,
+          storage_limit_mb: 100,
+          storage_used_mb: 0,
+          users_limit: 1,
+          daily_reset_date: new Date().toISOString().split('T')[0],
+          credits_balance: 0,
+        })
+        .select()
+        .single();
+
+      if (createOrgError || !newOrg) {
+        console.error('Error creating organization:', createOrgError);
+        return NextResponse.json({ 
+          error: 'Failed to create organization',
+          details: createOrgError?.message || 'Unknown error'
+        }, { status: 500 });
+      }
+
+      // Create membership
+      const { error: memberError } = await supabase
+        .from('organization_members')
+        .insert({
+          organization_id: newOrg.id,
+          user_id: user.id,
+          role: 'owner',
+        });
+
+      if (memberError) {
+        console.error('Error creating membership:', memberError);
+        return NextResponse.json({ 
+          error: 'Failed to create organization membership',
+          details: memberError.message 
+        }, { status: 500 });
+      }
+
+      membership = { organization_id: newOrg.id };
     }
 
     // Get user profile for name
