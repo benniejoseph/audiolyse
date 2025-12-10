@@ -49,11 +49,11 @@ export function Logo({ size = 'md', showText = true, showTagline = false }: Logo
           <span 
             className="logo-text-main"
             style={{
-              fontFamily: "'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              fontFamily: "'Monoton', cursive",
               fontSize: `${s.text}px`,
-              fontWeight: 700,
-              letterSpacing: '1.5px',
-              background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 50%, #fbbf24 100%)',
+              fontWeight: 400,
+              letterSpacing: '2px',
+              background: 'linear-gradient(135deg, #00d9ff 0%, #8b5cf6 50%, #fbbf24 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',

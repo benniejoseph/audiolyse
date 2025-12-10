@@ -1023,7 +1023,7 @@ export default function AnalyzePage() {
         
         {/* Audio Player Card */}
         <div className="card audio-card">
-          <h3>🎧 Original Recording</h3>
+          <h3>Original Recording</h3>
           <AudioPlayer audioUrl={selectedCall.audioUrl} callId={selectedCall.id} />
         </div>
 
@@ -1032,10 +1032,10 @@ export default function AnalyzePage() {
             <div>
               <h2>{selectedCall.fileName}</h2>
               <div className="detail-meta">
-                <span>🌐 {selectedCall.result.language}</span>
-                {selectedCall.result.durationSec && <span>⏱️ {formatTime(selectedCall.result.durationSec)}</span>}
+                <span>{selectedCall.result.language}</span>
+                {selectedCall.result.durationSec && <span>{formatTime(selectedCall.result.durationSec)}</span>}
                 <span style={{ color: selectedCall.result.insights?.sentiment === 'Positive' ? '#7cffc7' : selectedCall.result.insights?.sentiment === 'Negative' ? '#ff6b6b' : '#ffd166' }}>
-                  {selectedCall.result.insights?.sentiment === 'Positive' ? '😊' : selectedCall.result.insights?.sentiment === 'Negative' ? '😤' : '😐'} {selectedCall.result.insights?.sentiment}
+                  {selectedCall.result.insights?.sentiment}
                 </span>
               </div>
             </div>
@@ -1053,7 +1053,7 @@ export default function AnalyzePage() {
           <Link href="/help" className="tab help-tab">📖 Help</Link>
           {(['metrics', 'coaching', 'moments', 'predictions', 'transcript', 'summary'] as const).map(key => (
             <button key={key} className={`tab ${activeTab === key ? 'tab-active' : ''}`} onClick={() => setActiveTab(key)}>
-              {key === 'metrics' ? '📊 Metrics' : key === 'coaching' ? '🎯 Coaching' : key === 'moments' ? '⚡ Key Moments' : key === 'predictions' ? '🔮 Predictions' : key === 'transcript' ? '📝 Transcript' : '📋 Summary'}
+              {key === 'metrics' ? 'Metrics' : key === 'coaching' ? 'Coaching' : key === 'moments' ? 'Key Moments' : key === 'predictions' ? 'Predictions' : key === 'transcript' ? 'Transcript' : 'Summary'}
             </button>
           ))}
         </div>
@@ -1251,7 +1251,7 @@ export default function AnalyzePage() {
 
               {selectedCall.result.coaching.scriptRecommendations?.length > 0 && (
                 <div className="detail-section scripts">
-                  <h5>📝 Recommended Scripts</h5>
+                  <h5>Recommended Scripts</h5>
                   <p className="section-note">Use these phrases in similar situations for better outcomes.</p>
                   <div className="script-cards">
                     {selectedCall.result.coaching.scriptRecommendations.map((s, i) => (
@@ -1266,7 +1266,7 @@ export default function AnalyzePage() {
 
               {selectedCall.result.coaching.redFlags?.filter(rf => rf && rf.trim() && !rf.toLowerCase().includes('none') && !rf.toLowerCase().includes('n/a')).length > 0 && (
                 <div className="detail-section red-flags">
-                  <h5>🚨 Red Flags - Immediate Attention Needed</h5>
+                  <h5>Red Flags - Immediate Attention Needed</h5>
                   <p className="section-note">Serious issues that require immediate review and correction.</p>
                   <ul>
                     {selectedCall.result.coaching.redFlags.filter(rf => rf && rf.trim() && !rf.toLowerCase().includes('none') && !rf.toLowerCase().includes('n/a')).map((r, i) => <li key={i}>{r}</li>)}
@@ -1307,19 +1307,19 @@ export default function AnalyzePage() {
                   <div className="action-grid">
                     {selectedCall.result.actionItems.forAgent?.length > 0 && (
                       <div className="action-card agent">
-                        <h5>👤 For Agent</h5>
+                        <h5>For Agent</h5>
                         <ul>{selectedCall.result.actionItems.forAgent.map((a, i) => <li key={i}>{a}</li>)}</ul>
                       </div>
                     )}
                     {selectedCall.result.actionItems.forManager?.length > 0 && (
                       <div className="action-card manager">
-                        <h5>👔 For Manager</h5>
+                        <h5>For Manager</h5>
                         <ul>{selectedCall.result.actionItems.forManager.map((a, i) => <li key={i}>{a}</li>)}</ul>
                       </div>
                     )}
                     {selectedCall.result.actionItems.forFollowUp?.length > 0 && (
                       <div className="action-card followup">
-                        <h5>📞 Follow-Up Required</h5>
+                        <h5>Follow-Up Required</h5>
                         <ul>{selectedCall.result.actionItems.forFollowUp.map((a, i) => <li key={i}>{a}</li>)}</ul>
                       </div>
                     )}
@@ -1343,19 +1343,19 @@ export default function AnalyzePage() {
                   <p>{selectedCall.result.predictions.conversionProbability >= 70 ? 'High likelihood of conversion' : selectedCall.result.predictions.conversionProbability >= 40 ? 'Moderate conversion potential' : 'Low conversion probability - needs follow-up'}</p>
                 </div>
                 <div className="prediction-card">
-                  <div className={`risk-indicator ${selectedCall.result.predictions.churnRisk}`}>{selectedCall.result.predictions.churnRisk === 'high' ? '⚠️' : selectedCall.result.predictions.churnRisk === 'medium' ? '⚡' : '✅'}</div>
+                  <div className={`risk-indicator ${selectedCall.result.predictions.churnRisk}`}></div>
                   <h4>Churn Risk</h4>
                   <p className={`risk-${selectedCall.result.predictions.churnRisk}`}>{selectedCall.result.predictions.churnRisk.toUpperCase()}</p>
                   <p className="pred-explain">{selectedCall.result.predictions.churnRisk === 'high' ? 'Customer may not return. Immediate action needed.' : selectedCall.result.predictions.churnRisk === 'medium' ? 'Some concerns exist. Follow up recommended.' : 'Customer seems satisfied and likely to return.'}</p>
                 </div>
                 <div className="prediction-card">
-                  <div className={`risk-indicator ${selectedCall.result.predictions.escalationRisk}`}>{selectedCall.result.predictions.escalationRisk === 'high' ? '🚨' : selectedCall.result.predictions.escalationRisk === 'medium' ? '⚡' : '✅'}</div>
+                  <div className={`risk-indicator ${selectedCall.result.predictions.escalationRisk}`}></div>
                   <h4>Escalation Risk</h4>
                   <p className={`risk-${selectedCall.result.predictions.escalationRisk}`}>{selectedCall.result.predictions.escalationRisk.toUpperCase()}</p>
                   <p className="pred-explain">{selectedCall.result.predictions.escalationRisk === 'high' ? 'May become a formal complaint. Address immediately.' : 'Low risk of escalation.'}</p>
                 </div>
                 <div className="prediction-card">
-                  <div className={`risk-indicator ${selectedCall.result.predictions.satisfactionLikely}`}>{selectedCall.result.predictions.satisfactionLikely === 'high' ? '😊' : selectedCall.result.predictions.satisfactionLikely === 'low' ? '😤' : '😐'}</div>
+                  <div className={`risk-indicator ${selectedCall.result.predictions.satisfactionLikely}`}></div>
                   <h4>Satisfaction</h4>
                   <p className={`risk-${selectedCall.result.predictions.satisfactionLikely === 'high' ? 'low' : selectedCall.result.predictions.satisfactionLikely === 'low' ? 'high' : 'medium'}`}>{selectedCall.result.predictions.satisfactionLikely.toUpperCase()}</p>
                 </div>

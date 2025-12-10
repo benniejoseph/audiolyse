@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/Logo';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
@@ -102,6 +103,9 @@ export function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
+        <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center' }}>
+          <ThemeToggle />
+        </div>
         {isAdmin ? (
           <div className="admin-badge-card">
             <span className="admin-icon">👑</span>
