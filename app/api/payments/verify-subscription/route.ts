@@ -105,7 +105,7 @@ export async function POST(request: Request) {
         .from('profiles')
         .select('email')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profile?.email) {
         const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';

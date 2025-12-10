@@ -34,6 +34,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Validate minimum amount (Razorpay minimum: 1 INR or 0.01 USD)
+    const minAmount = currency === 'INR' ? 1 : 0.01;
+    if (amount < minAmount) {
+      return NextResponse.json({ 
+        error: `Minimum amount is ${currency === 'INR' ? '₹' : '$'}${minAmount}` 
+      }, { status: 400 });
+    }
+
     // Get organization
     let { data: membership, error: membershipError } = await supabase
       .from('organization_members')
@@ -129,16 +137,26 @@ export async function POST(request: Request) {
       membership = { organization_id: newOrg.id };
     }
 
-    // Get user profile for name
+    // Get user profile for name (optional - not required for order creation)
     const { data: profile } = await supabase
       .from('profiles')
       .select('email, full_name')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     // Create Razorpay order
-    const orderOptions = {
-      amount: Math.round(amount * 100), // Convert to paise (for INR) or cents
+    // Razorpay expects amount in smallest currency unit (paise for INR, cents for USD)
+    const amountInSmallestUnit = Math.round(amount * 100);
+    
+    // Ensure minimum amount (100 paise = 1 INR, 1 cent = 0.01 USD)
+    if (amountInSmallestUnit < (currency === 'INR' ? 100 : 1)) {
+      return NextResponse.json({ 
+        error: `Amount too small. Minimum is ${currency === 'INR' ? '₹1' : '$0.01'}` 
+      }, { status: 400 });
+    }
+
+    const orderOptions: any = {
+      amount: amountInSmallestUnit,
       currency: currency === 'INR' ? 'INR' : 'USD',
       receipt: `credits_${credits}_${Date.now()}`,
       notes: {
@@ -149,8 +167,21 @@ export async function POST(request: Request) {
       },
     };
 
-    const razorpay = getRazorpayInstance();
-    const order = await razorpay.orders.create(orderOptions);
+    let order;
+    try {
+      const razorpay = getRazorpayInstance();
+      order = await razorpay.orders.create(orderOptions);
+    } catch (razorpayError: any) {
+      console.error('Razorpay API error:', razorpayError);
+      return NextResponse.json(
+        { 
+          error: 'Failed to create payment order',
+          details: razorpayError?.error?.description || razorpayError?.message || 'Razorpay API error',
+          code: razorpayError?.error?.code || 'RAZORPAY_ERROR'
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -161,6 +192,20 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
+    
+    // Check if it's a Razorpay-specific error
+    if (error && typeof error === 'object' && 'error' in error) {
+      const razorpayError = (error as any).error;
+      return NextResponse.json(
+        { 
+          error: 'Failed to create payment order',
+          details: razorpayError?.description || razorpayError?.message || 'Razorpay API error',
+          code: razorpayError?.code || 'RAZORPAY_ERROR'
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         error: 'Failed to create payment order',
