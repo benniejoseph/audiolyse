@@ -43,8 +43,14 @@ export function createServiceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Supabase URL or Service Role Key not configured');
+  if (!supabaseUrl) {
+    console.error('NEXT_PUBLIC_SUPABASE_URL is not configured');
+    throw new Error('Supabase URL not configured. Check environment variables.');
+  }
+  
+  if (!supabaseServiceKey) {
+    console.error('SUPABASE_SERVICE_ROLE_KEY is not configured - this is required for payment operations');
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured. Add it to your environment variables in Vercel.');
   }
 
   return createSupabaseClient(supabaseUrl, supabaseServiceKey, {
@@ -53,6 +59,11 @@ export function createServiceClient() {
       persistSession: false,
     },
   });
+}
+
+// Check if service client is available (for graceful handling)
+export function isServiceClientAvailable(): boolean {
+  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
 

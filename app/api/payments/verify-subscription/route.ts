@@ -29,9 +29,12 @@ export async function POST(request: Request) {
     let serviceClient;
     try {
       serviceClient = createServiceClient();
-    } catch (e) {
-      console.error('Service client not configured, using regular client');
-      serviceClient = supabase;
+    } catch (e: any) {
+      console.error('Service client error:', e.message);
+      return NextResponse.json({ 
+        error: 'Server configuration error',
+        details: 'SUPABASE_SERVICE_ROLE_KEY is not configured. Please add it to your Vercel environment variables.'
+      }, { status: 500 });
     }
 
     const body = await request.json();
