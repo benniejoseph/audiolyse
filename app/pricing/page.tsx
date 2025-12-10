@@ -75,6 +75,16 @@ export default function PricingPage() {
     return currency === 'INR' ? 5 : 0.06;
   };
 
+  // Load Razorpay script once on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !(window as any).Razorpay) {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
   const handleSelectPlan = async (tier: SubscriptionTier) => {
     if (!isLoggedIn) {
       window.location.href = '/signup';
@@ -92,18 +102,117 @@ export default function PricingPage() {
       return;
     }
 
-    // For subscription tiers (individual, team, enterprise)
-    // TODO: Implement subscription payment flow
-    // For now, show contact message for enterprise, or redirect to credits for others
+    // For enterprise, show contact message
     if (tier === 'enterprise') {
       alert('For Enterprise plans, please contact our sales team at sales@audiolyse.com or visit /contact');
       return;
     }
 
-    // For individual and team, redirect to credits page for now
-    // (You can implement subscription flow later)
-    alert(`Subscription management coming soon! For now, you can use Pay-as-You-Go credits. Redirecting to credits page...`);
-    window.location.href = '/credits';
+    // For subscription tiers (individual, team), initiate payment
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('Please log in to subscribe');
+        return;
+      }
+
+      const price = SUBSCRIPTION_LIMITS[tier].price[currency];
+      
+      // Create subscription order
+      const orderResponse = await fetch('/api/payments/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tier: tier,
+          currency: currency,
+        }),
+      });
+
+      const orderData = await orderResponse.json();
+
+      if (!orderData.success || !orderData.orderId) {
+        alert(orderData.error || 'Failed to create payment order. Please try again.');
+        return;
+      }
+
+      // Wait for Razorpay script to load
+      const loadRazorpay = (): Promise<any> => {
+        return new Promise((resolve) => {
+          if ((window as any).Razorpay) {
+            resolve((window as any).Razorpay);
+            return;
+          }
+          const checkInterval = setInterval(() => {
+            if ((window as any).Razorpay) {
+              clearInterval(checkInterval);
+              resolve((window as any).Razorpay);
+            }
+          }, 100);
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            resolve(null);
+          }, 5000);
+        });
+      };
+
+      const RazorpayClass = await loadRazorpay();
+      if (!RazorpayClass) {
+        alert('Payment gateway failed to load. Please refresh the page and try again.');
+        return;
+      }
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Audiolyse',
+        description: `Subscribe to ${tier.charAt(0).toUpperCase() + tier.slice(1)} plan`,
+        order_id: orderData.orderId,
+        handler: async function (response: any) {
+          // Verify payment
+          const verifyResponse = await fetch('/api/payments/verify-subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              tier: tier,
+              amount: price,
+              currency: currency,
+            }),
+          });
+
+          const verifyData = await verifyResponse.json();
+
+          if (verifyData.success) {
+            alert(`Success! Your ${tier} subscription has been activated. A receipt has been sent to your email.`);
+            // Reload page to refresh subscription status
+            window.location.reload();
+          } else {
+            alert(verifyData.error || 'Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: {
+          email: user.email || '',
+          name: user.user_metadata?.full_name || '',
+        },
+        theme: {
+          color: '#00d9ff',
+        },
+        modal: {
+          ondismiss: function() {
+            // User closed the modal
+          },
+        },
+      };
+
+      const razorpay = new RazorpayClass(options);
+      razorpay.open();
+    } catch (error) {
+      console.error('Error initiating subscription:', error);
+      alert('Failed to initiate payment. Please try again.');
+    }
   };
 
   return (

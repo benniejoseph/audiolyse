@@ -8,11 +8,12 @@ const FROM_NAME = process.env.FROM_NAME || 'Audiolyse';
 
 interface ReceiptData {
   email: string;
-  credits: number;
+  credits?: number;
   amount: number;
   currency: 'INR' | 'USD';
   transactionId: string;
   date: string;
+  subscriptionTier?: string;
 }
 
 async function sendEmailViaMandrill(to: string, subject: string, html: string) {
@@ -69,10 +70,12 @@ async function sendEmailViaMandrill(to: string, subject: string, html: string) {
 export async function POST(request: Request) {
   try {
     const body: ReceiptData = await request.json();
-    const { email, credits, amount, currency, transactionId, date } = body;
+    const { email, credits, amount, currency, transactionId, date, subscriptionTier } = body;
 
     const currencySymbol = currency === 'INR' ? '₹' : '$';
     const formattedAmount = `${currencySymbol}${amount.toFixed(2)}`;
+    const isSubscription = !!subscriptionTier;
+    const tierName = subscriptionTier ? subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1) : '';
 
     const html = `
       <!DOCTYPE html>
@@ -180,7 +183,7 @@ export async function POST(request: Request) {
             </div>
             <div class="content">
               <p class="greeting">Thank you for your purchase!</p>
-              <p>Your credits have been successfully added to your account.</p>
+              <p>${isSubscription ? `Your ${tierName} subscription has been successfully activated.` : 'Your credits have been successfully added to your account.'}</p>
               
               <div class="receipt-box">
                 <div class="receipt-row">
@@ -197,10 +200,21 @@ export async function POST(request: Request) {
                     minute: '2-digit'
                   })}</span>
                 </div>
+                ${isSubscription ? `
+                <div class="receipt-row">
+                  <span class="label">Subscription Plan:</span>
+                  <span class="value">${tierName}</span>
+                </div>
+                <div class="receipt-row">
+                  <span class="label">Billing Period:</span>
+                  <span class="value">Monthly</span>
+                </div>
+                ` : `
                 <div class="receipt-row">
                   <span class="label">Credits Purchased:</span>
-                  <span class="value">${credits} credits</span>
+                  <span class="value">${credits || 0} credits</span>
                 </div>
+                `}
                 <div class="receipt-row">
                   <span class="label">Amount:</span>
                   <span class="value">${formattedAmount}</span>
@@ -211,7 +225,7 @@ export async function POST(request: Request) {
                 </div>
               </div>
               
-              <p>Your credits are now available in your account and ready to use for call analysis.</p>
+              <p>${isSubscription ? `Your subscription is now active and you can start using all the features of the ${tierName} plan.` : 'Your credits are now available in your account and ready to use for call analysis.'}</p>
               <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
               
               <div style="text-align: center; margin-top: 30px;">
@@ -233,9 +247,13 @@ export async function POST(request: Request) {
       </html>
     `;
 
+    const subject = isSubscription 
+      ? `Subscription Receipt - ${tierName} Plan - ${transactionId}`
+      : `Credit Purchase Receipt - ${transactionId}`;
+
     const result = await sendEmailViaMandrill(
       email,
-      `Credit Purchase Receipt - ${transactionId}`,
+      subject,
       html
     );
 

@@ -66,6 +66,16 @@ export default function CreditsPage() {
     loadOrg();
   }, [supabase]);
 
+  // Load Razorpay script once on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !(window as any).Razorpay) {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
   const handlePurchase = async (packageItem: typeof CREDIT_PACKAGES[0]) => {
     if (!org) return;
 
@@ -75,6 +85,7 @@ export default function CreditsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         alert('Please log in to purchase credits');
+        setPurchasing(null);
         return;
       }
 
@@ -100,70 +111,95 @@ export default function CreditsPage() {
         return;
       }
 
-      // Load Razorpay checkout script
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => {
-        const options = {
-          key: orderData.key,
-          amount: orderData.amount,
-          currency: orderData.currency,
-          name: 'Audiolyse',
-          description: `Purchase ${packageItem.credits} credits`,
-          order_id: orderData.orderId,
-          handler: async function (response: any) {
-            // Verify payment
-            const verifyResponse = await fetch('/api/payments/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                credits: packageItem.credits,
-                amount: price,
-                currency: currency,
-              }),
-            });
-
-            const verifyData = await verifyResponse.json();
-
-            if (verifyData.success) {
-              alert(`Success! ${packageItem.credits} credits have been added to your account. A receipt has been sent to your email.`);
-              
-              // Refresh organization data
-              const { data: updatedOrg } = await supabase
-                .from('organizations')
-                .select('*')
-                .eq('id', org.id)
-                .single();
-              
-              if (updatedOrg) {
-                setOrg(updatedOrg as Organization);
-              }
-            } else {
-              alert(verifyData.error || 'Payment verification failed. Please contact support.');
+      // Wait for Razorpay script to load if not already loaded
+      const loadRazorpay = (): Promise<any> => {
+        return new Promise((resolve) => {
+          if ((window as any).Razorpay) {
+            resolve((window as any).Razorpay);
+            return;
+          }
+          const checkInterval = setInterval(() => {
+            if ((window as any).Razorpay) {
+              clearInterval(checkInterval);
+              resolve((window as any).Razorpay);
             }
+          }, 100);
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            resolve(null);
+          }, 5000);
+        });
+      };
+
+      const RazorpayClass = await loadRazorpay();
+      if (!RazorpayClass) {
+        alert('Payment gateway failed to load. Please refresh the page and try again.');
+        setPurchasing(null);
+        return;
+      }
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Audiolyse',
+        description: `Purchase ${packageItem.credits} credits`,
+        order_id: orderData.orderId,
+        handler: async function (response: any) {
+          // Verify payment
+          const verifyResponse = await fetch('/api/payments/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              credits: packageItem.credits,
+              amount: price,
+              currency: currency,
+            }),
+          });
+
+          const verifyData = await verifyResponse.json();
+
+          if (verifyData.success) {
+            alert(`Success! ${packageItem.credits} credits have been added to your account. A receipt has been sent to your email.`);
+            
+            // Refresh organization data
+            const { data: updatedOrg } = await supabase
+              .from('organizations')
+              .select('*')
+              .eq('id', org.id)
+              .single();
+            
+            if (updatedOrg) {
+              setOrg(updatedOrg as Organization);
+            }
+            
+            // Reload page to refresh balance
+            window.location.reload();
+          } else {
+            alert(verifyData.error || 'Payment verification failed. Please contact support.');
+          }
+          setPurchasing(null);
+        },
+        prefill: {
+          email: user.email || '',
+          name: user.user_metadata?.full_name || '',
+        },
+        theme: {
+          color: '#00d9ff',
+        },
+        modal: {
+          ondismiss: function() {
             setPurchasing(null);
           },
-          prefill: {
-            email: user.email || '',
-            name: user.user_metadata?.full_name || '',
-          },
-          theme: {
-            color: '#00d9ff',
-          },
-          modal: {
-            ondismiss: function() {
-              setPurchasing(null);
-            },
-          },
-        };
-
-        const razorpay = new (window as any).Razorpay(options);
-        razorpay.open();
+        },
       };
-      document.body.appendChild(script);
+
+      const razorpay = new RazorpayClass(options);
+      razorpay.open();
     } catch (error) {
       console.error('Error purchasing credits:', error);
       alert('Failed to initiate payment. Please try again.');
