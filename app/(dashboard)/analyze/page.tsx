@@ -668,12 +668,8 @@ export default function AnalyzePage() {
   const getSeverityColor = (severity: string) => severity === 'severe' ? '#ff6b6b' : severity === 'moderate' ? '#ffa94d' : severity === 'mild' ? '#ffd166' : '#7cffc7';
   
   const getMomentIcon = (type: string) => {
-    const icons: Record<string, string> = { 
-      complaint: '😤', compliment: '😊', objection: '🤔', competitor_mention: '🏢', 
-      pricing_discussion: '💰', commitment: '✅', breakthrough: '💡', escalation_risk: '⚠️', 
-      pain_point: '😣', positive_signal: '👍' 
-    };
-    return icons[type] || '📌';
+    // Return empty string - no emojis
+    return '';
   };
 
   const onCopy = (text: string) => navigator.clipboard.writeText(text);
