@@ -80,41 +80,93 @@ export default function CreditsPage() {
 
       const price = currency === 'INR' ? packageItem.priceINR : packageItem.priceUSD;
       
-      // TODO: Integrate with payment gateway (Stripe/Razorpay)
-      // For now, we'll call the API directly (simulating payment)
-      const response = await fetch('/api/credits/purchase', {
+      // Create Razorpay order
+      const orderResponse = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           credits: packageItem.credits,
           amount: price,
           currency: currency,
-          description: `Purchased ${packageItem.credits} credits`,
+          description: `Purchase ${packageItem.credits} credits`,
         }),
       });
 
-      const result = await response.json();
+      const orderData = await orderResponse.json();
 
-      if (result.success) {
-        alert(`Success! ${packageItem.credits} credits have been added to your account. A receipt has been sent to your email.`);
-        
-        // Refresh organization data
-        const { data: updatedOrg } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', org.id)
-          .single();
-        
-        if (updatedOrg) {
-          setOrg(updatedOrg as Organization);
-        }
-      } else {
-        alert(result.error || 'Failed to purchase credits. Please try again.');
+      if (!orderData.success || !orderData.orderId) {
+        alert(orderData.error || 'Failed to create payment order. Please try again.');
+        setPurchasing(null);
+        return;
       }
+
+      // Load Razorpay checkout script
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => {
+        const options = {
+          key: orderData.key,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: 'Audiolyse',
+          description: `Purchase ${packageItem.credits} credits`,
+          order_id: orderData.orderId,
+          handler: async function (response: any) {
+            // Verify payment
+            const verifyResponse = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                credits: packageItem.credits,
+                amount: price,
+                currency: currency,
+              }),
+            });
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyData.success) {
+              alert(`Success! ${packageItem.credits} credits have been added to your account. A receipt has been sent to your email.`);
+              
+              // Refresh organization data
+              const { data: updatedOrg } = await supabase
+                .from('organizations')
+                .select('*')
+                .eq('id', org.id)
+                .single();
+              
+              if (updatedOrg) {
+                setOrg(updatedOrg as Organization);
+              }
+            } else {
+              alert(verifyData.error || 'Payment verification failed. Please contact support.');
+            }
+            setPurchasing(null);
+          },
+          prefill: {
+            email: user.email || '',
+            name: user.user_metadata?.full_name || '',
+          },
+          theme: {
+            color: '#00d9ff',
+          },
+          modal: {
+            ondismiss: function() {
+              setPurchasing(null);
+            },
+          },
+        };
+
+        const razorpay = new (window as any).Razorpay(options);
+        razorpay.open();
+      };
+      document.body.appendChild(script);
     } catch (error) {
       console.error('Error purchasing credits:', error);
-      alert('Failed to purchase credits. Please try again.');
-    } finally {
+      alert('Failed to initiate payment. Please try again.');
       setPurchasing(null);
     }
   };
