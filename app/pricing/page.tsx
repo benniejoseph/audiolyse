@@ -131,7 +131,9 @@ export default function PricingPage() {
       const orderData = await orderResponse.json();
 
       if (!orderData.success || !orderData.orderId) {
-        alert(orderData.error || 'Failed to create payment order. Please try again.');
+        const errorMsg = orderData.error || orderData.details || 'Failed to create payment order. Please try again.';
+        alert(errorMsg);
+        console.error('Subscription order creation failed:', orderData);
         return;
       }
 
@@ -142,22 +144,38 @@ export default function PricingPage() {
             resolve((window as any).Razorpay);
             return;
           }
+          
+          // Try to load the script if not already loading
+          const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+          if (!existingScript) {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            script.onerror = () => {
+              clearInterval(checkInterval);
+              resolve(null);
+            };
+            document.body.appendChild(script);
+          }
+          
           const checkInterval = setInterval(() => {
             if ((window as any).Razorpay) {
               clearInterval(checkInterval);
               resolve((window as any).Razorpay);
             }
           }, 100);
+          
+          // Timeout after 10 seconds
           setTimeout(() => {
             clearInterval(checkInterval);
             resolve(null);
-          }, 5000);
+          }, 10000);
         });
       };
 
       const RazorpayClass = await loadRazorpay();
       if (!RazorpayClass) {
-        alert('Payment gateway failed to load. Please refresh the page and try again.');
+        alert('Payment gateway failed to load. Please check your internet connection and try again.');
         return;
       }
 

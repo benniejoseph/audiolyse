@@ -26,24 +26,37 @@ export default function CreditsPage() {
     async function loadOrg() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setLoading(false);
+          return;
+        }
 
-        const { data: membership } = await supabase
+        const { data: membership, error: membershipError } = await supabase
           .from('organization_members')
           .select('organization_id')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (membership) {
-          const { data: organization } = await supabase
+        if (membershipError) {
+          console.error('Error loading organization membership:', membershipError);
+          setLoading(false);
+          return;
+        }
+
+        if (membership && membership.organization_id) {
+          const { data: organization, error: orgError } = await supabase
             .from('organizations')
             .select('*')
             .eq('id', membership.organization_id)
-            .single();
+            .maybeSingle();
 
-          if (organization) {
+          if (orgError) {
+            console.error('Error loading organization:', orgError);
+          } else if (organization) {
             setOrg(organization as Organization);
           }
+        } else {
+          console.warn('No organization found for user:', user.id);
         }
 
         // Detect currency
@@ -77,7 +90,10 @@ export default function CreditsPage() {
   }, []);
 
   const handlePurchase = async (packageItem: typeof CREDIT_PACKAGES[0]) => {
-    if (!org) return;
+    if (!org) {
+      alert('Organization not found. Please contact support to set up your account.');
+      return;
+    }
 
     setPurchasing(packageItem.credits.toString());
     
@@ -106,7 +122,9 @@ export default function CreditsPage() {
       const orderData = await orderResponse.json();
 
       if (!orderData.success || !orderData.orderId) {
-        alert(orderData.error || 'Failed to create payment order. Please try again.');
+        const errorMsg = orderData.error || orderData.details || 'Failed to create payment order. Please try again.';
+        alert(errorMsg);
+        console.error('Payment order creation failed:', orderData);
         setPurchasing(null);
         return;
       }
@@ -118,23 +136,38 @@ export default function CreditsPage() {
             resolve((window as any).Razorpay);
             return;
           }
+          
+          // Try to load the script if not already loading
+          const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+          if (!existingScript) {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            script.onerror = () => {
+              clearInterval(checkInterval);
+              resolve(null);
+            };
+            document.body.appendChild(script);
+          }
+          
           const checkInterval = setInterval(() => {
             if ((window as any).Razorpay) {
               clearInterval(checkInterval);
               resolve((window as any).Razorpay);
             }
           }, 100);
-          // Timeout after 5 seconds
+          
+          // Timeout after 10 seconds
           setTimeout(() => {
             clearInterval(checkInterval);
             resolve(null);
-          }, 5000);
+          }, 10000);
         });
       };
 
       const RazorpayClass = await loadRazorpay();
       if (!RazorpayClass) {
-        alert('Payment gateway failed to load. Please refresh the page and try again.');
+        alert('Payment gateway failed to load. Please check your internet connection and try again.');
         setPurchasing(null);
         return;
       }

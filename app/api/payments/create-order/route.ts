@@ -35,14 +35,26 @@ export async function POST(request: Request) {
     }
 
     // Get organization
-    const { data: membership } = await supabase
+    const { data: membership, error: membershipError } = await supabase
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (!membership) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    if (membershipError) {
+      console.error('Error fetching organization membership:', membershipError);
+      return NextResponse.json({ 
+        error: 'Failed to fetch organization',
+        details: membershipError.message 
+      }, { status: 500 });
+    }
+
+    if (!membership || !membership.organization_id) {
+      console.error('No organization found for user:', user.id);
+      return NextResponse.json({ 
+        error: 'No organization found. Please contact support.',
+        details: 'Your account may not have an organization set up. Please contact support to resolve this issue.'
+      }, { status: 404 });
     }
 
     // Get user profile for name
