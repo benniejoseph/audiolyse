@@ -72,20 +72,45 @@ export default function CreditsPage() {
     setPurchasing(packageItem.credits.toString());
     
     try {
-      // TODO: Integrate with payment gateway
-      // For now, we'll simulate the purchase
-      alert(`Payment gateway integration coming soon!\n\nYou selected:\n${packageItem.credits} credits for ${currency === 'INR' ? `₹${packageItem.priceINR}` : `$${packageItem.priceUSD}`}`);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('Please log in to purchase credits');
+        return;
+      }
+
+      const price = currency === 'INR' ? packageItem.priceINR : packageItem.priceUSD;
       
-      // After payment success, call the add_credits function
-      // const { data, error } = await supabase.rpc('add_credits', {
-      //   org_id: org.id,
-      //   user_id: (await supabase.auth.getUser()).data.user?.id,
-      //   credits: packageItem.credits,
-      //   amount_paid: currency === 'INR' ? packageItem.priceINR : packageItem.priceUSD,
-      //   currency_type: currency,
-      //   description: `Purchased ${packageItem.credits} credits`
-      // });
-      
+      // TODO: Integrate with payment gateway (Stripe/Razorpay)
+      // For now, we'll call the API directly (simulating payment)
+      const response = await fetch('/api/credits/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credits: packageItem.credits,
+          amount: price,
+          currency: currency,
+          description: `Purchased ${packageItem.credits} credits`,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`Success! ${packageItem.credits} credits have been added to your account. A receipt has been sent to your email.`);
+        
+        // Refresh organization data
+        const { data: updatedOrg } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', org.id)
+          .single();
+        
+        if (updatedOrg) {
+          setOrg(updatedOrg as Organization);
+        }
+      } else {
+        alert(result.error || 'Failed to purchase credits. Please try again.');
+      }
     } catch (error) {
       console.error('Error purchasing credits:', error);
       alert('Failed to purchase credits. Please try again.');

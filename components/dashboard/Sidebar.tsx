@@ -13,6 +13,7 @@ const navItems = [
   { href: '/team', icon: '👥', label: 'Team', badge: 'PRO' },
   { href: '/settings', icon: '⚙️', label: 'Settings' },
   { href: '/credits', icon: '💳', label: 'Buy Credits', showForPayg: true },
+  { href: '/transactions', icon: '📋', label: 'Transactions', showForPayg: true },
 ];
 
 export function Sidebar() {

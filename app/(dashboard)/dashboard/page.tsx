@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { Organization, CallAnalysis } from '@/lib/types/database';
+import '@/app/styles/dashboard.css';
 
 export default function DashboardPage() {
   const [org, setOrg] = useState<Organization | null>(null);
@@ -145,7 +146,7 @@ export default function DashboardPage() {
           <p>Here&apos;s an overview of your call analytics</p>
         </div>
         <div className="header-actions">
-          <button onClick={handleRefresh} className="refresh-btn" disabled={loading}>
+          <button onClick={handleRefresh} className="refresh-button" disabled={loading}>
             🔄 {loading ? 'Refreshing...' : 'Refresh'}
           </button>
           <Link href="/analyze" className="cta-button">
@@ -205,104 +206,46 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="dashboard-grid">
-        {/* Recent Calls */}
-        <div className="dashboard-section recent-calls">
-          <div className="section-header">
-            <h2>Recent Analyses</h2>
-            <Link href="/history" className="view-all">View All →</Link>
-          </div>
+      {/* Recent Calls */}
+      <div className="recent-calls-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2>Recent Analyses</h2>
+          <Link href="/history" style={{ color: '#00d9ff', textDecoration: 'none', fontSize: '0.95rem' }}>
+            View All →
+          </Link>
+        </div>
 
-          {recentCalls.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">🎙️</div>
-              <h3>No calls analyzed yet</h3>
-              <p>Upload your first call recording to get started</p>
-              <Link href="/analyze" className="empty-cta">
-                Analyze Your First Call
-              </Link>
-            </div>
-          ) : (
-            <div className="calls-list">
-              {recentCalls.map((call) => (
-                <div key={call.id} className="call-item">
-                  <div className="call-info">
-                    <span className="call-name">{call.file_name}</span>
-                    <span className="call-date">
-                      {new Date(call.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="call-meta">
-                    {call.status === 'completed' && call.overall_score && (
-                      <span className={`score-badge score-${getScoreLevel(call.overall_score)}`}>
-                        {call.overall_score}
-                      </span>
-                    )}
-                    <span className={`status-badge status-${call.status}`}>
-                      {call.status}
-                    </span>
+        {recentCalls.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">🎙️</div>
+            <h3>No calls analyzed yet</h3>
+            <p>Upload your first call recording to get started</p>
+            <Link href="/analyze" className="cta-button" style={{ marginTop: '1rem', display: 'inline-block' }}>
+              Analyze Your First Call
+            </Link>
+          </div>
+        ) : (
+          <div className="calls-list">
+            {recentCalls.map((call) => (
+              <Link key={call.id} href={`/analyze?call=${call.id}`} className="call-item">
+                <div className="call-item-info">
+                  <div className="call-item-name">{call.file_name}</div>
+                  <div className="call-item-meta">
+                    {new Date(call.created_at).toLocaleDateString()} • {call.duration_sec ? `${Math.round(call.duration_sec / 60)} min` : 'N/A'}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="dashboard-section quick-actions">
-          <h2>Quick Actions</h2>
-          <div className="actions-grid">
-            <Link href="/analyze" className="action-card">
-              <span className="action-icon">🎙️</span>
-              <span className="action-label">Analyze Call</span>
-            </Link>
-            <Link href="/analyze?bulk=true" className="action-card">
-              <span className="action-icon">📁</span>
-              <span className="action-label">Bulk Upload</span>
-            </Link>
-            <Link href="/history?export=true" className="action-card">
-              <span className="action-icon">📄</span>
-              <span className="action-label">Export Reports</span>
-            </Link>
-            <Link href="/team" className="action-card">
-              <span className="action-icon">👥</span>
-              <span className="action-label">Invite Team</span>
-            </Link>
+                {call.status === 'completed' && call.overall_score && (
+                  <div className="call-item-score">{Math.round(call.overall_score)}</div>
+                )}
+                <div className="call-item-link">→</div>
+              </Link>
+            ))}
           </div>
-        </div>
-
-        {/* Tips */}
-        <div className="dashboard-section tips">
-          <h2>Tips & Best Practices</h2>
-          <ul className="tips-list">
-            <li>
-              <span className="tip-icon">💡</span>
-              <span>Upload clear audio recordings for better transcription accuracy</span>
-            </li>
-            <li>
-              <span className="tip-icon">📊</span>
-              <span>Review coaching scores to identify improvement areas</span>
-            </li>
-            <li>
-              <span className="tip-icon">🎯</span>
-              <span>Use AI suggestions to train your team effectively</span>
-            </li>
-            <li>
-              <span className="tip-icon">📈</span>
-              <span>Track trends over time to measure improvement</span>
-            </li>
-          </ul>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-function getScoreLevel(score: number): string {
-  if (score >= 80) return 'high';
-  if (score >= 60) return 'medium';
-  return 'low';
-}
 
 
