@@ -1,76 +1,77 @@
 # Fix RLS Infinite Recursion Issue
 
-## Problem
-The error "infinite recursion detected in policy for relation 'organization_members'" occurs because RLS policies are querying the same table they protect, causing infinite loops.
+## The Problem
+The error "infinite recursion detected in policy for relation 'organization_members'" occurs because RLS policies query the same table they protect, causing infinite loops.
 
-## Solution
-Run migration `007_simple_rls_fix.sql` which:
-1. Drops all existing problematic policies
-2. Creates helper functions with `SET LOCAL row_security = off` to truly bypass RLS
-3. Recreates all policies using these helper functions
+## Solution (REQUIRED)
 
-## How to Apply
+### Step 1: Add the Supabase Service Role Key
 
-### Option 1: Supabase Dashboard (Recommended)
+The **main fix** is to use the Supabase Service Role Key for server-side operations. This bypasses RLS entirely.
+
+1. Go to your Supabase project dashboard
+2. Navigate to **Settings** → **API**
+3. Copy the **Service Role Key** (keep it secret!)
+4. Add it to your environment variables:
+
+**For Vercel:**
+- Go to your Vercel project → Settings → Environment Variables
+- Add: `SUPABASE_SERVICE_ROLE_KEY` = your service role key
+- Redeploy
+
+**For Local Development:**
+- Add to `.env.local`:
+```bash
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
+### Step 2: (Optional) Apply Database Migration
+
+If you also want to fix the RLS policies for other operations, run migration `007_simple_rls_fix.sql`:
+
 1. Go to your Supabase project dashboard
 2. Navigate to **SQL Editor**
 3. Copy the entire contents of `supabase/migrations/007_simple_rls_fix.sql`
 4. Paste into the SQL Editor
 5. Click **Run**
-6. Verify no errors appear
 
-### Option 2: Supabase CLI
-```bash
-# Make sure you're in the project directory
-cd /Users/benniejoseph/Documents/CallTranscribe
+## How This Fix Works
 
-# Link to your Supabase project (if not already linked)
-supabase link --project-ref YOUR_PROJECT_REF
+The application now uses two Supabase clients:
 
-# Apply the migration
-supabase db push
+1. **Regular Client** (`createClient`): Uses the anon key, respects RLS - for user authentication
+2. **Service Client** (`createServiceClient`): Uses the service role key, bypasses RLS - for payment operations
 
-# Or apply specific migration
-supabase migration up
-```
-
-### Option 3: Direct SQL Connection
-If you have direct database access:
-```bash
-psql YOUR_DATABASE_URL < supabase/migrations/007_simple_rls_fix.sql
-```
-
-## What This Fix Does
-
-1. **Drops all existing policies** on `organization_members` and related tables
-2. **Creates helper functions** that use `SET LOCAL row_security = off` to bypass RLS
-3. **Recreates policies** using these helper functions instead of direct queries
-4. **Updates all related table policies** to use the new helper functions
+This ensures that:
+- User authentication still works with RLS
+- Payment operations can access `organization_members` without recursion
+- Database operations are secure (service key is server-side only)
 
 ## Verification
 
-After applying the migration, test by:
-1. Trying to purchase credits
-2. Checking if the "infinite recursion" error is gone
-3. Verifying organization membership queries work
+After adding the service role key:
+1. Redeploy your application
+2. Try to purchase credits or upgrade subscription
+3. The "infinite recursion" error should be gone
 
-## If Issues Persist
+## Troubleshooting
 
-If you still see recursion errors:
-1. Check Supabase logs for specific error messages
-2. Verify the migration ran successfully
-3. Check if there are any other policies not covered by the migration
-4. Consider temporarily disabling RLS on `organization_members` for testing:
-   ```sql
-   ALTER TABLE organization_members DISABLE ROW LEVEL SECURITY;
-   ```
-   (Then re-enable and apply the fix)
+### Still Getting Recursion Error?
 
-## Razorpay Integration Notes
+1. **Check environment variable is set**: Verify `SUPABASE_SERVICE_ROLE_KEY` exists in your deployment
+2. **Redeploy**: Make sure you redeployed after adding the variable
+3. **Check Supabase logs**: Look for specific error messages
 
-The RLS fix is separate from Razorpay integration. For Razorpay:
-- Ensure `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are set in environment variables
-- Test with Razorpay test mode first
-- Verify webhook URL is configured in Razorpay dashboard
-- Check Razorpay logs for any API errors
+### Service Key Not Working?
 
+1. Verify the key starts with `eyJ...` (JWT format)
+2. Make sure you copied the **Service Role** key, not the Anon key
+3. Check Supabase dashboard → Settings → API to confirm the key
+
+## Security Note
+
+⚠️ **NEVER expose the Service Role Key to the client/browser!**
+
+- It's only used in server-side API routes (`/api/*`)
+- Never include it in `NEXT_PUBLIC_*` variables
+- Keep it in environment variables only
