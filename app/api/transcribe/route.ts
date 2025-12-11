@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { processAudioForAnalysis, checkFileSize } from './audioUtils';
+import { createClient } from '@/lib/supabase/server';
 
 // Debug logging for env vars (masked)
 const k1 = process.env.GOOGLE_GEMINI_API_KEY;
@@ -24,6 +25,17 @@ const MODEL_FALLBACKS = [
 
 export async function POST(req: NextRequest) {
   try {
+    // 0. Authenticate User
+    const supabase = createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized', details: authError?.message },
+        { status: 401 }
+      );
+    }
+
     // 1. Validate API Configuration
     if (!API_KEY) {
       return NextResponse.json({ 

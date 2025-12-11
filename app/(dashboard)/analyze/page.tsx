@@ -120,6 +120,7 @@ export default function AnalyzePage() {
   const [fileUrls, setFileUrls] = useState<Map<string, string>>(new Map());
   const [dragOver, setDragOver] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
   const [bulkResults, setBulkResults] = useState<BulkCallResult[]>([]);
   const [selectedCall, setSelectedCall] = useState<BulkCallResult | null>(null);
   const [activeTab, setActiveTab] = useState<'metrics' | 'coaching' | 'moments' | 'transcript' | 'summary' | 'predictions'>('metrics');
@@ -128,6 +129,31 @@ export default function AnalyzePage() {
   // Auth & organization state
   const [org, setOrg] = useState<Organization | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+
+  const logAccess = async (call: BulkCallResult) => {
+    if (!org || !call.dbId) return;
+    try {
+      await fetch('/api/audit/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resource_type: 'call_analysis',
+          resource_id: call.dbId,
+          action: 'viewed_after_upload',
+          organization_id: org.id,
+          metadata: { file_name: call.fileName }
+        })
+      });
+    } catch (e) {
+      console.error('Failed to log access', e);
+    }
+  };
+
+  useEffect(() => {
+    if (viewMode === 'detail' && selectedCall) {
+      logAccess(selectedCall);
+    }
+  }, [viewMode, selectedCall]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [limitReached, setLimitReached] = useState(false);
@@ -845,10 +871,31 @@ export default function AnalyzePage() {
               </p>
             )}
             
+            <div className="medical-consent-box" style={{ 
+              margin: '1.5rem 0', 
+              padding: '1rem', 
+              background: 'rgba(0, 217, 255, 0.05)', 
+              border: '1px solid rgba(0, 217, 255, 0.2)', 
+              borderRadius: '8px' 
+            }}>
+              <label style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={consentChecked} 
+                  onChange={(e) => setConsentChecked(e.target.checked)}
+                  style={{ marginTop: '4px' }}
+                />
+                <span style={{ fontSize: '0.9rem', color: 'var(--text)' }}>
+                  <strong>Patient Consent Confirmation:</strong> I certify that I have obtained necessary patient/customer consent to record and analyze these conversations for quality assurance purposes, in compliance with applicable medical privacy laws (HIPAA/DPDP).
+                </span>
+              </label>
+            </div>
+
             <button 
               className="analyze-btn"
               onClick={processFiles}
-              disabled={!canAnalyze || files.length === 0}
+              disabled={!canAnalyze || files.length === 0 || !consentChecked}
+              style={{ opacity: (!canAnalyze || files.length === 0 || !consentChecked) ? 0.5 : 1 }}
             >
               {isLoading ? 'Processing...' : `Analyze ${files.length} Call${files.length > 1 ? 's' : ''}`}
             </button>

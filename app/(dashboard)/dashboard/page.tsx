@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import type { Organization, CallAnalysis } from '@/lib/types/database';
 import '@/app/styles/dashboard.css';
 
+import { DashboardSkeleton } from '@/components/Skeleton';
+
 export default function DashboardPage() {
   const [org, setOrg] = useState<Organization | null>(null);
   const [recentCalls, setRecentCalls] = useState<CallAnalysis[]>([]);
@@ -109,12 +111,7 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="loader"></div>
-        <p>Loading dashboard...</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -131,6 +128,25 @@ export default function DashboardPage() {
           <Link href="/analyze" className="cta-button">
             <span>🎙️</span> Analyze New Call
           </Link>
+        </div>
+      </div>
+
+      <div className="medical-disclaimer-banner" style={{
+        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1))',
+        border: '1px solid rgba(239, 68, 68, 0.2)',
+        borderRadius: '12px',
+        padding: '1rem',
+        marginBottom: '2rem',
+        display: 'flex',
+        gap: '1rem',
+        alignItems: 'center'
+      }}>
+        <span style={{ fontSize: '1.5rem' }}>⚕️</span>
+        <div>
+          <strong style={{ color: 'var(--text)', display: 'block', marginBottom: '0.25rem' }}>Medical Industry Disclaimer</strong>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            This AI tool is for <strong>coaching & quality assurance only</strong>. It is not a medical device and must not be used for diagnosis, treatment planning, or triage. Always verify AI insights with professional medical judgment.
+          </p>
         </div>
       </div>
 

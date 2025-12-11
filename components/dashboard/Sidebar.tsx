@@ -13,6 +13,7 @@ const navItems = [
   { href: '/history', icon: '📁', label: 'History' },
   { href: '/team', icon: '👥', label: 'Team', badge: 'PRO' },
   { href: '/settings', icon: '⚙️', label: 'Settings' },
+  { href: '/compliance', icon: '🛡️', label: 'Compliance' },
   { href: '/credits', icon: '💳', label: 'Buy Credits', showForPayg: true },
   { href: '/transactions', icon: '📋', label: 'Transactions', showForPayg: true },
 ];

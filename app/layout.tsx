@@ -4,6 +4,7 @@ import './styles/landing.css';
 import './styles/legal.css';
 import './styles/themes.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { CookieConsent } from '@/components/CookieConsent';
 
 export const metadata: Metadata = {
   title: 'Audiolyse - Precision Intelligence for Every Conversation',
@@ -28,7 +29,10 @@ export default function RootLayout({
         <link rel="icon" type="image/png" href="/audiolyseLogo.png" />
       </head>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <CookieConsent />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -63,7 +63,20 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2>4. Data Storage and Security</h2>
+            <h2>4. Health Data & Medical Compliance</h2>
+            <p>
+              For clients in the medical industry (e.g., Physiotherapy, Nursing, Medical Equipment), we acknowledge that you may upload files containing Protected Health Information (PHI).
+            </p>
+            <ul>
+              <li><strong>HIPAA & DPDP Alignment:</strong> We implement technical safeguards (encryption, access control) aligned with HIPAA and the Indian Digital Personal Data Protection Act, 2023.</li>
+              <li><strong>Data Processing:</strong> You act as the Data Fiduciary/Controller, and we act as the Data Processor. You maintain full ownership of your patient data.</li>
+              <li><strong>Patient Consent:</strong> It is your sole responsibility to obtain explicit consent from patients before recording conversations and uploading them for analysis.</li>
+              <li><strong>Prohibited Use:</strong> Our AI analysis is for quality assurance and coaching purposes only. It must <strong>not</strong> be used for medical diagnosis, treatment planning, or as a substitute for professional medical advice.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>5. Data Storage and Security</h2>
             <p>
               We use industry-standard security measures to protect your data:
             </p>

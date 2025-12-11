@@ -1,13 +1,13 @@
 /* Legal Pages Styles */
 .legal-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
-  color: #e0e0e0;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .legal-header {
   padding: 1.5rem 2rem;
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--bg-secondary);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
@@ -32,14 +32,14 @@
 }
 
 .legal-nav a {
-  color: #e0e0e0;
+  color: var(--text-secondary);
   text-decoration: none;
   transition: color 0.3s;
   font-size: 0.95rem;
 }
 
 .legal-nav a:hover {
-  color: #14b8a6;
+  color: var(--accent);
 }
 
 .legal-content {
@@ -49,25 +49,26 @@
 }
 
 .legal-container {
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--card);
   border-radius: 16px;
   padding: 3rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .legal-container h1 {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  color: #ffffff;
-  background: linear-gradient(135deg, #14b8a6 0%, #fbbf24 100%);
+  color: var(--text);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .legal-updated {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 2rem;
   font-style: italic;
@@ -85,9 +86,9 @@
   font-size: 1.75rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: #14b8a6;
+  color: var(--accent);
   padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .legal-container section:first-child h2 {
@@ -100,13 +101,13 @@
   font-weight: 600;
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
-  color: #fbbf24;
+  color: var(--accent-2);
 }
 
 .legal-container p {
   line-height: 1.8;
   margin-bottom: 1rem;
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 .legal-container ul,
@@ -118,22 +119,22 @@
 
 .legal-container li {
   margin-bottom: 0.75rem;
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 .legal-container a {
-  color: #14b8a6;
+  color: var(--accent);
   text-decoration: none;
   transition: color 0.3s;
 }
 
 .legal-container a:hover {
-  color: #fbbf24;
+  color: var(--accent-2);
   text-decoration: underline;
 }
 
 .legal-container strong {
-  color: #ffffff;
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -146,7 +147,7 @@
   font-size: 1.1rem;
   margin-bottom: 2rem;
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .contact-grid {
@@ -157,10 +158,10 @@
 }
 
 .contact-form-section {
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--card);
   padding: 2rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .contact-form .form-group {
@@ -170,7 +171,7 @@
 .contact-form label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #e0e0e0;
+  color: var(--text);
   font-weight: 500;
   font-size: 0.95rem;
 }
@@ -180,10 +181,10 @@
 .contact-form textarea {
   width: 100%;
   padding: 0.75rem 1rem;
-  background: rgba(30, 41, 59, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-tertiary);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 8px;
-  color: #e0e0e0;
+  color: var(--text);
   font-size: 1rem;
   transition: all 0.3s;
 }
@@ -192,8 +193,8 @@
 .contact-form select:focus,
 .contact-form textarea:focus {
   outline: none;
-  border-color: #14b8a6;
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
 }
 
 .contact-form textarea {
@@ -204,7 +205,7 @@
 .submit-button {
   width: 100%;
   padding: 0.875rem 2rem;
-  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -215,9 +216,9 @@
 }
 
 .submit-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+  background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent) 100%);
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(20, 184, 166, 0.3);
+  box-shadow: 0 10px 20px rgba(0, 217, 255, 0.2);
 }
 
 .submit-button:disabled {
@@ -234,7 +235,7 @@
   width: 80px;
   height: 80px;
   margin: 0 auto 1.5rem;
-  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -245,20 +246,20 @@
 }
 
 .success-message h2 {
-  color: #14b8a6;
+  color: var(--accent);
   margin-bottom: 1rem;
 }
 
 .success-message p {
-  color: #94a3b8;
+  color: var(--text-secondary);
   margin-bottom: 2rem;
 }
 
 .submit-another {
   padding: 0.75rem 1.5rem;
   background: transparent;
-  color: #14b8a6;
-  border: 2px solid #14b8a6;
+  color: var(--accent);
+  border: 2px solid var(--accent);
   border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 600;
@@ -267,7 +268,7 @@
 }
 
 .submit-another:hover {
-  background: #14b8a6;
+  background: var(--accent);
   color: white;
 }
 
@@ -277,23 +278,23 @@
 }
 
 .contact-info-card {
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--card);
   padding: 2rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   height: fit-content;
   position: sticky;
   top: 100px;
 }
 
 .contact-info-card h2 {
-  color: #14b8a6;
+  color: var(--accent);
   margin-bottom: 1rem;
   font-size: 1.5rem;
 }
 
 .contact-info-card > p {
-  color: #94a3b8;
+  color: var(--text-secondary);
   margin-bottom: 2rem;
 }
 
@@ -306,7 +307,7 @@
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .contact-method:last-child {
@@ -318,41 +319,42 @@
 .method-icon {
   font-size: 2rem;
   flex-shrink: 0;
+  color: var(--accent);
 }
 
 .method-content h3 {
-  color: #fbbf24;
+  color: var(--accent-2);
   font-size: 1.1rem;
   margin-bottom: 0.25rem;
 }
 
 .method-content p {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
 }
 
 .method-content a {
-  color: #14b8a6;
+  color: var(--accent);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.3s;
 }
 
 .method-content a:hover {
-  color: #fbbf24;
+  color: var(--accent-2);
 }
 
 .response-time,
 .help-resources {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .response-time h3,
 .help-resources h3 {
-  color: #fbbf24;
+  color: var(--accent-2);
   font-size: 1.1rem;
   margin-bottom: 1rem;
 }
@@ -366,16 +368,16 @@
 .response-time li,
 .help-resources li {
   margin-bottom: 0.5rem;
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 .help-resources a {
-  color: #14b8a6;
+  color: var(--accent);
   text-decoration: none;
 }
 
 .help-resources a:hover {
-  color: #fbbf24;
+  color: var(--accent-2);
   text-decoration: underline;
 }
 
@@ -388,27 +390,27 @@
 }
 
 .feature-item {
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--card);
   padding: 1.5rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   transition: all 0.3s;
 }
 
 .feature-item:hover {
-  border-color: #14b8a6;
+  border-color: var(--accent);
   transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(20, 184, 166, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 217, 255, 0.15);
 }
 
 .feature-item h3 {
-  color: #fbbf24;
+  color: var(--accent-2);
   margin-bottom: 0.75rem;
   font-size: 1.1rem;
 }
 
 .feature-item p {
-  color: #cbd5e1;
+  color: var(--text-secondary);
   margin: 0;
   font-size: 0.95rem;
 }
@@ -421,20 +423,20 @@
 }
 
 .reason {
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--card);
   padding: 1.5rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .reason h3 {
-  color: #14b8a6;
+  color: var(--accent);
   margin-bottom: 0.75rem;
   font-size: 1.1rem;
 }
 
 .reason p {
-  color: #cbd5e1;
+  color: var(--text-secondary);
   margin: 0;
   font-size: 0.95rem;
 }
@@ -457,31 +459,31 @@
 }
 
 .cta-button-primary {
-  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
   color: white;
 }
 
 .cta-button-primary:hover {
-  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+  background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent) 100%);
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(20, 184, 166, 0.3);
+  box-shadow: 0 10px 20px rgba(0, 217, 255, 0.2);
 }
 
 .cta-button-secondary {
   background: transparent;
-  color: #14b8a6;
-  border: 2px solid #14b8a6;
+  color: var(--accent);
+  border: 2px solid var(--accent);
 }
 
 .cta-button-secondary:hover {
-  background: #14b8a6;
+  background: var(--accent);
   color: white;
 }
 
 /* Footer */
 .legal-footer {
-  background: rgba(15, 23, 42, 0.9);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-secondary);
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
   padding: 2rem;
   margin-top: 4rem;
 }
@@ -495,19 +497,19 @@
 }
 
 .legal-footer-links a {
-  color: #94a3b8;
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.9rem;
   transition: color 0.3s;
 }
 
 .legal-footer-links a:hover {
-  color: #14b8a6;
+  color: var(--accent);
 }
 
 .legal-footer p {
   text-align: center;
-  color: #64748b;
+  color: var(--muted);
   font-size: 0.85rem;
   margin: 0;
 }

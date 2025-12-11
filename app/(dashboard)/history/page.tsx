@@ -18,6 +18,30 @@ export default function HistoryPage() {
 
   const supabase = createClient();
 
+  const logAccess = async (call: CallAnalysis) => {
+    try {
+      await fetch('/api/audit/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resource_type: 'call_analysis',
+          resource_id: call.id,
+          action: 'viewed',
+          organization_id: call.organization_id,
+          metadata: { file_name: call.file_name }
+        })
+      });
+    } catch (e) {
+      console.error('Failed to log access', e);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedCall) {
+      logAccess(selectedCall);
+    }
+  }, [selectedCall]);
+
   useEffect(() => {
     async function loadHistory() {
       try {
