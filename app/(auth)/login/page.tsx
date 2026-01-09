@@ -15,7 +15,7 @@ function LoginForm() {
   
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
+  const redirectTo = searchParams.get('redirect') || '/onboarding';
   const supabase = createClient();
 
   const handleEmailLogin = async (e: React.FormEvent) => {

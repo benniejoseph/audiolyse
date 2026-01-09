@@ -8,7 +8,7 @@ import { SUBSCRIPTION_LIMITS } from '@/lib/types/database';
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [org, setOrg] = useState<Organization | null>(null);
-  const [activeTab, setActiveTab] = useState<'profile' | 'organization' | 'billing' | 'security'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'organization' | 'ai_context' | 'billing' | 'security'>('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -20,6 +20,12 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // AI Context States
+  const [aiContext, setAiContext] = useState('');
+  const [products, setProducts] = useState('');
+  const [competitors, setCompetitors] = useState('');
+  const [guidelines, setGuidelines] = useState('');
 
   const supabase = createClient();
 
@@ -59,6 +65,15 @@ export default function SettingsPage() {
           if (organization) {
             setOrg(organization);
             setOrgName(organization.name);
+            
+            // Load AI Settings if they exist
+            if (organization.ai_settings) {
+              const settings = organization.ai_settings as any;
+              setAiContext(settings.context || '');
+              setProducts(Array.isArray(settings.products) ? settings.products.join('\n') : (settings.products || ''));
+              setCompetitors(Array.isArray(settings.competitors) ? settings.competitors.join('\n') : (settings.competitors || ''));
+              setGuidelines(settings.guidelines || '');
+            }
           }
         }
       } catch (error) {
@@ -108,6 +123,35 @@ export default function SettingsPage() {
 
       setOrg({ ...org, name: orgName });
       setMessage({ type: 'success', text: 'Organization updated successfully!' });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveAiSettings = async () => {
+    if (!org) return;
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const aiSettings = {
+        context: aiContext,
+        products: products.split('\n').filter(p => p.trim()),
+        competitors: competitors.split('\n').filter(c => c.trim()),
+        guidelines: guidelines
+      };
+
+      const { error } = await supabase
+        .from('organizations')
+        .update({ ai_settings: aiSettings })
+        .eq('id', org.id);
+
+      if (error) throw error;
+
+      setOrg({ ...org, ai_settings: aiSettings });
+      setMessage({ type: 'success', text: 'AI Context updated successfully!' });
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -172,6 +216,7 @@ export default function SettingsPage() {
       <div className="settings-tabs">
         <button className={activeTab === 'profile' ? 'active' : ''} onClick={() => setActiveTab('profile')}>Profile</button>
         <button className={activeTab === 'organization' ? 'active' : ''} onClick={() => setActiveTab('organization')}>Organization</button>
+        <button className={activeTab === 'ai_context' ? 'active' : ''} onClick={() => setActiveTab('ai_context')}>AI Context</button>
         <button className={activeTab === 'billing' ? 'active' : ''} onClick={() => setActiveTab('billing')}>Billing</button>
         <button className={activeTab === 'security' ? 'active' : ''} onClick={() => setActiveTab('security')}>Security</button>
       </div>
@@ -223,6 +268,12 @@ export default function SettingsPage() {
                 <input type="text" value={org?.slug || ''} disabled />
               </div>
             </div>
+            {org?.industry && (
+              <div className="form-group">
+                <label>Industry</label>
+                <input type="text" value={org.industry} disabled />
+              </div>
+            )}
             <button className="save-btn" onClick={handleSaveOrg} disabled={saving}>
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
@@ -244,6 +295,62 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'ai_context' && (
+          <div className="settings-section">
+            <h3>AI Analysis Context</h3>
+            <p className="section-desc">Provide context to the AI to improve call analysis accuracy. The more detail you provide, the better the insights.</p>
+            
+            <div className="form-group">
+              <label>General Context & Business Overview</label>
+              <textarea 
+                className="ai-textarea"
+                rows={4}
+                value={aiContext} 
+                onChange={(e) => setAiContext(e.target.value)} 
+                placeholder="Describe what your company does, your typical customer, and the main goal of your calls." 
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Products / Services (One per line)</label>
+                <textarea 
+                  className="ai-textarea"
+                  rows={6}
+                  value={products} 
+                  onChange={(e) => setProducts(e.target.value)} 
+                  placeholder="Product A - $100&#10;Service B - $50/mo" 
+                />
+              </div>
+              <div className="form-group">
+                <label>Competitors (One per line)</label>
+                <textarea 
+                  className="ai-textarea"
+                  rows={6}
+                  value={competitors} 
+                  onChange={(e) => setCompetitors(e.target.value)} 
+                  placeholder="Competitor X&#10;Competitor Y" 
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Specific Guidelines / Playbook</label>
+              <textarea 
+                className="ai-textarea"
+                rows={6}
+                value={guidelines} 
+                onChange={(e) => setGuidelines(e.target.value)} 
+                placeholder="e.g. Always ask for budget in the first 5 mins. Never offer discounts above 10% without approval." 
+              />
+            </div>
+
+            <button className="save-btn" onClick={handleSaveAiSettings} disabled={saving}>
+              {saving ? 'Saving...' : 'Save AI Context'}
+            </button>
           </div>
         )}
 

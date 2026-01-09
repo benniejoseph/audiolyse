@@ -36,6 +36,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 0.1 Fetch Organization Context & Settings
+    let aiContext = '';
+    try {
+      const { data: membership } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (membership) {
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('industry, ai_settings')
+          .eq('id', membership.organization_id)
+          .single();
+
+        if (org) {
+          const settings = org.ai_settings as any;
+          const industry = org.industry || 'General';
+          
+          let contextParts = [`INDUSTRY CONTEXT: ${industry}`];
+          
+          if (settings?.context) contextParts.push(`COMPANY CONTEXT: ${settings.context}`);
+          if (settings?.products && settings.products.length > 0) contextParts.push(`PRODUCTS/SERVICES: ${settings.products.join(', ')}`);
+          if (settings?.competitors && settings.competitors.length > 0) contextParts.push(`COMPETITORS: ${settings.competitors.join(', ')}`);
+          if (settings?.guidelines) contextParts.push(`SPECIFIC GUIDELINES: ${settings.guidelines}`);
+
+          aiContext = contextParts.join('\n\n');
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch org context for transcription:', e);
+      // Continue without context if fetch fails
+    }
+
     // 1. Validate API Configuration
     if (!API_KEY) {
       return NextResponse.json({ 
@@ -74,6 +109,8 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = `
 You are an EXTREMELY STRICT and CRITICAL call quality analyst. You have very high standards and are known for being tough but fair. You analyze calls for a medical/healthcare company where quality matters greatly.
+
+${aiContext ? `\n--- ORGANIZATION CONTEXT ---\n${aiContext}\n----------------------------\n` : ''}
 
 Analyze this audio call between a patient/customer and a support agent. The audio may be in English, Hindi, or Hinglish.
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { CallAnalysis, Organization } from '@/lib/types/database';
+import type { CallAnalysis, Organization, Profile } from '@/lib/types/database';
 import { generateCallAnalysisPDF } from '@/app/utils/pdfGenerator';
 import { SUBSCRIPTION_LIMITS } from '@/lib/types/database';
 
@@ -15,6 +15,10 @@ export default function HistoryPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'failed'>('all');
   const [selectedCall, setSelectedCall] = useState<CallAnalysis | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Assignment State
+  const [members, setMembers] = useState<Profile[]>([]);
+  const [assigning, setAssigning] = useState(false);
 
   const supabase = createClient();
 
@@ -93,6 +97,16 @@ export default function HistoryPage() {
         } else {
           console.warn('Call history is null or undefined');
         }
+
+        // Get team members for assignment
+        const { data: teamMembers } = await supabase
+          .from('organization_members')
+          .select('user_id, profile:profiles(id, full_name, email)')
+          .eq('organization_id', organization.id);
+        
+        if (teamMembers) {
+          setMembers(teamMembers.map((m: any) => m.profile).filter(Boolean));
+        }
       } catch (error) {
         console.error('Unexpected error loading history:', error);
       } finally {
@@ -106,6 +120,31 @@ export default function HistoryPage() {
   const handleRefresh = () => {
     setLoading(true);
     setRefreshKey(prev => prev + 1);
+  };
+
+  const handleAssignCall = async (callId: string, userId: string) => {
+    setAssigning(true);
+    try {
+      const { error } = await supabase
+        .from('call_analyses')
+        .update({ assigned_to: userId || null })
+        .eq('id', callId);
+
+      if (error) throw error;
+
+      // Update local state
+      setCalls(prev => prev.map(c => c.id === callId ? { ...c, assigned_to: userId || null } : c));
+      if (selectedCall?.id === callId) {
+        setSelectedCall(prev => prev ? { ...prev, assigned_to: userId || null } : null);
+      }
+      
+      alert('Call assigned successfully!');
+    } catch (e: any) {
+      console.error('Assignment error:', e);
+      alert('Failed to assign call');
+    } finally {
+      setAssigning(false);
+    }
   };
 
   const filteredCalls = calls
@@ -276,6 +315,21 @@ export default function HistoryPage() {
                 Score: {selectedCall.overall_score}
               </div>
             )}
+
+            <div className="modal-section" style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '8px', color: 'var(--text-secondary)' }}>Assign to Team Member (Coaching)</label>
+              <select 
+                value={selectedCall.assigned_to || ''} 
+                onChange={(e) => handleAssignCall(selectedCall.id, e.target.value)}
+                disabled={assigning}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg)' }}
+              >
+                <option value="">-- Unassigned --</option>
+                {members.map(m => (
+                  <option key={m.id} value={m.id}>{m.full_name}</option>
+                ))}
+              </select>
+            </div>
 
             {selectedCall.summary && (
               <div className="modal-section">

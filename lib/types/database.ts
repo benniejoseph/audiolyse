@@ -23,6 +23,7 @@ export interface Database {
           country: string | null;
           currency: 'INR' | 'USD';
           is_admin: boolean;
+          job_title?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -35,6 +36,7 @@ export interface Database {
           country?: string | null;
           currency?: 'INR' | 'USD';
           is_admin?: boolean;
+          job_title?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -47,6 +49,7 @@ export interface Database {
           country?: string | null;
           currency?: 'INR' | 'USD';
           is_admin?: boolean;
+          job_title?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -73,6 +76,9 @@ export interface Database {
           updated_at: string;
           current_period_start: string | null;
           current_period_end: string | null;
+          industry?: string;
+          onboarding_completed?: boolean;
+          ai_settings?: Json;
         };
         Insert: {
           id?: string;
@@ -93,6 +99,9 @@ export interface Database {
           updated_at?: string;
           current_period_start?: string | null;
           current_period_end?: string | null;
+          industry?: string;
+          onboarding_completed?: boolean;
+          ai_settings?: Json;
         };
         Update: {
           id?: string;
@@ -115,6 +124,9 @@ export interface Database {
           updated_at?: string;
           current_period_start?: string | null;
           current_period_end?: string | null;
+          industry?: string;
+          onboarding_completed?: boolean;
+          ai_settings?: Json;
         };
       };
       organization_members: {
@@ -218,6 +230,7 @@ export interface Database {
           error_message: string | null;
           created_at: string;
           updated_at: string;
+          assigned_to?: string | null;
         };
         Insert: {
           id?: string;
@@ -238,6 +251,7 @@ export interface Database {
           error_message?: string | null;
           created_at?: string;
           updated_at?: string;
+          assigned_to?: string | null;
         };
         Update: {
           id?: string;
@@ -258,6 +272,7 @@ export interface Database {
           error_message?: string | null;
           created_at?: string;
           updated_at?: string;
+          assigned_to?: string | null;
         };
       };
       usage_logs: {

@@ -5,7 +5,11 @@ import { createClient } from '@/lib/supabase/client';
 import type { Organization, OrganizationMember, Profile } from '@/lib/types/database';
 import { SUBSCRIPTION_LIMITS } from '@/lib/types/database';
 
-type MemberWithProfile = OrganizationMember & { profile: Profile };
+type MemberWithProfile = OrganizationMember & { 
+  profile: Profile;
+  reports_to?: string; 
+  department?: string;
+};
 
 export default function TeamPage() {
   const [org, setOrg] = useState<Organization | null>(null);
@@ -13,6 +17,14 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [canManageTeam, setCanManageTeam] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<MemberWithProfile | null>(null);
+  
+  // Edit State
+  const [editRole, setEditRole] = useState('');
+  const [editReportsTo, setEditReportsTo] = useState('');
+  const [editJobTitle, setEditJobTitle] = useState('');
+
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
   const [inviting, setInviting] = useState(false);
@@ -54,7 +66,7 @@ export default function TeamPage() {
             .eq('organization_id', organization.id);
 
           if (orgMembers) {
-            setMembers(orgMembers as MemberWithProfile[]);
+            setMembers(orgMembers as any);
           }
         }
       } catch (error) {
@@ -66,6 +78,62 @@ export default function TeamPage() {
 
     loadTeam();
   }, [supabase]);
+
+  const handleUpdateMember = async () => {
+    if (!selectedMember) return;
+    
+    try {
+      // Update role/reports_to in organization_members
+      const { error: memberError } = await supabase
+        .from('organization_members')
+        .update({
+          role: editRole,
+          reports_to: editReportsTo || null
+        })
+        .eq('id', selectedMember.id);
+
+      if (memberError) throw memberError;
+
+      // Update job_title in profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          job_title: editJobTitle
+        })
+        .eq('id', selectedMember.user_id);
+
+      if (profileError) throw profileError;
+
+      // Update local state
+      setMembers(prev => prev.map(m => {
+        if (m.id === selectedMember.id) {
+          return {
+            ...m,
+            role: editRole as any,
+            reports_to: editReportsTo,
+            profile: {
+              ...m.profile,
+              job_title: editJobTitle
+            }
+          };
+        }
+        return m;
+      }));
+
+      setMessage({ type: 'success', text: 'Member updated successfully' });
+      setShowEditModal(false);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    }
+  };
+
+  const openEditModal = (member: MemberWithProfile) => {
+    setSelectedMember(member);
+    setEditRole(member.role);
+    setEditReportsTo(member.reports_to || '');
+    setEditJobTitle(member.profile?.job_title || '');
+    setShowEditModal(true);
+  };
 
   const tierLimits = org ? SUBSCRIPTION_LIMITS[org.subscription_tier] : SUBSCRIPTION_LIMITS.free;
   const hasTeamFeature = tierLimits.features.teamManagement;
@@ -223,24 +291,85 @@ export default function TeamPage() {
             <div className="member-info">
               <span className="member-name">{member.profile?.full_name || 'Unnamed'}</span>
               <span className="member-email">{member.profile?.email}</span>
+              {member.profile?.job_title && <span className="member-title">{member.profile.job_title}</span>}
             </div>
-            <span className={`member-role role-${member.role}`}>
-              {member.role}
-            </span>
-            <span className="member-joined">
-              Joined {new Date(member.joined_at).toLocaleDateString()}
-            </span>
-            {canManageTeam && member.role !== 'owner' && (
-              <button 
-                className="member-remove" 
-                onClick={() => handleRemoveMember(member.id)}
-              >
-                Remove
-              </button>
-            )}
+            <div className="member-status">
+              <span className={`member-role role-${member.role}`}>
+                {member.role}
+              </span>
+              {member.reports_to && (
+                <span className="reports-to-badge">
+                  Reports to: {members.find(m => m.user_id === member.reports_to)?.profile.full_name || 'Unknown'}
+                </span>
+              )}
+            </div>
+            
+            <div className="member-actions">
+              {canManageTeam && (
+                <button className="member-edit" onClick={() => openEditModal(member)}>Edit</button>
+              )}
+              {canManageTeam && member.role !== 'owner' && (
+                <button 
+                  className="member-remove" 
+                  onClick={() => handleRemoveMember(member.id)}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && selectedMember && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowEditModal(false)}>×</button>
+            <h2>Edit Team Member</h2>
+            <p>{selectedMember.profile.full_name}</p>
+
+            <div className="form-group">
+              <label>Role (Permissions)</label>
+              <select value={editRole} onChange={(e) => setEditRole(e.target.value)}>
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+                <option value="viewer">Viewer</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Job Title</label>
+              <input 
+                type="text" 
+                value={editJobTitle} 
+                onChange={(e) => setEditJobTitle(e.target.value)}
+                placeholder="e.g. Sales Representative" 
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Reports To (Manager)</label>
+              <select value={editReportsTo} onChange={(e) => setEditReportsTo(e.target.value)}>
+                <option value="">-- No Manager --</option>
+                {members
+                  .filter(m => m.id !== selectedMember.id) // Can't report to self
+                  .map(m => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {m.profile.full_name} ({m.profile.email})
+                    </option>
+                  ))
+                }
+              </select>
+            </div>
+
+            <div className="modal-actions">
+              <button className="modal-btn secondary" onClick={() => setShowEditModal(false)}>Cancel</button>
+              <button className="modal-btn primary" onClick={handleUpdateMember}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Invite Modal */}
       {showInviteModal && (
