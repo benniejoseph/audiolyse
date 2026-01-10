@@ -214,19 +214,21 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
 
       <style jsx>{`
         .mark-read-btn {
-          padding: 4px 10px;
+          padding: 6px 12px;
           background: transparent;
           border: 1px solid var(--border-color);
           border-radius: 6px;
           color: var(--main-text-muted);
+          font-family: 'Poppins', sans-serif;
           font-size: 11px;
           cursor: pointer;
           transition: all 0.2s;
         }
         
         .mark-read-btn:hover {
-          background: var(--item-hover);
-          color: var(--main-text);
+          background: var(--accent-light);
+          border-color: var(--accent);
+          color: var(--accent);
         }
         
         .no-notifications {
@@ -237,29 +239,38 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
           flex-direction: column;
           align-items: center;
         }
+
+        .no-notifications p {
+          font-family: 'Poppins', sans-serif;
+          margin: 0;
+        }
         
         .notification-list {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 8px;
         }
         
         .notification-item {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           gap: 12px;
-          padding: 12px;
-          border-radius: 8px;
+          padding: 12px 14px;
+          background: var(--item-bg);
+          border-radius: 10px;
           text-decoration: none;
-          transition: background 0.2s;
+          transition: all 0.2s ease;
+          border: 1px solid transparent;
         }
         
         .notification-item:hover {
           background: var(--item-hover);
+          border-color: var(--border-color);
+          transform: translateX(2px);
         }
         
         .notification-item.unread {
-          background: var(--item-bg);
+          background: rgba(0, 223, 129, 0.05);
           border-left: 3px solid var(--accent);
         }
         
@@ -268,42 +279,53 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
           display: flex;
           align-items: center;
           justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: var(--item-hover);
         }
         
         .notification-content {
           flex: 1;
           min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
         }
         
         .notification-title {
-          display: block;
-          font-weight: 600;
+          font-family: 'Poppins', sans-serif;
+          font-weight: 500;
           color: var(--main-text);
           font-size: 13px;
+          line-height: 1.3;
         }
         
         .notification-message {
-          display: block;
+          font-family: 'Poppins', sans-serif;
           font-size: 12px;
           color: var(--main-text-muted);
-          margin-top: 2px;
+          line-height: 1.4;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         
         .notification-time {
+          font-family: 'Poppins', sans-serif;
           font-size: 11px;
           color: var(--main-text-muted);
           flex-shrink: 0;
+          white-space: nowrap;
         }
         
         .unread-badge {
           position: absolute;
           top: 12px;
           right: 100px;
-          background: #ef4444;
-          color: white;
+          background: var(--accent);
+          color: #00120f;
+          font-family: 'Poppins', sans-serif;
           font-size: 11px;
           font-weight: 600;
           padding: 2px 8px;

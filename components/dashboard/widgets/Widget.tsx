@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, ReactNode } from 'react';
+import { RefreshCw, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
 export interface WidgetProps {
   id: string;
@@ -48,12 +49,12 @@ export function Widget({
           {headerAction}
           {onRefresh && (
             <button 
-              className="widget-refresh" 
+              className={`widget-refresh ${loading ? 'spinning' : ''}`}
               onClick={onRefresh}
               disabled={loading}
               title="Refresh"
             >
-              🔄
+              <RefreshCw size={14} />
             </button>
           )}
           {collapsible && (
@@ -62,7 +63,7 @@ export function Widget({
               onClick={() => setCollapsed(!collapsed)}
               title={collapsed ? 'Expand' : 'Collapse'}
             >
-              {collapsed ? '▼' : '▲'}
+              {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
             </button>
           )}
         </div>
@@ -77,7 +78,7 @@ export function Widget({
             </div>
           ) : error ? (
             <div className="widget-error">
-              <span className="error-icon">⚠️</span>
+              <span className="error-icon"><AlertTriangle size={32} /></span>
               <p>{error}</p>
               {onRefresh && (
                 <button onClick={onRefresh} className="retry-btn">
@@ -145,25 +146,31 @@ export function Widget({
         
         .widget-refresh,
         .widget-collapse {
+          display: flex;
+          align-items: center;
+          justify-content: center;
           background: transparent;
           border: none;
           cursor: pointer;
           padding: 6px;
           border-radius: 6px;
           color: var(--main-text-muted);
-          font-size: 14px;
           transition: all 0.2s;
         }
         
         .widget-refresh:hover,
         .widget-collapse:hover {
           background: var(--item-hover);
-          color: var(--main-text);
+          color: var(--accent);
         }
         
         .widget-refresh:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+
+        .widget-refresh.spinning {
+          animation: spin 1s linear infinite;
         }
         
         .widget-content {
@@ -204,7 +211,10 @@ export function Widget({
         }
         
         .error-icon {
-          font-size: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ef4444;
           margin-bottom: 12px;
         }
         

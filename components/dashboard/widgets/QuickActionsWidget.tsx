@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Widget } from './Widget';
-import { Mic, FolderOpen, Users, Settings, ShieldCheck, FileText, Zap } from 'lucide-react';
+import { Mic, FolderOpen, Users, Settings, ShieldCheck, FileText, Zap, ChevronRight, UserCog } from 'lucide-react';
 
 interface QuickAction {
   id: string;
@@ -26,15 +26,15 @@ export function QuickActionsWidget({
   const actions: QuickAction[] = [
     {
       id: 'analyze',
-      icon: <Mic size={24} />,
+      icon: <Mic size={20} />,
       label: 'Analyze Call',
       description: 'Upload and analyze a new call',
       href: '/analyze',
-      color: '#00d9ff',
+      color: '#00df81',
     },
     {
       id: 'history',
-      icon: <FolderOpen size={24} />,
+      icon: <FolderOpen size={20} />,
       label: 'View History',
       description: 'Browse past analyses',
       href: '/history',
@@ -42,16 +42,16 @@ export function QuickActionsWidget({
     },
     {
       id: 'customers',
-      icon: <Users size={24} />,
+      icon: <Users size={20} />,
       label: 'Customers',
       description: 'View customer profiles',
       href: '/customers',
-      color: '#10b981',
+      color: '#3b82f6',
       badge: 'NEW',
     },
     {
       id: 'team',
-      icon: <Users size={24} />,
+      icon: <UserCog size={20} />,
       label: 'Team',
       description: isManager ? 'Manage your team' : 'View team members',
       href: '/team',
@@ -59,7 +59,7 @@ export function QuickActionsWidget({
     },
     {
       id: 'settings',
-      icon: <Settings size={24} />,
+      icon: <Settings size={20} />,
       label: 'AI Settings',
       description: 'Configure AI context',
       href: '/settings',
@@ -67,7 +67,7 @@ export function QuickActionsWidget({
     },
     {
       id: 'compliance',
-      icon: <ShieldCheck size={24} />,
+      icon: <ShieldCheck size={20} />,
       label: 'Compliance',
       description: 'Legal & privacy settings',
       href: '/compliance',
@@ -79,7 +79,7 @@ export function QuickActionsWidget({
   if (subscriptionTier !== 'free') {
     actions.push({
       id: 'export',
-      icon: <FileText size={24} />,
+      icon: <FileText size={20} />,
       label: 'Export Reports',
       description: 'Download analytics',
       href: '/history',
@@ -101,17 +101,21 @@ export function QuickActionsWidget({
             key={action.id} 
             href={action.href}
             className="action-card"
-            style={{ '--action-color': action.color } as any}
+            style={{ '--action-color': action.color } as React.CSSProperties}
           >
-            <div className="action-icon">{action.icon}</div>
+            <div className="action-icon-wrapper" style={{ backgroundColor: `${action.color}15` }}>
+              <span className="action-icon" style={{ color: action.color }}>{action.icon}</span>
+            </div>
             <div className="action-content">
               <span className="action-label">
                 {action.label}
-                {action.badge && <span className="action-badge">{action.badge}</span>}
+                {action.badge && <span className="action-badge" style={{ backgroundColor: action.color }}>{action.badge}</span>}
               </span>
               <span className="action-description">{action.description}</span>
             </div>
-            <span className="action-arrow">→</span>
+            <span className="action-arrow">
+              <ChevronRight size={16} />
+            </span>
           </Link>
         ))}
       </div>
@@ -119,79 +123,100 @@ export function QuickActionsWidget({
       <style jsx>{`
         .actions-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
           gap: 12px;
         }
         
         .action-card {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 14px;
+          gap: 14px;
+          padding: 16px;
           background: var(--item-bg);
-          border: 1px solid var(--border-color);
+          border: 1px solid transparent;
           border-radius: 12px;
           text-decoration: none;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
         }
         
         .action-card:hover {
           background: var(--item-hover);
           border-color: var(--action-color);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        .action-icon-wrapper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 42px;
+          height: 42px;
+          border-radius: 10px;
+          flex-shrink: 0;
         }
         
         .action-icon {
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--action-color);
-          flex-shrink: 0;
         }
         
         .action-content {
           flex: 1;
           min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
         }
         
         .action-label {
           display: flex;
           align-items: center;
-          gap: 6px;
-          font-weight: 600;
+          gap: 8px;
+          font-family: 'Poppins', sans-serif;
+          font-weight: 500;
           color: var(--main-text);
           font-size: 14px;
+          line-height: 1.3;
         }
         
         .action-badge {
           padding: 2px 6px;
-          background: var(--action-color);
           color: white;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 600;
           border-radius: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         
         .action-description {
-          display: block;
+          font-family: 'Poppins', sans-serif;
           font-size: 12px;
           color: var(--main-text-muted);
-          margin-top: 2px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          line-height: 1.4;
         }
         
         .action-arrow {
           color: var(--main-text-muted);
-          font-size: 14px;
-          transition: transform 0.2s;
+          display: flex;
+          align-items: center;
+          opacity: 0;
+          transform: translateX(-4px);
+          transition: all 0.2s ease;
         }
         
         .action-card:hover .action-arrow {
-          transform: translateX(4px);
+          opacity: 1;
+          transform: translateX(0);
           color: var(--action-color);
+        }
+
+        @media (max-width: 640px) {
+          .actions-grid {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
     </Widget>

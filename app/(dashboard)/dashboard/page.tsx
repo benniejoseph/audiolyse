@@ -13,10 +13,12 @@ import {
   NotificationWidget 
 } from '@/components/dashboard/widgets';
 import { getAtRiskCustomers, getTopCustomers, type CustomerProfile } from '@/lib/customer';
+import { RefreshCw, Mic, BarChart3, Target, TrendingUp, User } from 'lucide-react';
 
 interface DashboardData {
   org: Organization | null;
   userId: string;
+  userName: string;
   isManager: boolean;
   stats: {
     totalCalls: number;
@@ -42,14 +44,15 @@ export default function DashboardPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Parallel fetch: organization + member role + personal calls
-        const [orgResponse, memberResult, personalCallsResult] = await Promise.all([
+        // Parallel fetch: organization + member role + personal calls + profile
+        const [orgResponse, memberResult, personalCallsResult, profileResult] = await Promise.all([
           fetch('/api/organization/me'),
           supabase.from('organization_members').select('role').eq('user_id', user.id).single(),
           supabase
             .from('call_analyses')
             .select('id, status, overall_score')
-            .or(`uploaded_by.eq.${user.id},assigned_to.eq.${user.id}`)
+            .or(`uploaded_by.eq.${user.id},assigned_to.eq.${user.id}`),
+          supabase.from('profiles').select('full_name').eq('id', user.id).single()
         ]);
 
         const orgData = await orgResponse.json();
@@ -57,6 +60,7 @@ export default function DashboardPage() {
 
         const organization = orgData.organization;
         const isManager = ['owner', 'admin'].includes(memberResult.data?.role || '');
+        const userName = profileResult.data?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'there';
 
         // Calculate personal stats
         const personalCalls = personalCallsResult.data || [];
@@ -73,6 +77,7 @@ export default function DashboardPage() {
         setData({
           org: organization,
           userId: user.id,
+          userName,
           isManager,
           stats: {
             totalCalls: personalCalls.length,
@@ -108,7 +113,7 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  const { org, userId, isManager, stats, atRiskCustomers, topCustomers } = data;
+  const { org, userId, userName, isManager, stats, atRiskCustomers, topCustomers } = data;
   const usagePercent = Math.round((stats.callsThisMonth / stats.callsLimit) * 100);
 
   return (
@@ -116,7 +121,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="dashboard-header">
         <div>
-          <h1>Welcome back!</h1>
+          <h1>Hey {userName}</h1>
           <p>Here&apos;s an overview of your call analytics</p>
         </div>
         <div className="header-actions">
@@ -136,11 +141,12 @@ export default function DashboardPage() {
               </button>
             </div>
           )}
-          <button onClick={handleRefresh} className="refresh-button" disabled={loading}>
-            🔄 {loading ? '...' : 'Refresh'}
+          <button onClick={handleRefresh} className="refresh-button" disabled={loading} title="Refresh">
+            <RefreshCw size={18} className={loading ? 'spin' : ''} />
           </button>
           <Link href="/analyze" className="cta-button">
-            <span>🎙️</span> Analyze New Call
+            <Mic size={18} />
+            <span>Analyze New Call</span>
           </Link>
         </div>
       </div>
@@ -175,14 +181,18 @@ export default function DashboardPage() {
       {/* Stats Overview */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon">📊</div>
+          <div className="stat-icon blue">
+            <BarChart3 size={24} />
+          </div>
           <div className="stat-content">
             <span className="stat-value">{stats.totalCalls}</span>
             <span className="stat-label">Total Calls</span>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">🎯</div>
+          <div className="stat-icon green">
+            <Target size={24} />
+          </div>
           <div className="stat-content">
             <span className="stat-value" style={{ color: stats.avgScore >= 70 ? '#10b981' : stats.avgScore >= 50 ? '#f59e0b' : '#ef4444' }}>
               {stats.avgScore}
@@ -191,7 +201,9 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">📈</div>
+          <div className="stat-icon orange">
+            <TrendingUp size={24} />
+          </div>
           <div className="stat-content">
             <span className="stat-value">{stats.callsThisMonth}/{stats.callsLimit}</span>
             <span className="stat-label">Monthly Usage</span>
@@ -207,7 +219,9 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">👤</div>
+          <div className="stat-icon purple">
+            <User size={24} />
+          </div>
           <div className="stat-content">
             <span className="stat-value">{topCustomers.length > 0 ? topCustomers[0].name.split(' ')[0] : '—'}</span>
             <span className="stat-label">Top Customer</span>
@@ -338,18 +352,33 @@ export default function DashboardPage() {
         }
 
         .refresh-button {
-          padding: 10px 16px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          color: var(--text);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          padding: 0;
+          background: var(--card);
+          border: 1px solid var(--border-color);
+          border-radius: 10px;
+          color: var(--main-text-muted);
           cursor: pointer;
-          font-size: 14px;
           transition: all 0.2s;
         }
 
         .refresh-button:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: var(--item-hover);
+          color: var(--accent);
+          border-color: var(--accent);
+        }
+
+        .refresh-button :global(.spin) {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         .cta-button {
@@ -357,17 +386,20 @@ export default function DashboardPage() {
           align-items: center;
           gap: 8px;
           padding: 10px 20px;
-          background: linear-gradient(135deg, var(--accent), var(--accent-2));
-          border-radius: 8px;
-          color: white;
+          background: var(--accent);
+          border-radius: 10px;
+          color: #00120f;
           text-decoration: none;
+          font-family: 'Poppins', sans-serif;
           font-weight: 600;
-          transition: transform 0.2s, box-shadow 0.2s;
+          font-size: 14px;
+          transition: all 0.2s;
         }
 
         .cta-button:hover {
+          background: var(--accent-hover);
           transform: translateY(-2px);
-          box-shadow: 0 4px 20px rgba(0, 217, 255, 0.3);
+          box-shadow: 0 4px 20px rgba(0, 223, 129, 0.3);
         }
 
         .medical-disclaimer {
@@ -457,13 +489,41 @@ export default function DashboardPage() {
           align-items: center;
           gap: 16px;
           padding: 20px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--card);
+          border: 1px solid var(--card-border);
           border-radius: 16px;
+          box-shadow: var(--card-shadow);
+          font-family: 'Poppins', sans-serif;
         }
 
         .stat-icon {
-          font-size: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          flex-shrink: 0;
+        }
+
+        .stat-icon.blue {
+          background: rgba(59, 130, 246, 0.1);
+          color: #3b82f6;
+        }
+
+        .stat-icon.green {
+          background: rgba(16, 185, 129, 0.1);
+          color: #10b981;
+        }
+
+        .stat-icon.orange {
+          background: rgba(245, 158, 11, 0.1);
+          color: #f59e0b;
+        }
+
+        .stat-icon.purple {
+          background: rgba(139, 92, 246, 0.1);
+          color: #8b5cf6;
         }
 
         .stat-content {
@@ -472,14 +532,16 @@ export default function DashboardPage() {
         }
 
         .stat-value {
-          font-size: 28px;
-          font-weight: 700;
-          color: var(--text);
+          font-size: 24px;
+          font-weight: 600;
+          color: var(--main-text);
+          font-family: 'Poppins', sans-serif;
         }
 
         .stat-label {
           font-size: 13px;
-          color: var(--muted);
+          color: var(--main-text-muted);
+          font-family: 'Poppins', sans-serif;
         }
 
         .usage-bar {
@@ -593,16 +655,29 @@ export default function DashboardPage() {
           }
         }
 
-        /* Light theme */
-        [data-theme="light"] .stat-card,
-        [data-theme="light"] .view-toggle {
-          background: rgba(0, 0, 0, 0.02);
-          border-color: rgba(0, 0, 0, 0.1);
+        .view-toggle {
+          display: flex;
+          background: var(--card);
+          border: 1px solid var(--border-color);
+          border-radius: 10px;
+          padding: 4px;
         }
 
-        [data-theme="light"] .refresh-button {
-          background: rgba(0, 0, 0, 0.02);
-          border-color: rgba(0, 0, 0, 0.1);
+        .view-toggle button {
+          padding: 8px 16px;
+          border: none;
+          background: transparent;
+          color: var(--main-text-muted);
+          cursor: pointer;
+          border-radius: 6px;
+          font-size: 13px;
+          font-family: 'Poppins', sans-serif;
+          transition: all 0.2s;
+        }
+
+        .view-toggle button.active {
+          background: var(--accent);
+          color: #00120f;
         }
       `}</style>
     </div>

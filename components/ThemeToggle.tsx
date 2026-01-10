@@ -26,10 +26,9 @@ export function ThemeToggle() {
       <button
         className="theme-toggle-btn"
         aria-label="Toggle theme"
-        style={{ opacity: 0, width: '100%' }}
+        style={{ opacity: 0 }}
       >
-        <span><Sun size={16} /></span>
-        <span>Light</span>
+        <Sun size={18} />
       </button>
     );
   }
@@ -42,8 +41,7 @@ export function ThemeToggle() {
         aria-label="Toggle theme"
         title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       >
-        <span className="theme-icon">{theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}</span>
-        <span className="theme-label">{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
+        {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
       </button>
       
       <style jsx>{`
@@ -51,39 +49,21 @@ export function ThemeToggle() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          width: 100%;
-          padding: 10px 16px;
+          width: 36px;
+          height: 36px;
+          padding: 0;
           background: var(--bg-tertiary);
-          border: 1px solid var(--border);
+          border: 1px solid var(--sidebar-border);
           border-radius: 8px;
-          color: var(--text-secondary);
-          font-family: 'Poppins', sans-serif;
-          font-size: 13px;
-          font-weight: 500;
+          color: var(--sidebar-text-muted);
           cursor: pointer;
           transition: all 0.2s ease;
         }
         
         .theme-toggle-btn:hover {
-          background: var(--border);
-          color: var(--text);
-        }
-        
-        .theme-icon {
-          display: flex;
-          align-items: center;
-        }
-        
-        @media (max-width: 1024px) {
-          .theme-label {
-            display: none;
-          }
-          
-          .theme-toggle-btn {
-            width: auto;
-            padding: 10px;
-          }
+          background: var(--accent-light);
+          color: var(--accent);
+          border-color: var(--accent);
         }
       `}</style>
     </>

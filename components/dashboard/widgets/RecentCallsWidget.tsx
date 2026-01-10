@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Widget } from './Widget';
 import { createClient } from '@/lib/supabase/client';
-import { Phone, Mic, User, ChevronRight, Smile, Frown, Meh, HelpCircle } from 'lucide-react';
+import { Phone, Mic, User, ChevronRight, Smile, Frown, Meh, HelpCircle, ArrowRight } from 'lucide-react';
 
 interface RecentCallsWidgetProps {
   organizationId: string;
@@ -94,7 +94,7 @@ export function RecentCallsWidget({
       onRefresh={loadCalls}
       headerAction={
         <Link href="/history" className="view-all-link">
-          View All →
+          View All <ArrowRight size={14} />
         </Link>
       }
     >
@@ -155,14 +155,21 @@ export function RecentCallsWidget({
 
       <style jsx>{`
         .view-all-link {
+          display: flex;
+          align-items: center;
+          gap: 4px;
           color: var(--accent);
           text-decoration: none;
+          font-family: 'Poppins', sans-serif;
           font-size: 13px;
           font-weight: 500;
+          padding: 6px 12px;
+          border-radius: 6px;
+          transition: all 0.2s;
         }
         
         .view-all-link:hover {
-          text-decoration: underline;
+          background: var(--accent-light);
         }
         
         .no-calls {
@@ -180,6 +187,7 @@ export function RecentCallsWidget({
         }
         
         .no-calls p {
+          font-family: 'Poppins', sans-serif;
           color: var(--main-text-muted);
           margin: 0 0 16px;
         }
@@ -187,41 +195,51 @@ export function RecentCallsWidget({
         .analyze-link {
           display: inline-block;
           padding: 10px 20px;
-          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+          background: var(--accent);
           color: #00120f;
           text-decoration: none;
           border-radius: 8px;
+          font-family: 'Poppins', sans-serif;
           font-weight: 600;
           font-size: 14px;
+          transition: all 0.2s;
+        }
+
+        .analyze-link:hover {
+          background: var(--accent-hover);
+          transform: translateY(-1px);
         }
         
         .calls-list {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 10px;
         }
         
         .call-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 12px 16px;
+          padding: 14px 16px;
           background: var(--item-bg);
-          border-radius: 10px;
+          border: 1px solid transparent;
+          border-radius: 12px;
           text-decoration: none;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
         }
         
         .call-item:hover {
           background: var(--item-hover);
-          transform: translateX(4px);
+          border-color: var(--border-color);
+          transform: translateX(2px);
         }
         
         .call-left {
           display: flex;
-          gap: 12px;
+          gap: 14px;
           align-items: center;
           min-width: 0;
+          flex: 1;
         }
         
         .call-status {
@@ -250,22 +268,27 @@ export function RecentCallsWidget({
         .call-info {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 3px;
           min-width: 0;
         }
         
         .call-name {
+          font-family: 'Poppins', sans-serif;
           font-weight: 500;
+          font-size: 14px;
           color: var(--main-text);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          max-width: 220px;
+          max-width: 240px;
+          line-height: 1.3;
         }
         
         .call-meta {
+          font-family: 'Poppins', sans-serif;
           font-size: 12px;
           color: var(--main-text-muted);
+          line-height: 1.4;
         }
         
         .call-uploader {
@@ -273,27 +296,36 @@ export function RecentCallsWidget({
         }
         
         .call-customer {
+          font-family: 'Poppins', sans-serif;
           font-size: 11px;
           color: #8b5cf6;
           display: flex;
           align-items: center;
+          gap: 4px;
         }
         
         .call-right {
           display: flex;
           align-items: center;
           gap: 12px;
+          flex-shrink: 0;
         }
         
         .call-sentiment {
           display: flex;
           align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: var(--item-hover);
         }
         
         .call-score {
+          font-family: 'Poppins', sans-serif;
           font-size: 18px;
-          font-weight: 700;
-          min-width: 30px;
+          font-weight: 600;
+          min-width: 36px;
           text-align: right;
         }
         
@@ -301,6 +333,15 @@ export function RecentCallsWidget({
           color: var(--main-text-muted);
           display: flex;
           align-items: center;
+          opacity: 0;
+          transform: translateX(-4px);
+          transition: all 0.2s;
+        }
+
+        .call-item:hover .call-arrow {
+          opacity: 1;
+          transform: translateX(0);
+          color: var(--accent);
         }
       `}</style>
     </Widget>
