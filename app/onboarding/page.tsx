@@ -9,8 +9,10 @@ import '@/app/styles/auth.css';
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Form State
   const [industry, setIndustry] = useState('');
@@ -30,7 +32,37 @@ export default function OnboardingPage() {
       }
       setUserId(user.id);
       
-      // First check if user is a member of any organization
+      // First, ensure organization exists (creates one if needed)
+      try {
+        const ensureRes = await fetch('/api/organization/ensure', { method: 'POST' });
+        const ensureData = await ensureRes.json();
+        
+        if (ensureRes.ok && ensureData.organization) {
+          setOrgId(ensureData.organization.id);
+          setOrgName(ensureData.organization.name || '');
+          
+          // If onboarding already completed, redirect to dashboard
+          if (ensureData.organization.onboarding_completed) {
+            router.push('/dashboard');
+            return;
+          }
+          
+          // If this was not a new org, check if user is owner
+          if (!ensureData.created && ensureData.organization.owner_id !== user.id) {
+            // Invited user - skip onboarding
+            router.push('/dashboard');
+            return;
+          }
+          
+          setInitialLoading(false);
+          return; // Organization is ready, stay on onboarding
+        }
+      } catch (error) {
+        console.error('Error ensuring organization:', error);
+        setError('Failed to set up your workspace. Please refresh the page.');
+      }
+      
+      // Fallback: check membership directly
       const { data: membership } = await supabase
         .from('organization_members')
         .select('organization_id, role')
@@ -38,7 +70,6 @@ export default function OnboardingPage() {
         .maybeSingle();
 
       if (membership?.organization_id) {
-        // User is part of an org, get org details
         const { data: orgData } = await supabase
           .from('organizations')
           .select('id, name, onboarding_completed, owner_id')
@@ -49,35 +80,30 @@ export default function OnboardingPage() {
           setOrgId(orgData.id);
           setOrgName(orgData.name);
           
-          // If onboarding completed OR user is not owner (invited user), redirect to dashboard
           if (orgData.onboarding_completed || orgData.owner_id !== user.id) {
             router.push('/dashboard');
             return;
           }
         }
-      } else {
-        // No membership - check if they own an org (legacy support)
-        const { data: orgData } = await supabase
-          .from('organizations')
-          .select('id, name, onboarding_completed')
-          .eq('owner_id', user.id)
-          .maybeSingle();
-
-        if (orgData) {
-          setOrgId(orgData.id);
-          setOrgName(orgData.name);
-          if (orgData.onboarding_completed) {
-            router.push('/dashboard');
-          }
-        }
       }
+      
+      setInitialLoading(false);
     }
     checkUser();
   }, [router, supabase]);
 
   const handleComplete = async () => {
-    if (!userId || !orgId) return;
+    if (!userId) {
+      setError('User session not found. Please log in again.');
+      return;
+    }
+    if (!orgId) {
+      setError('Organization not found. Please refresh the page.');
+      return;
+    }
+    
     setLoading(true);
+    setError(null);
 
     try {
       // Update Organization
@@ -87,11 +113,13 @@ export default function OnboardingPage() {
           industry,
           name: orgName,
           onboarding_completed: true,
-          // We could store teamSize in metadata or new column if needed, skipping for now
         })
         .eq('id', orgId);
 
-      if (orgError) throw orgError;
+      if (orgError) {
+        console.error('Org update error:', orgError);
+        throw new Error(orgError.message || 'Failed to update organization');
+      }
 
       // Update Profile Role/Title
       const { error: profileError } = await supabase
@@ -101,17 +129,46 @@ export default function OnboardingPage() {
         })
         .eq('id', userId);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        // Don't throw - profile update is not critical
+      }
 
       // Redirect to dashboard
       router.push('/dashboard');
-    } catch (error) {
-      console.error('Onboarding error:', error);
-      alert('Failed to save details. Please try again.');
+    } catch (err: any) {
+      console.error('Onboarding error:', err);
+      setError(err.message || 'Failed to save details. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="auth-page-v2 onboarding-page">
+        <div className="auth-card-v2" style={{ maxWidth: '600px', textAlign: 'center', padding: '60px 40px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+            <Logo size="lg" />
+          </div>
+          <div className="spinner-sm" style={{ width: '32px', height: '32px', margin: '0 auto 16px', borderWidth: '3px', borderColor: 'var(--border-color)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          <p style={{ color: 'var(--main-text-muted)' }}>Setting up your workspace...</p>
+        </div>
+        <style jsx>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+          .onboarding-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page-v2 onboarding-page">
@@ -123,6 +180,12 @@ export default function OnboardingPage() {
           <h1 className="auth-card-title">Welcome to Audiolyse</h1>
           <p className="auth-card-subtitle">Let&apos;s set up your workspace for success</p>
         </div>
+
+        {error && (
+          <div className="auth-message error" style={{ marginBottom: '20px' }}>
+            {error}
+          </div>
+        )}
 
         <div className="onboarding-steps">
           <div className={`step-dot ${step >= 1 ? 'active' : ''}`}>1</div>
