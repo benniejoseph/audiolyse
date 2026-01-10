@@ -888,15 +888,497 @@ p, span, div { color: inherit; }
   to { transform: rotate(360deg); }
 }
 
-.analyze-loading {
+/* All Page Loading States */
+.analyze-loading,
+.coaching-loading,
+.leaderboard-loading,
+.knowledge-loading,
+.team-loading,
+.settings-loading,
+.customers-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 400px;
   gap: 16px;
+  color: var(--main-text-muted);
+  padding: 40px 20px;
 }
-.analyze-loading p { color: var(--main-text-muted); }
+.analyze-loading p,
+.coaching-loading p,
+.leaderboard-loading p,
+.knowledge-loading p,
+.team-loading p,
+.settings-loading p,
+.customers-loading p { 
+  color: var(--main-text-muted); 
+  margin: 0;
+  font-size: 15px;
+}
+
+/* ===== GLOBAL PAGE STYLES ===== */
+/* These styles ensure all dashboard pages have consistent base styling */
+
+.coaching-page,
+.leaderboard-page,
+.knowledge-page,
+.team-page,
+.settings-page,
+.customers-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  color: var(--main-text);
+}
+
+/* Team Page Specific */
+.team-upgrade-prompt {
+  max-width: 600px;
+  margin: 80px auto;
+  text-align: center;
+  padding: 60px 40px;
+  background: var(--card);
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+.team-upgrade-prompt .upgrade-icon {
+  font-size: 64px;
+  margin-bottom: 24px;
+}
+
+.team-upgrade-prompt h2 {
+  font-size: 28px;
+  margin: 0 0 12px;
+  color: var(--main-text);
+}
+
+.team-upgrade-prompt p {
+  color: var(--main-text-muted);
+  margin: 0 0 32px;
+  line-height: 1.6;
+}
+
+.team-upgrade-prompt .upgrade-features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.team-upgrade-prompt .feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--item-bg);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--main-text);
+}
+
+.team-upgrade-prompt .feature-icon {
+  font-size: 20px;
+}
+
+.team-upgrade-prompt .upgrade-cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 32px;
+  background: var(--accent);
+  color: #00120f;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.team-upgrade-prompt .upgrade-cta:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+/* Modal Overlay - Global */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h2 {
+  margin: 0 0 20px;
+  color: var(--main-text);
+  font-size: 20px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: var(--main-text-muted);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--main-text);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-btn.primary {
+  background: var(--accent);
+  border: none;
+  color: #00120f;
+}
+
+.modal-btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+.modal-btn.secondary {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--main-text-muted);
+}
+
+.modal-btn.secondary:hover {
+  background: var(--item-hover);
+}
+
+/* Form Groups - Global */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--main-text-muted);
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--main-text);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--main-text-muted);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--main-text-muted);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* Team Header */
+.team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.team-header h1 {
+  font-size: 28px;
+  margin: 0 0 4px;
+  color: var(--main-text);
+}
+
+.team-header p {
+  margin: 0;
+  color: var(--main-text-muted);
+}
+
+.invite-btn {
+  padding: 12px 24px;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: #00120f;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.invite-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+/* Team Stats */
+.team-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.team-stats .stat {
+  background: var(--card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: var(--card-shadow);
+}
+
+.team-stats .stat-value {
+  display: block;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.team-stats .stat-label {
+  display: block;
+  font-size: 13px;
+  color: var(--main-text-muted);
+  margin-top: 4px;
+}
+
+/* Team Message */
+.team-message {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.team-message.success {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.team-message.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Members List */
+.members-list {
+  background: var(--card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--card-shadow);
+}
+
+.members-list h3 {
+  margin: 0 0 20px;
+  font-size: 16px;
+  color: var(--main-text);
+}
+
+.member-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--item-bg);
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.member-card:last-child {
+  margin-bottom: 0;
+}
+
+.member-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #00a8cc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  font-size: 18px;
+}
+
+.member-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-name {
+  display: block;
+  font-weight: 600;
+  color: var(--main-text);
+  font-size: 15px;
+}
+
+.member-email {
+  display: block;
+  font-size: 13px;
+  color: var(--main-text-muted);
+}
+
+.member-title {
+  display: block;
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.member-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.member-role {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.member-role.role-owner {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
+}
+
+.member-role.role-admin {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
+.member-role.role-member {
+  background: rgba(0, 223, 129, 0.15);
+  color: var(--accent);
+}
+
+.member-role.role-viewer {
+  background: rgba(107, 114, 128, 0.15);
+  color: #6b7280;
+}
+
+.reports-to-badge {
+  font-size: 11px;
+  color: var(--main-text-muted);
+}
+
+.member-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.member-edit,
+.member-remove {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.member-edit {
+  background: rgba(0, 223, 129, 0.1);
+  border: 1px solid rgba(0, 223, 129, 0.3);
+  color: var(--accent);
+}
+
+.member-edit:hover {
+  background: rgba(0, 223, 129, 0.2);
+}
+
+.member-remove {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+}
+
+.member-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
 
 /* Mobile */
 @media (max-width: 768px) {
