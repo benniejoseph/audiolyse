@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { Organization } from '@/lib/types/database';
+import { downloadInvoicePDF } from '@/lib/invoice/pdf';
 import '@/app/styles/dashboard.css';
 import '@/app/styles/credits.css';
 
@@ -18,11 +19,24 @@ interface CreditTransaction {
   metadata: any;
 }
 
+interface PaymentReceipt {
+  id: string;
+  invoice_number: string;
+  amount: number;
+  currency: 'INR' | 'USD';
+  payment_type: string;
+  status: string;
+  created_at: string;
+  invoice_data: any;
+}
+
 export default function TransactionsPage() {
   const [org, setOrg] = useState<Organization | null>(null);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+  const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'purchase' | 'usage'>('all');
+  const [filter, setFilter] = useState<'all' | 'purchase' | 'usage' | 'invoices'>('all');
+  const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -38,16 +52,27 @@ export default function TransactionsPage() {
         if (response.ok && data.organization) {
           setOrg(data.organization as Organization);
 
-          // Load transactions
-          const { data: txns, error } = await supabase
-            .from('credits_transactions')
-            .select('*')
-            .eq('organization_id', data.organization.id)
-            .order('created_at', { ascending: false })
-            .limit(100);
+          // Load transactions and receipts in parallel
+          const [txnsResult, receiptsResult] = await Promise.all([
+            supabase
+              .from('credits_transactions')
+              .select('*')
+              .eq('organization_id', data.organization.id)
+              .order('created_at', { ascending: false })
+              .limit(100),
+            supabase
+              .from('payment_receipts')
+              .select('*')
+              .eq('organization_id', data.organization.id)
+              .order('created_at', { ascending: false })
+              .limit(50),
+          ]);
 
-          if (!error && txns) {
-            setTransactions(txns as CreditTransaction[]);
+          if (!txnsResult.error && txnsResult.data) {
+            setTransactions(txnsResult.data as CreditTransaction[]);
+          }
+          if (!receiptsResult.error && receiptsResult.data) {
+            setReceipts(receiptsResult.data as PaymentReceipt[]);
           }
         }
       } catch (error) {
@@ -59,6 +84,23 @@ export default function TransactionsPage() {
 
     loadData();
   }, [supabase]);
+
+  const handleDownloadInvoice = useCallback(async (receipt: PaymentReceipt) => {
+    if (!receipt.invoice_data) {
+      alert('Invoice data not available');
+      return;
+    }
+    
+    setDownloadingInvoice(receipt.id);
+    try {
+      downloadInvoicePDF(receipt.invoice_data);
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      alert('Failed to download invoice');
+    } finally {
+      setDownloadingInvoice(null);
+    }
+  }, []);
 
   const filteredTransactions = transactions.filter(txn => {
     if (filter === 'all') return true;
@@ -184,8 +226,129 @@ export default function TransactionsPage() {
         >
           Usage
         </button>
+        <button
+          className={`filter-tab ${filter === 'invoices' ? 'active' : ''}`}
+          onClick={() => setFilter('invoices')}
+          style={{
+            padding: '0.5rem 1rem',
+            background: filter === 'invoices' ? 'rgba(0, 217, 255, 0.2)' : 'transparent',
+            border: `1px solid ${filter === 'invoices' ? 'rgba(0, 217, 255, 0.4)' : 'rgba(139, 92, 246, 0.2)'}`,
+            borderRadius: '0.5rem',
+            color: '#fff',
+            cursor: 'pointer',
+            transition: 'all 0.25s ease',
+          }}
+        >
+          📄 Invoices {receipts.length > 0 && `(${receipts.length})`}
+        </button>
       </div>
 
+      {/* Invoices List */}
+      {filter === 'invoices' && (
+        <div className="recent-calls-card">
+          {receipts.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">📄</div>
+              <h3>No invoices yet</h3>
+              <p>Invoices will appear here after you make a purchase</p>
+            </div>
+          ) : (
+            <div className="invoices-list">
+              {receipts.map((receipt) => (
+                <div
+                  key={receipt.id}
+                  className="invoice-item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    padding: '1rem',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    border: '1px solid rgba(139, 92, 246, 0.1)',
+                    borderRadius: '0.75rem',
+                    marginBottom: '0.75rem',
+                    transition: 'all 0.25s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(0, 217, 255, 0.2)',
+                      border: '1px solid rgba(0, 217, 255, 0.4)',
+                      borderRadius: '0.75rem',
+                      fontSize: '1.5rem',
+                    }}
+                  >
+                    📄
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, color: '#fff', marginBottom: '0.25rem' }}>
+                      {receipt.invoice_number}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                      {receipt.payment_type === 'subscription' ? 'Subscription' : 'Credits Purchase'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.4)', marginTop: '0.25rem' }}>
+                      {formatDate(receipt.created_at)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: '1.25rem',
+                          fontWeight: 700,
+                          color: '#10b981',
+                          marginBottom: '0.25rem',
+                        }}
+                      >
+                        {receipt.currency === 'INR' ? '₹' : '$'}{receipt.amount.toFixed(2)}
+                      </div>
+                      <div style={{ 
+                        fontSize: '0.75rem', 
+                        padding: '2px 8px', 
+                        background: receipt.status === 'completed' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                        color: receipt.status === 'completed' ? '#10b981' : '#f59e0b',
+                        borderRadius: '4px',
+                        display: 'inline-block'
+                      }}>
+                        {receipt.status}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDownloadInvoice(receipt)}
+                      disabled={downloadingInvoice === receipt.id || !receipt.invoice_data}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: 'linear-gradient(135deg, #00d9ff, #8b5cf6)',
+                        border: 'none',
+                        borderRadius: '0.5rem',
+                        color: '#fff',
+                        cursor: receipt.invoice_data ? 'pointer' : 'not-allowed',
+                        opacity: receipt.invoice_data ? 1 : 0.5,
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      {downloadingInvoice === receipt.id ? '...' : '⬇️'} PDF
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Transactions List */}
+      {filter !== 'invoices' && (
       <div className="recent-calls-card">
         {filteredTransactions.length === 0 ? (
           <div className="empty-state">
@@ -270,6 +433,7 @@ export default function TransactionsPage() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

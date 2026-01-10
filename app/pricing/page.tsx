@@ -14,10 +14,29 @@ const tiers: { id: SubscriptionTier; name: string; description: string; popular?
   { id: 'enterprise', name: 'Enterprise', description: 'For large organizations' },
 ];
 
+// Annual billing discount (20% off)
+const ANNUAL_DISCOUNT = 0.20;
+
 export default function PricingPage() {
   const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
   const [currentTier, setCurrentTier] = useState<SubscriptionTier | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
+  
+  // Enterprise modal state
+  const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
+  const [enterpriseForm, setEnterpriseForm] = useState({
+    companyName: '',
+    contactName: '',
+    email: '',
+    phone: '',
+    companySize: '',
+    industry: '',
+    estimatedMonthlyCalls: '',
+    requirements: '',
+  });
+  const [submittingEnterprise, setSubmittingEnterprise] = useState(false);
+  const [enterpriseMessage, setEnterpriseMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const supabase = createClient();
 
@@ -55,17 +74,39 @@ export default function PricingPage() {
     checkAuth();
   }, [supabase]);
 
-  const formatPrice = (tier: SubscriptionTier) => {
+  const formatPrice = (tier: SubscriptionTier, showOriginal = false) => {
     if (tier === 'payg') {
+      // Base price per credit (from 10-credit package)
       return currency === 'INR' ? '₹5/credit' : '$0.06/credit';
     }
-    const price = SUBSCRIPTION_LIMITS[tier].price[currency];
-    if (price === 0) return 'Free';
-    if (currency === 'INR') return `₹${price}`;
-    return `$${price}`;
+    const basePrice = SUBSCRIPTION_LIMITS[tier].price[currency];
+    if (basePrice === 0) return 'Free';
+    
+    if (billingInterval === 'annual' && tier !== 'free') {
+      const discountedMonthly = Math.round(basePrice * (1 - ANNUAL_DISCOUNT));
+      const symbol = currency === 'INR' ? '₹' : '$';
+      if (showOriginal) {
+        return `${symbol}${basePrice}`;
+      }
+      return `${symbol}${discountedMonthly}`;
+    }
+    
+    if (currency === 'INR') return `₹${basePrice}`;
+    return `$${basePrice}`;
+  };
+  
+  const getAnnualTotal = (tier: SubscriptionTier) => {
+    if (tier === 'free' || tier === 'payg') return null;
+    const basePrice = SUBSCRIPTION_LIMITS[tier].price[currency];
+    const discountedMonthly = Math.round(basePrice * (1 - ANNUAL_DISCOUNT));
+    const annualTotal = discountedMonthly * 12;
+    const savings = (basePrice * 12) - annualTotal;
+    const symbol = currency === 'INR' ? '₹' : '$';
+    return { total: `${symbol}${annualTotal}`, savings: `${symbol}${savings}` };
   };
   
   const getCreditPrice = () => {
+    // Base price per credit (from 10-credit package)
     return currency === 'INR' ? 5 : 0.06;
   };
 
@@ -96,9 +137,9 @@ export default function PricingPage() {
       return;
     }
 
-    // For enterprise, show contact message
+    // For enterprise, show enterprise lead form
     if (tier === 'enterprise') {
-      alert('For Enterprise plans, please contact our sales team at sales@audiolyse.com or visit /contact');
+      setShowEnterpriseModal(true);
       return;
     }
 
@@ -123,7 +164,10 @@ export default function PricingPage() {
         return;
       }
 
-      const price = SUBSCRIPTION_LIMITS[tier].price[currency];
+      const basePrice = SUBSCRIPTION_LIMITS[tier].price[currency];
+      const price = billingInterval === 'annual' 
+        ? Math.round(basePrice * (1 - ANNUAL_DISCOUNT)) * 12 // Annual total
+        : basePrice; // Monthly
       
       // Create subscription order
       const orderResponse = await fetch('/api/payments/create-subscription', {
@@ -132,6 +176,7 @@ export default function PricingPage() {
         body: JSON.stringify({
           tier: tier,
           currency: currency,
+          billingInterval: billingInterval,
         }),
       });
 
@@ -205,6 +250,7 @@ export default function PricingPage() {
               tier: tier,
               amount: price,
               currency: currency,
+              billingInterval: billingInterval,
             }),
           });
 
@@ -240,6 +286,57 @@ export default function PricingPage() {
     }
   };
 
+  const handleEnterpriseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingEnterprise(true);
+    setEnterpriseMessage(null);
+
+    try {
+      const response = await fetch('/api/enterprise/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: enterpriseForm.companyName,
+          contactName: enterpriseForm.contactName,
+          email: enterpriseForm.email,
+          phone: enterpriseForm.phone,
+          companySize: enterpriseForm.companySize,
+          industry: enterpriseForm.industry,
+          estimatedMonthlyCalls: enterpriseForm.estimatedMonthlyCalls ? parseInt(enterpriseForm.estimatedMonthlyCalls) : undefined,
+          requirements: enterpriseForm.requirements,
+          source: 'pricing_page',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setEnterpriseMessage({ type: 'success', text: data.message });
+        // Reset form after 3 seconds
+        setTimeout(() => {
+          setShowEnterpriseModal(false);
+          setEnterpriseForm({
+            companyName: '',
+            contactName: '',
+            email: '',
+            phone: '',
+            companySize: '',
+            industry: '',
+            estimatedMonthlyCalls: '',
+            requirements: '',
+          });
+          setEnterpriseMessage(null);
+        }, 3000);
+      } else {
+        setEnterpriseMessage({ type: 'error', text: data.error || 'Failed to submit. Please try again.' });
+      }
+    } catch (error) {
+      setEnterpriseMessage({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setSubmittingEnterprise(false);
+    }
+  };
+
   return (
     <div className="pricing-page">
       <div className="pricing-header">
@@ -254,9 +351,27 @@ export default function PricingPage() {
         <h1>Simple, Transparent Pricing</h1>
         <p>Choose the plan that fits your needs</p>
         
-        <div className="currency-toggle">
-          <button className={currency === 'INR' ? 'active' : ''} onClick={() => setCurrency('INR')}>🇮🇳 INR</button>
-          <button className={currency === 'USD' ? 'active' : ''} onClick={() => setCurrency('USD')}>🌍 USD</button>
+        <div className="pricing-toggles">
+          <div className="currency-toggle">
+            <button className={currency === 'INR' ? 'active' : ''} onClick={() => setCurrency('INR')}>🇮🇳 INR</button>
+            <button className={currency === 'USD' ? 'active' : ''} onClick={() => setCurrency('USD')}>🌍 USD</button>
+          </div>
+          
+          <div className="billing-toggle">
+            <button 
+              className={billingInterval === 'monthly' ? 'active' : ''} 
+              onClick={() => setBillingInterval('monthly')}
+            >
+              Monthly
+            </button>
+            <button 
+              className={billingInterval === 'annual' ? 'active' : ''} 
+              onClick={() => setBillingInterval('annual')}
+            >
+              Annual
+              <span className="discount-badge">Save 20%</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -274,9 +389,18 @@ export default function PricingPage() {
               <p className="tier-description">{tier.description}</p>
               
               <div className="tier-price">
+                {billingInterval === 'annual' && tier.id !== 'free' && tier.id !== 'payg' && (
+                  <span className="original-price">{formatPrice(tier.id, true)}</span>
+                )}
                 <span className="price">{formatPrice(tier.id)}</span>
                 {tier.id === 'payg' && <span className="period"> (1 credit = 1 call)</span>}
                 {tier.id !== 'free' && tier.id !== 'payg' && <span className="period">/month</span>}
+                {billingInterval === 'annual' && tier.id !== 'free' && tier.id !== 'payg' && (
+                  <div className="annual-info">
+                    <span className="annual-total">Billed {getAnnualTotal(tier.id)?.total}/year</span>
+                    <span className="annual-savings">Save {getAnnualTotal(tier.id)?.savings}/year</span>
+                  </div>
+                )}
               </div>
 
               <ul className="tier-features">
@@ -321,6 +445,258 @@ export default function PricingPage() {
       <footer className="pricing-footer">
         <p>© 2024 Audiolyse. All rights reserved.</p>
       </footer>
+
+      {/* Enterprise Lead Modal */}
+      {showEnterpriseModal && (
+        <div className="modal-overlay" onClick={() => !submittingEnterprise && setShowEnterpriseModal(false)}>
+          <div className="modal-content enterprise-modal" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="modal-close" 
+              onClick={() => setShowEnterpriseModal(false)}
+              disabled={submittingEnterprise}
+            >
+              ×
+            </button>
+            
+            <div className="enterprise-header">
+              <span className="enterprise-icon">🏢</span>
+              <h2>Enterprise Plan Inquiry</h2>
+              <p>Tell us about your needs and we&apos;ll create a custom plan for you.</p>
+            </div>
+
+            {enterpriseMessage && (
+              <div className={`enterprise-message ${enterpriseMessage.type}`}>
+                {enterpriseMessage.type === 'success' && '✓ '}
+                {enterpriseMessage.text}
+              </div>
+            )}
+
+            <form onSubmit={handleEnterpriseSubmit} className="enterprise-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Company Name *</label>
+                  <input 
+                    type="text" 
+                    value={enterpriseForm.companyName}
+                    onChange={(e) => setEnterpriseForm({ ...enterpriseForm, companyName: e.target.value })}
+                    placeholder="Acme Inc."
+                    required
+                    disabled={submittingEnterprise}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Your Name *</label>
+                  <input 
+                    type="text" 
+                    value={enterpriseForm.contactName}
+                    onChange={(e) => setEnterpriseForm({ ...enterpriseForm, contactName: e.target.value })}
+                    placeholder="John Doe"
+                    required
+                    disabled={submittingEnterprise}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Work Email *</label>
+                  <input 
+                    type="email" 
+                    value={enterpriseForm.email}
+                    onChange={(e) => setEnterpriseForm({ ...enterpriseForm, email: e.target.value })}
+                    placeholder="john@company.com"
+                    required
+                    disabled={submittingEnterprise}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Phone</label>
+                  <input 
+                    type="tel" 
+                    value={enterpriseForm.phone}
+                    onChange={(e) => setEnterpriseForm({ ...enterpriseForm, phone: e.target.value })}
+                    placeholder="+91 98765 43210"
+                    disabled={submittingEnterprise}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Company Size *</label>
+                  <select 
+                    value={enterpriseForm.companySize}
+                    onChange={(e) => setEnterpriseForm({ ...enterpriseForm, companySize: e.target.value })}
+                    required
+                    disabled={submittingEnterprise}
+                  >
+                    <option value="">Select size...</option>
+                    <option value="10-50">10-50 employees</option>
+                    <option value="51-200">51-200 employees</option>
+                    <option value="201-500">201-500 employees</option>
+                    <option value="500+">500+ employees</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Industry</label>
+                  <select 
+                    value={enterpriseForm.industry}
+                    onChange={(e) => setEnterpriseForm({ ...enterpriseForm, industry: e.target.value })}
+                    disabled={submittingEnterprise}
+                  >
+                    <option value="">Select industry...</option>
+                    <option value="Healthcare">Healthcare / Medical</option>
+                    <option value="Finance">Finance / Banking</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Real Estate">Real Estate</option>
+                    <option value="SaaS">SaaS / Technology</option>
+                    <option value="E-commerce">E-commerce</option>
+                    <option value="Education">Education</option>
+                    <option value="Travel">Travel / Hospitality</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Estimated Monthly Call Volume</label>
+                <input 
+                  type="number" 
+                  value={enterpriseForm.estimatedMonthlyCalls}
+                  onChange={(e) => setEnterpriseForm({ ...enterpriseForm, estimatedMonthlyCalls: e.target.value })}
+                  placeholder="e.g., 5000"
+                  disabled={submittingEnterprise}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Tell us about your requirements</label>
+                <textarea 
+                  value={enterpriseForm.requirements}
+                  onChange={(e) => setEnterpriseForm({ ...enterpriseForm, requirements: e.target.value })}
+                  placeholder="What features are most important to you? Any specific compliance needs (HIPAA, etc.)?"
+                  rows={4}
+                  disabled={submittingEnterprise}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                className="enterprise-submit"
+                disabled={submittingEnterprise}
+              >
+                {submittingEnterprise ? 'Submitting...' : 'Request Enterprise Quote'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .enterprise-modal {
+          max-width: 600px;
+          padding: 32px;
+        }
+        .enterprise-header {
+          text-align: center;
+          margin-bottom: 24px;
+        }
+        .enterprise-icon {
+          font-size: 48px;
+        }
+        .enterprise-header h2 {
+          margin: 12px 0 8px 0;
+          color: var(--text, #fff);
+        }
+        .enterprise-header p {
+          color: var(--text-muted, #888);
+          margin: 0;
+        }
+        .enterprise-message {
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          font-size: 14px;
+        }
+        .enterprise-message.success {
+          background: rgba(16, 185, 129, 0.1);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          color: #10b981;
+        }
+        .enterprise-message.error {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          color: #ef4444;
+        }
+        .enterprise-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        @media (max-width: 480px) {
+          .form-row {
+            grid-template-columns: 1fr;
+          }
+        }
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .form-group label {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-muted, #888);
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+          padding: 10px 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.05);
+          color: var(--text, #fff);
+          font-size: 14px;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+          outline: none;
+          border-color: var(--accent, #00d9ff);
+        }
+        .form-group select {
+          cursor: pointer;
+        }
+        .form-group textarea {
+          resize: vertical;
+          min-height: 100px;
+        }
+        .enterprise-submit {
+          margin-top: 8px;
+          padding: 14px 24px;
+          background: linear-gradient(135deg, #00d9ff, #8b5cf6);
+          border: none;
+          border-radius: 8px;
+          color: #fff;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .enterprise-submit:hover:not(:disabled) {
+          opacity: 0.9;
+          transform: translateY(-2px);
+        }
+        .enterprise-submit:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      `}</style>
     </div>
   );
 }

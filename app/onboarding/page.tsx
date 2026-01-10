@@ -29,18 +29,45 @@ export default function OnboardingPage() {
       }
       setUserId(user.id);
       
-      // Check if already onboarded
-      const { data: orgData } = await supabase
-        .from('organizations')
-        .select('id, name, onboarding_completed')
-        .eq('owner_id', user.id) // Assuming owner for initial signup
-        .single();
+      // First check if user is a member of any organization
+      const { data: membership } = await supabase
+        .from('organization_members')
+        .select('organization_id, role')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (orgData) {
-        setOrgId(orgData.id);
-        setOrgName(orgData.name); // Pre-fill default name
-        if (orgData.onboarding_completed) {
-          router.push('/dashboard');
+      if (membership?.organization_id) {
+        // User is part of an org, get org details
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('id, name, onboarding_completed, owner_id')
+          .eq('id', membership.organization_id)
+          .single();
+
+        if (orgData) {
+          setOrgId(orgData.id);
+          setOrgName(orgData.name);
+          
+          // If onboarding completed OR user is not owner (invited user), redirect to dashboard
+          if (orgData.onboarding_completed || orgData.owner_id !== user.id) {
+            router.push('/dashboard');
+            return;
+          }
+        }
+      } else {
+        // No membership - check if they own an org (legacy support)
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('id, name, onboarding_completed')
+          .eq('owner_id', user.id)
+          .maybeSingle();
+
+        if (orgData) {
+          setOrgId(orgData.id);
+          setOrgName(orgData.name);
+          if (orgData.onboarding_completed) {
+            router.push('/dashboard');
+          }
         }
       }
     }

@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
 
 // Dynamic import for Razorpay
 let Razorpay: any;
@@ -18,8 +19,22 @@ function getRazorpayInstance() {
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Rate limiting for payment endpoints
+    const clientId = getClientIdentifier(request.headers);
+    const rateLimitResult = checkRateLimit(clientId, 'payment');
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { 
+          status: 429,
+          headers: { 'Retry-After': String(Math.ceil(rateLimitResult.resetIn / 1000)) }
+        }
+      );
+    }
+
     // Use regular client for auth check
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();

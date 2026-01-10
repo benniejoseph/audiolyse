@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { generateCallAnalysisPDF, generateBulkAnalysisPDF } from '@/app/utils/pdfGenerator';
 import type { Organization } from '@/lib/types/database';
-import { SUBSCRIPTION_LIMITS } from '@/lib/types/database';
+import { SUBSCRIPTION_LIMITS, type SubscriptionTier } from '@/lib/types/database';
+import { uploadAudioFile, isAudioStorageEnabled, updateStorageUsage, checkStorageQuota } from '@/lib/storage/audio';
 
 // Simple toast notification function
 const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
@@ -360,8 +361,8 @@ export default function AnalyzePage() {
     return remainingCalls > 0 && files.length <= remainingCalls;
   }, [org, files.length, isAdmin]);
 
-  // Save analysis result to database
-  const saveAnalysis = async (result: BulkCallResult) => {
+  // Save analysis result to database (and optionally upload audio)
+  const saveAnalysis = async (result: BulkCallResult, originalFile?: File) => {
     if (!org || !userId || !result.result) {
       console.error('Cannot save analysis: missing org, userId, or result', { org: !!org, userId: !!userId, hasResult: !!result.result });
       return null;
@@ -374,6 +375,46 @@ export default function AnalyzePage() {
         userId: userId,
         hasResult: !!result.result
       });
+      
+      let audioFilePath: string | undefined;
+      let audioFileUrl: string | undefined;
+      
+      // Upload audio to storage if enabled for this tier and file is provided
+      const tier = org.subscription_tier as SubscriptionTier;
+      if (originalFile && isAudioStorageEnabled(tier)) {
+        try {
+          // Check storage quota
+          const fileSizeMb = originalFile.size / (1024 * 1024);
+          const quotaCheck = await checkStorageQuota(org.id, tier, fileSizeMb);
+          
+          if (quotaCheck.allowed) {
+            console.log('Uploading audio to storage...');
+            const uploadResult = await uploadAudioFile({
+              file: originalFile,
+              organizationId: org.id,
+              userId: userId,
+            });
+            
+            if (uploadResult.success) {
+              audioFilePath = uploadResult.path;
+              audioFileUrl = uploadResult.url;
+              console.log('Audio uploaded successfully:', audioFilePath);
+              
+              // Update storage usage
+              await updateStorageUsage(org.id, fileSizeMb);
+            } else {
+              console.warn('Audio upload failed:', uploadResult.error);
+              // Continue with save even if upload fails
+            }
+          } else {
+            console.warn(`Storage quota exceeded: ${quotaCheck.currentUsed.toFixed(1)}MB / ${quotaCheck.limit}MB`);
+            showToast(`Audio not saved: Storage limit reached (${quotaCheck.currentUsed.toFixed(1)}/${quotaCheck.limit} MB used)`, 'warning');
+          }
+        } catch (uploadError) {
+          console.error('Error uploading audio:', uploadError);
+          // Continue with save even if upload fails
+        }
+      }
       
       // Use API endpoint that bypasses RLS with service role key
       const response = await fetch('/api/analysis/save', {
@@ -393,6 +434,8 @@ export default function AnalyzePage() {
           sentiment: result.result.insights?.sentiment,
           analysis_json: result.result as any,
           status: 'completed',
+          file_path: audioFilePath,
+          audio_url: audioFileUrl,
         }),
       });
       
@@ -411,7 +454,6 @@ export default function AnalyzePage() {
       console.log('Analysis saved with ID:', responseData.id);
       
       // Refresh org to get updated usage/credits
-      // Use the /api/organization/me endpoint to get updated org data
       try {
         const orgResponse = await fetch('/api/organization/me');
         if (orgResponse.ok) {
@@ -422,13 +464,11 @@ export default function AnalyzePage() {
         }
       } catch (refreshError) {
         console.error('Error refreshing org data:', refreshError);
-        // Don't fail the save if refresh fails
       }
       
       return responseData.id;
     } catch (error) {
       console.error('Error saving analysis:', error);
-      // Show error to user via toast
       showToast(`Failed to save analysis: ${error instanceof Error ? error.message : 'Unknown error'}. Analysis completed but may not appear in history.`, 'error');
       return null;
     }
@@ -476,7 +516,7 @@ export default function AnalyzePage() {
         
         const result: ApiResult = await response.json();
         
-        // Save to database
+        // Save to database (and upload audio for paid tiers)
         const completedResult: BulkCallResult = {
           ...initialResults[i],
           status: 'completed',
@@ -484,7 +524,7 @@ export default function AnalyzePage() {
         };
         
         console.log(`Saving analysis ${i + 1}/${files.length} to database...`);
-        const dbId = await saveAnalysis(completedResult);
+        const dbId = await saveAnalysis(completedResult, file);
         
         if (dbId) {
           console.log(`✅ Analysis ${i + 1} saved successfully with ID: ${dbId}`);
@@ -564,8 +604,8 @@ export default function AnalyzePage() {
         error: undefined,
       };
       
-      // Save to database
-      const dbId = await saveAnalysis(completedResult);
+      // Save to database (and upload audio for paid tiers)
+      const dbId = await saveAnalysis(completedResult, file);
       
       // Update state
       setBulkResults(prev =>

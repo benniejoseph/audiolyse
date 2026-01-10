@@ -151,6 +151,13 @@ export default function TeamPage() {
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
 
       const { data: { user } } = await supabase.auth.getUser();
+      
+      // Get current user's profile for inviter name
+      const { data: inviterProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user!.id)
+        .single();
 
       // Create invitation
       const { error } = await supabase
@@ -166,12 +173,44 @@ export default function TeamPage() {
 
       if (error) throw error;
 
-      // In production, send email with invite link
-      // For now, just show success message
-      setMessage({ 
-        type: 'success', 
-        text: `Invitation sent to ${inviteEmail}! (Note: Email delivery not configured yet)`
-      });
+      // Send invitation email
+      try {
+        const emailResponse = await fetch('/api/email/send-invitation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: inviteEmail,
+            inviterName: inviterProfile?.full_name || inviterProfile?.email || 'A team member',
+            organizationName: org.name,
+            role: inviteRole,
+            inviteToken: token,
+            expiresAt: expiresAt.toISOString(),
+          }),
+        });
+        
+        const emailResult = await emailResponse.json();
+        
+        if (emailResult.success) {
+          setMessage({ 
+            type: 'success', 
+            text: `Invitation sent to ${inviteEmail}!`
+          });
+        } else {
+          // Invitation created but email failed - still show success but warn
+          setMessage({ 
+            type: 'success', 
+            text: `Invitation created for ${inviteEmail}. Note: Email delivery may be delayed.`
+          });
+        }
+      } catch (emailError) {
+        // Invitation created but email failed
+        console.warn('Failed to send invitation email:', emailError);
+        setMessage({ 
+          type: 'success', 
+          text: `Invitation created for ${inviteEmail}. The user can sign up with this email to join.`
+        });
+      }
+      
       setShowInviteModal(false);
       setInviteEmail('');
     } catch (error: any) {

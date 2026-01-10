@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
 
 // Dynamic import for Razorpay
 let Razorpay: any;
@@ -19,9 +20,23 @@ function getRazorpayInstance() {
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // Use regular client for auth check
+    // 1. Rate limiting for payment endpoints
+    const clientId = getClientIdentifier(request.headers);
+    const rateLimitResult = checkRateLimit(clientId, 'payment');
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many payment requests. Please try again later.' },
+        { 
+          status: 429,
+          headers: { 'Retry-After': String(Math.ceil(rateLimitResult.resetIn / 1000)) }
+        }
+      );
+    }
+
+    // 2. Auth check
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -29,15 +44,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Use service client to bypass RLS
+    // 3. Service client setup
     let serviceClient;
     try {
       serviceClient = createServiceClient();
     } catch (e: any) {
-      console.error('Service client error:', e.message);
       return NextResponse.json({ 
-        error: 'Server configuration error',
-        details: 'SUPABASE_SERVICE_ROLE_KEY is not configured. Please add it to your Vercel environment variables.'
+        error: 'Server configuration error'
       }, { status: 500 });
     }
 
@@ -48,7 +61,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing payment verification data' }, { status: 400 });
     }
 
-    // Verify the payment signature
+    // 4. Check idempotency - prevent double-processing
+    const idempotencyKey = `${razorpay_order_id}_${razorpay_payment_id}`;
+    const { data: existingPayment } = await serviceClient
+      .from('payment_idempotency')
+      .select('id, status')
+      .or(`razorpay_order_id.eq.${razorpay_order_id},razorpay_payment_id.eq.${razorpay_payment_id}`)
+      .eq('status', 'completed')
+      .maybeSingle();
+
+    if (existingPayment) {
+      // Payment already processed - return success without reprocessing
+      return NextResponse.json({
+        success: true,
+        message: 'Payment already processed',
+        transactionId: existingPayment.id,
+        paymentId: razorpay_payment_id,
+        alreadyProcessed: true,
+      });
+    }
+
+    // 5. Verify the payment signature
     const text = `${razorpay_order_id}|${razorpay_payment_id}`;
     const generatedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')
@@ -59,7 +92,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid payment signature' }, { status: 400 });
     }
 
-    // Verify payment with Razorpay
+    // 6. Verify payment with Razorpay
     const razorpay = getRazorpayInstance();
     const payment = await razorpay.payments.fetch(razorpay_payment_id);
 
@@ -67,30 +100,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Payment not successful' }, { status: 400 });
     }
 
-    // Get organization using service client (bypasses RLS)
+    // 7. Get organization
     const { data: membership, error: membershipError } = await serviceClient
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (membershipError) {
-      console.error('Error fetching organization membership:', membershipError);
+    if (membershipError || !membership?.organization_id) {
       return NextResponse.json({ 
-        error: 'Failed to fetch organization',
-        details: membershipError.message 
-      }, { status: 500 });
-    }
-
-    if (!membership || !membership.organization_id) {
-      console.error('No organization found for user:', user.id);
-      return NextResponse.json({ 
-        error: 'No organization found. Please contact support.',
-        details: 'Your account may not have an organization set up. Please contact support to resolve this issue.'
+        error: 'No organization found. Please contact support.'
       }, { status: 404 });
     }
 
-    // Add credits to the organization using service client
+    // 8. Record payment attempt (idempotency)
+    await serviceClient
+      .from('payment_idempotency')
+      .insert({
+        idempotency_key: idempotencyKey,
+        razorpay_order_id,
+        razorpay_payment_id,
+        organization_id: membership.organization_id,
+        user_id: user.id,
+        credits,
+        amount,
+        currency,
+        status: 'pending',
+      });
+
+    // 9. Add credits to the organization
     const { data: transactionId, error: creditError } = await serviceClient.rpc('add_credits', {
       org_id: membership.organization_id,
       user_id: user.id,
@@ -101,11 +139,48 @@ export async function POST(request: Request) {
     });
 
     if (creditError) {
-      console.error('Error adding credits:', creditError);
+      // Mark payment as failed
+      await serviceClient
+        .from('payment_idempotency')
+        .update({ status: 'failed' })
+        .eq('idempotency_key', idempotencyKey);
+      
       return NextResponse.json({ error: 'Failed to add credits' }, { status: 500 });
     }
 
-    // Send email receipt
+    // 10. Mark payment as completed
+    await serviceClient
+      .from('payment_idempotency')
+      .update({ status: 'completed', processed_at: new Date().toISOString() })
+      .eq('idempotency_key', idempotencyKey);
+
+    // 11. Generate invoice (non-blocking)
+    let invoiceNumber: string | undefined;
+    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    try {
+      const invoiceResponse = await fetch(`${origin}/api/invoice/generate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cookie': request.headers.get('cookie') || '', // Pass auth cookies
+        },
+        body: JSON.stringify({
+          type: 'credits',
+          paymentId: razorpay_payment_id,
+          amount,
+          currency,
+          credits,
+        }),
+      });
+      const invoiceData = await invoiceResponse.json();
+      if (invoiceData.success) {
+        invoiceNumber = invoiceData.invoiceNumber;
+      }
+    } catch {
+      // Non-critical - invoice can be regenerated later
+    }
+
+    // 12. Send email receipt (non-blocking)
     try {
       const { data: profile } = await serviceClient
         .from('profiles')
@@ -114,8 +189,7 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (profile?.email) {
-        const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-        await fetch(`${origin}/api/email/send-receipt`, {
+        fetch(`${origin}/api/email/send-receipt`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -125,11 +199,11 @@ export async function POST(request: Request) {
             currency,
             transactionId: transactionId || razorpay_payment_id,
             date: new Date().toISOString(),
+            invoiceNumber,
           }),
-        });
+        }).catch(() => {}); // Fire and forget
       }
-    } catch (emailError) {
-      console.error('Error sending receipt email:', emailError);
+    } catch {
       // Don't fail the payment if email fails
     }
 
@@ -138,15 +212,14 @@ export async function POST(request: Request) {
       message: 'Payment verified and credits added successfully',
       transactionId,
       paymentId: razorpay_payment_id,
+      invoiceNumber,
     });
   } catch (error) {
-    console.error('Error verifying payment:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to verify payment',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    // Generic error - don't expose details in production
+    const message = process.env.NODE_ENV === 'production' 
+      ? 'Failed to verify payment' 
+      : (error instanceof Error ? error.message : 'Unknown error');
+    
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

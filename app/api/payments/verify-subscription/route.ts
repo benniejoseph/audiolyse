@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import Razorpay from 'razorpay';
 import { SUBSCRIPTION_LIMITS, type SubscriptionTier } from '@/lib/types/database';
+import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
 
 // Initialize Razorpay
 function getRazorpayInstance() {
@@ -15,8 +16,19 @@ function getRazorpayInstance() {
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientId = getClientIdentifier(request.headers);
+    const rateLimitResult = checkRateLimit(clientId, 'payment');
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rateLimitResult.resetIn / 1000)) } }
+      );
+    }
+
     // Use regular client for auth check
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -29,19 +41,34 @@ export async function POST(request: Request) {
     let serviceClient;
     try {
       serviceClient = createServiceClient();
-    } catch (e: any) {
-      console.error('Service client error:', e.message);
-      return NextResponse.json({ 
-        error: 'Server configuration error',
-        details: 'SUPABASE_SERVICE_ROLE_KEY is not configured. Please add it to your Vercel environment variables.'
-      }, { status: 500 });
+    } catch {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
     const body = await request.json();
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, tier, amount, currency } = body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, tier, amount, currency, billingInterval = 'monthly' } = body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !tier) {
       return NextResponse.json({ error: 'Missing payment verification data' }, { status: 400 });
+    }
+
+    // Check idempotency - prevent double-processing
+    const idempotencyKey = `sub_${razorpay_order_id}_${razorpay_payment_id}`;
+    const { data: existingPayment } = await serviceClient
+      .from('payment_idempotency')
+      .select('id, status')
+      .eq('razorpay_payment_id', razorpay_payment_id)
+      .eq('status', 'completed')
+      .maybeSingle();
+
+    if (existingPayment) {
+      return NextResponse.json({
+        success: true,
+        message: 'Subscription already activated',
+        paymentId: razorpay_payment_id,
+        tier: tier,
+        alreadyProcessed: true,
+      });
     }
 
     // Verify the payment signature
@@ -63,34 +90,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Payment not successful' }, { status: 400 });
     }
 
-    // Get organization using service client (bypasses RLS)
-    const { data: membership, error: membershipError } = await serviceClient
+    // Get organization
+    const { data: membership } = await serviceClient
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (membershipError) {
-      console.error('Error fetching organization membership:', membershipError);
-      return NextResponse.json({ 
-        error: 'Failed to fetch organization',
-        details: membershipError.message 
-      }, { status: 500 });
+    if (!membership?.organization_id) {
+      return NextResponse.json({ error: 'No organization found' }, { status: 404 });
     }
 
-    if (!membership || !membership.organization_id) {
-      console.error('No organization found for user:', user.id);
-      return NextResponse.json({ 
-        error: 'No organization found. Please contact support.',
-        details: 'Your account may not have an organization set up. Please contact support to resolve this issue.'
-      }, { status: 404 });
-    }
+    // Record payment attempt
+    await serviceClient
+      .from('payment_idempotency')
+      .insert({
+        idempotency_key: idempotencyKey,
+        razorpay_order_id,
+        razorpay_payment_id,
+        organization_id: membership.organization_id,
+        user_id: user.id,
+        credits: 0,
+        amount,
+        currency,
+        status: 'pending',
+        metadata: { type: 'subscription', tier, billingInterval },
+      });
 
-    // Update organization subscription using service client
+    // Update organization subscription
     const limits = SUBSCRIPTION_LIMITS[tier as SubscriptionTier];
     const now = new Date();
-    const nextMonth = new Date(now);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const periodEnd = new Date(now);
+    
+    // Set period end based on billing interval
+    if (billingInterval === 'annual') {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
 
     const { error: updateError } = await serviceClient
       .from('organizations')
@@ -101,18 +138,56 @@ export async function POST(request: Request) {
         storage_limit_mb: limits.storageMb,
         users_limit: limits.users,
         current_period_start: now.toISOString(),
-        current_period_end: nextMonth.toISOString(),
-        calls_used: 0, // Reset usage for new subscription
+        current_period_end: periodEnd.toISOString(),
+        calls_used: 0,
+        billing_interval: billingInterval,
+        annual_discount_applied: billingInterval === 'annual',
         updated_at: now.toISOString(),
       })
       .eq('id', membership.organization_id);
 
     if (updateError) {
-      console.error('Error updating subscription:', updateError);
+      await serviceClient
+        .from('payment_idempotency')
+        .update({ status: 'failed' })
+        .eq('idempotency_key', idempotencyKey);
       return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 });
     }
 
-    // Send email receipt
+    // Mark payment as completed
+    await serviceClient
+      .from('payment_idempotency')
+      .update({ status: 'completed', processed_at: new Date().toISOString() })
+      .eq('idempotency_key', idempotencyKey);
+
+    // Generate invoice (non-blocking)
+    let invoiceNumber: string | undefined;
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://audiolyse.com';
+    try {
+      const invoiceResponse = await fetch(`${origin}/api/invoice/generate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cookie': request.headers.get('cookie') || '', // Pass auth cookies
+        },
+        body: JSON.stringify({
+          type: 'subscription',
+          paymentId: razorpay_payment_id,
+          amount,
+          currency,
+          tier,
+          billingInterval,
+        }),
+      });
+      const invoiceData = await invoiceResponse.json();
+      if (invoiceData.success) {
+        invoiceNumber = invoiceData.invoiceNumber;
+      }
+    } catch {
+      // Non-critical - invoice can be regenerated later
+    }
+
+    // Send email receipt (non-blocking)
     try {
       const { data: profile } = await serviceClient
         .from('profiles')
@@ -121,24 +196,24 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (profile?.email) {
-        const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-        await fetch(`${origin}/api/email/send-receipt`, {
+        fetch(`${origin}/api/email/send-receipt`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: profile.email,
-            credits: 0, // Not applicable for subscriptions
-            amount: amount,
-            currency: currency,
+            credits: 0,
+            amount,
+            currency,
             transactionId: razorpay_payment_id,
             date: new Date().toISOString(),
             subscriptionTier: tier,
+            billingInterval: billingInterval,
+            invoiceNumber,
           }),
-        });
+        }).catch(() => {});
       }
-    } catch (emailError) {
-      console.error('Error sending receipt email:', emailError);
-      // Don't fail the payment if email fails
+    } catch {
+      // Non-critical
     }
 
     return NextResponse.json({
@@ -146,15 +221,13 @@ export async function POST(request: Request) {
       message: 'Subscription activated successfully',
       paymentId: razorpay_payment_id,
       tier: tier,
+      billingInterval: billingInterval,
+      invoiceNumber,
     });
   } catch (error) {
-    console.error('Error verifying subscription payment:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to verify payment',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    const message = process.env.NODE_ENV === 'production' 
+      ? 'Failed to verify payment' 
+      : (error instanceof Error ? error.message : 'Unknown error');
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

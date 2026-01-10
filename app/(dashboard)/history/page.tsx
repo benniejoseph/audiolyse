@@ -1,10 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { CallAnalysis, Organization, Profile } from '@/lib/types/database';
 import { generateCallAnalysisPDF } from '@/app/utils/pdfGenerator';
 import { SUBSCRIPTION_LIMITS } from '@/lib/types/database';
+import { toast } from '@/lib/toast';
+import { getAudioUrl } from '@/lib/storage/audio';
+import Link from 'next/link';
+
+interface CustomerOption {
+  id: string;
+  name: string;
+}
+
+// Pagination constants
+const PAGE_SIZE = 20;
 
 export default function HistoryPage() {
   const [calls, setCalls] = useState<CallAnalysis[]>([]);
@@ -16,11 +27,105 @@ export default function HistoryPage() {
   const [selectedCall, setSelectedCall] = useState<CallAnalysis | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  
   // Assignment State
   const [members, setMembers] = useState<Profile[]>([]);
   const [assigning, setAssigning] = useState(false);
+  
+  // Customer Filter State
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [filterCustomer, setFilterCustomer] = useState<string>('all');
+  
+  // Audio Player State
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [loadingAudio, setLoadingAudio] = useState(false);
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
 
   const supabase = createClient();
+  
+  // Audio Player Functions
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  const loadAudio = useCallback(async (call: CallAnalysis) => {
+    if (!call.file_path && !call.audio_url) return;
+    
+    setLoadingAudio(true);
+    try {
+      let url = call.audio_url;
+      
+      // If no audio_url but has file_path, get a fresh signed URL
+      if (!url && call.file_path) {
+        url = await getAudioUrl(call.file_path);
+      }
+      
+      if (url && audioRef.current) {
+        audioRef.current.src = url;
+        audioRef.current.load();
+        setCurrentAudioUrl(url);
+      }
+    } catch (error) {
+      console.error('Error loading audio:', error);
+      toast.error('Failed to load audio file');
+    } finally {
+      setLoadingAudio(false);
+    }
+  }, []);
+  
+  const togglePlayPause = useCallback(() => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+  }, [isPlaying]);
+  
+  const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = newTime;
+      setAudioCurrentTime(newTime);
+    }
+  }, []);
+  
+  // Initialize audio element
+  useEffect(() => {
+    audioRef.current = new Audio();
+    const audio = audioRef.current;
+    
+    audio.addEventListener('timeupdate', () => setAudioCurrentTime(audio.currentTime || 0));
+    audio.addEventListener('loadedmetadata', () => setAudioDuration(audio.duration || 0));
+    audio.addEventListener('ended', () => { setIsPlaying(false); setAudioCurrentTime(0); });
+    audio.addEventListener('pause', () => setIsPlaying(false));
+    audio.addEventListener('play', () => setIsPlaying(true));
+    
+    return () => {
+      audio.pause();
+      audio.src = '';
+    };
+  }, []);
+  
+  // Load audio when selected call changes
+  useEffect(() => {
+    if (selectedCall && (selectedCall.file_path || selectedCall.audio_url)) {
+      loadAudio(selectedCall);
+    } else {
+      setCurrentAudioUrl(null);
+      setAudioCurrentTime(0);
+      setAudioDuration(0);
+    }
+  }, [selectedCall, loadAudio]);
 
   const logAccess = async (call: CallAnalysis) => {
     try {
@@ -50,52 +155,81 @@ export default function HistoryPage() {
     async function loadHistory() {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) {
-          console.error('Error getting user:', userError);
-          return;
-        }
-        if (!user) {
-          console.log('No user found');
-          return;
-        }
+        if (userError || !user) return;
 
-        console.log('Loading history for user:', user.id);
+        // Parallel fetch: organization + team members
+        const [orgResponse, teamMembersResult] = await Promise.all([
+          fetch('/api/organization/me'),
+          null // Will fetch after we have org
+        ]);
 
-        // Use API route to bypass RLS issues
-        const response = await fetch('/api/organization/me');
-        const data = await response.json();
+        const orgData = await orgResponse.json();
+        if (!orgResponse.ok || !orgData.organization) return;
 
-        if (!response.ok) {
-          console.error('Error fetching organization:', data.error);
-          return;
-        }
-
-        if (!data.organization) {
-          console.warn('No organization found for user');
-          return;
-        }
-
-        const organization = data.organization;
-        console.log('Organization loaded:', organization.name);
+        const organization = orgData.organization;
         setOrg(organization);
 
-        // Get call history
-        const { data: callHistory, error: callsError } = await supabase
-          .from('call_analyses')
-          .select('*')
+        // Fetch customers for filter dropdown
+        const { data: customerList } = await supabase
+          .from('customer_profiles')
+          .select('id, name')
           .eq('organization_id', organization.id)
-          .order('created_at', { ascending: false });
+          .order('name');
+        
+        if (customerList) {
+          setCustomers(customerList);
+        }
+
+        // Build query with server-side filtering
+        let query = supabase
+          .from('call_analyses')
+          .select('*, customer:customer_profiles(id, name)', { count: 'exact' })
+          .eq('organization_id', organization.id);
+
+        // Apply server-side status filter
+        if (filterStatus !== 'all') {
+          query = query.eq('status', filterStatus);
+        }
+
+        // Apply customer filter
+        if (filterCustomer !== 'all') {
+          if (filterCustomer === 'unassigned') {
+            query = query.is('customer_id', null);
+          } else {
+            query = query.eq('customer_id', filterCustomer);
+          }
+        }
+
+        // Apply server-side search
+        if (searchQuery.trim()) {
+          query = query.ilike('file_name', `%${searchQuery}%`);
+        }
+
+        // Apply sorting
+        if (sortBy === 'score') {
+          query = query.order('overall_score', { ascending: false, nullsFirst: false });
+        } else {
+          query = query.order('created_at', { ascending: false });
+        }
+
+        // Apply pagination
+        const from = currentPage * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+        query = query.range(from, to);
+
+        const { data: callHistory, error: callsError, count } = await query;
 
         if (callsError) {
-          console.error('Error fetching call history:', callsError);
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('Error fetching call history:', callsError);
+          }
           return;
         }
 
-        console.log(`Loaded ${callHistory?.length || 0} calls from database`);
         if (callHistory) {
           setCalls(callHistory);
-        } else {
-          console.warn('Call history is null or undefined');
+          setTotalCount(count || 0);
+          setHasMore((count || 0) > (from + callHistory.length));
         }
 
         // Get team members for assignment
@@ -108,14 +242,16 @@ export default function HistoryPage() {
           setMembers(teamMembers.map((m: any) => m.profile).filter(Boolean));
         }
       } catch (error) {
-        console.error('Unexpected error loading history:', error);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Error loading history:', error);
+        }
       } finally {
         setLoading(false);
       }
     }
 
     loadHistory();
-  }, [supabase, refreshKey]);
+  }, [supabase, refreshKey, currentPage, searchQuery, filterStatus, sortBy, filterCustomer]);
 
   const handleRefresh = () => {
     setLoading(true);
@@ -138,32 +274,31 @@ export default function HistoryPage() {
         setSelectedCall(prev => prev ? { ...prev, assigned_to: userId || null } : null);
       }
       
-      alert('Call assigned successfully!');
+      toast.success('Call assigned successfully!');
     } catch (e: any) {
-      console.error('Assignment error:', e);
-      alert('Failed to assign call');
+      toast.error('Failed to assign call');
     } finally {
       setAssigning(false);
     }
   };
 
-  const filteredCalls = calls
-    .filter(call => {
-      if (searchQuery) {
-        return call.file_name.toLowerCase().includes(searchQuery.toLowerCase());
-      }
-      return true;
-    })
-    .filter(call => {
-      if (filterStatus === 'all') return true;
-      return call.status === filterStatus;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'date') {
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
-      return (b.overall_score || 0) - (a.overall_score || 0);
-    });
+  // With server-side filtering, we use calls directly
+  const filteredCalls = calls;
+  
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchQuery, filterStatus, sortBy, filterCustomer]);
+  
+  // Pagination helpers
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const canGoBack = currentPage > 0;
+  const canGoForward = currentPage < totalPages - 1;
+  
+  const goToPage = (page: number) => {
+    setLoading(true);
+    setCurrentPage(page);
+  };
 
   const tierLimits = org ? SUBSCRIPTION_LIMITS[org.subscription_tier] : SUBSCRIPTION_LIMITS.free;
   const historyDays = tierLimits.historyDays;
@@ -231,6 +366,13 @@ export default function HistoryPage() {
             <option value="all">All Status</option>
             <option value="completed">Completed</option>
             <option value="failed">Failed</option>
+          </select>
+          <select value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)}>
+            <option value="all">All Customers</option>
+            <option value="unassigned">Unassigned</option>
+            {customers.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
           </select>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
             <option value="date">Sort by Date</option>
@@ -302,6 +444,50 @@ export default function HistoryPage() {
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {totalCount > PAGE_SIZE && (
+        <div className="pagination-controls" style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '1rem',
+          marginTop: '2rem',
+          padding: '1rem'
+        }}>
+          <button 
+            onClick={() => goToPage(0)} 
+            disabled={!canGoBack || loading}
+            style={{ padding: '8px 12px', borderRadius: '6px', cursor: canGoBack ? 'pointer' : 'not-allowed', opacity: canGoBack ? 1 : 0.5 }}
+          >
+            ⏮️ First
+          </button>
+          <button 
+            onClick={() => goToPage(currentPage - 1)} 
+            disabled={!canGoBack || loading}
+            style={{ padding: '8px 12px', borderRadius: '6px', cursor: canGoBack ? 'pointer' : 'not-allowed', opacity: canGoBack ? 1 : 0.5 }}
+          >
+            ← Previous
+          </button>
+          <span style={{ color: 'var(--text-secondary)' }}>
+            Page {currentPage + 1} of {totalPages} ({totalCount} total)
+          </span>
+          <button 
+            onClick={() => goToPage(currentPage + 1)} 
+            disabled={!canGoForward || loading}
+            style={{ padding: '8px 12px', borderRadius: '6px', cursor: canGoForward ? 'pointer' : 'not-allowed', opacity: canGoForward ? 1 : 0.5 }}
+          >
+            Next →
+          </button>
+          <button 
+            onClick={() => goToPage(totalPages - 1)} 
+            disabled={!canGoForward || loading}
+            style={{ padding: '8px 12px', borderRadius: '6px', cursor: canGoForward ? 'pointer' : 'not-allowed', opacity: canGoForward ? 1 : 0.5 }}
+          >
+            Last ⏭️
+          </button>
+        </div>
+      )}
+
       {/* Call Detail Modal */}
       {selectedCall && (
         <div className="modal-overlay" onClick={() => setSelectedCall(null)}>
@@ -313,6 +499,75 @@ export default function HistoryPage() {
             {selectedCall.overall_score && (
               <div className="modal-score" style={{ color: getScoreColor(selectedCall.overall_score) }}>
                 Score: {selectedCall.overall_score}
+              </div>
+            )}
+
+            {/* Audio Player */}
+            {(selectedCall.file_path || selectedCall.audio_url) && (
+              <div className="modal-section" style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(139, 92, 246, 0.1))', 
+                padding: '16px', 
+                borderRadius: '12px', 
+                marginBottom: '16px',
+                border: '1px solid rgba(0, 217, 255, 0.2)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>🎧</span>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text)' }}>Original Recording</h4>
+                </div>
+                
+                {loadingAudio ? (
+                  <div style={{ textAlign: 'center', padding: '12px', color: 'var(--text-secondary)' }}>
+                    Loading audio...
+                  </div>
+                ) : currentAudioUrl ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button 
+                      onClick={togglePlayPause}
+                      style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #00d9ff, #8b5cf6)',
+                        border: 'none',
+                        color: '#fff',
+                        fontSize: '1.2rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      {isPlaying ? '⏸️' : '▶️'}
+                    </button>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max={audioDuration || 100}
+                        value={audioCurrentTime}
+                        onChange={handleSeek}
+                        style={{
+                          width: '100%',
+                          height: '6px',
+                          borderRadius: '3px',
+                          appearance: 'none',
+                          background: `linear-gradient(to right, #00d9ff ${(audioCurrentTime / (audioDuration || 1)) * 100}%, rgba(255,255,255,0.1) 0%)`,
+                          cursor: 'pointer'
+                        }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        <span>{formatTime(audioCurrentTime)}</span>
+                        <span>{formatTime(audioDuration)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '12px', color: 'var(--text-secondary)' }}>
+                    Audio not available
+                  </div>
+                )}
               </div>
             )}
 

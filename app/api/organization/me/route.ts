@@ -6,35 +6,22 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
  * Uses service client to bypass RLS.
  */
 export async function GET() {
-  console.log('[/api/organization/me] Request received');
-  
   try {
     // Use regular client for auth check
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      console.log('[/api/organization/me] No user found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    console.log('[/api/organization/me] User:', user.id);
-
-    // Check if service role key is configured
-    const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-    console.log('[/api/organization/me] Service key configured:', hasServiceKey);
 
     // Use service client to bypass RLS
     let serviceClient;
     try {
       serviceClient = createServiceClient();
-      console.log('[/api/organization/me] Service client created successfully');
     } catch (e: any) {
-      console.error('[/api/organization/me] Service client error:', e.message);
       return NextResponse.json({ 
-        error: 'Server configuration error',
-        details: 'SUPABASE_SERVICE_ROLE_KEY is not configured.',
-        hasKey: hasServiceKey
+        error: 'Server configuration error'
       }, { status: 500 });
     }
 

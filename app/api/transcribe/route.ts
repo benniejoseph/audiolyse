@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { processAudioForAnalysis, checkFileSize } from './audioUtils';
 import { createClient } from '@/lib/supabase/server';
+import { SUBSCRIPTION_LIMITS, type SubscriptionTier, type AISettings } from '@/lib/types/database';
+import { buildAnalysisPrompt, type OrganizationContext } from '@/lib/ai/prompt-builder';
 
 // Debug logging for env vars (masked)
 const k1 = process.env.GOOGLE_GEMINI_API_KEY;
@@ -13,14 +15,15 @@ const API_KEY = k1 || k2 || k3;
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
-// Optimized list based on user's available models (2.0/2.5/Latest)
+// Cost-optimized: Use Flash models first (94% cheaper than Pro)
 const MODEL_FALLBACKS = [
-  'gemini-flash-latest',       // 1. Valid alias in user's list
-  'gemini-2.0-flash',          // 2. High performance stable
-  'gemini-2.5-flash',          // 3. Newer stable
-  'gemini-2.0-flash-001',      // 4. Specific version
-  'gemini-pro-latest',         // 5. Pro fallback
-  'gemini-2.5-pro',            // 6. 2.5 Pro
+  'gemini-1.5-flash',          // 1. Most cost-effective for most tasks
+  'gemini-flash-latest',       // 2. Latest flash version
+  'gemini-2.0-flash',          // 3. Newer flash
+  'gemini-1.5-flash-001',      // 4. Specific stable version
+  'gemini-2.0-flash-001',      // 5. Specific 2.0 version
+  // Pro models only as last resort (expensive)
+  'gemini-1.5-pro',            // 6. Pro fallback (avoid if possible)
 ];
 
 export async function POST(req: NextRequest) {
@@ -37,7 +40,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 0.1 Fetch Organization Context & Settings
-    let aiContext = '';
+    let subscriptionTier: SubscriptionTier = 'free';
+    let organizationId: string | null = null;
+    let organizationContext: OrganizationContext | undefined;
+    
     try {
       const { data: membership } = await supabase
         .from('organization_members')
@@ -46,30 +52,32 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (membership) {
+        organizationId = membership.organization_id;
         const { data: org } = await supabase
           .from('organizations')
-          .select('industry, ai_settings')
+          .select('id, name, industry, ai_settings, subscription_tier')
           .eq('id', membership.organization_id)
           .single();
 
         if (org) {
-          const settings = org.ai_settings as any;
-          const industry = org.industry || 'General';
+          subscriptionTier = (org.subscription_tier as SubscriptionTier) || 'free';
           
-          let contextParts = [`INDUSTRY CONTEXT: ${industry}`];
-          
-          if (settings?.context) contextParts.push(`COMPANY CONTEXT: ${settings.context}`);
-          if (settings?.products && settings.products.length > 0) contextParts.push(`PRODUCTS/SERVICES: ${settings.products.join(', ')}`);
-          if (settings?.competitors && settings.competitors.length > 0) contextParts.push(`COMPETITORS: ${settings.competitors.join(', ')}`);
-          if (settings?.guidelines) contextParts.push(`SPECIFIC GUIDELINES: ${settings.guidelines}`);
-
-          aiContext = contextParts.join('\n\n');
+          // Build organization context for prompt builder
+          organizationContext = {
+            id: org.id,
+            name: org.name,
+            industry: org.industry || 'general',
+            aiSettings: org.ai_settings as AISettings | undefined,
+          };
         }
       }
     } catch (e) {
       console.warn('Failed to fetch org context for transcription:', e);
       // Continue without context if fetch fails
     }
+    
+    // Get tier-specific limits
+    const tierLimits = SUBSCRIPTION_LIMITS[subscriptionTier];
 
     // 1. Validate API Configuration
     if (!API_KEY) {
@@ -91,12 +99,17 @@ export async function POST(req: NextRequest) {
     const originalMimeType = audio.type || 'audio/mpeg';
     const originalBuffer = Buffer.from(arrayBuffer);
 
-    console.log(`[Transcribe] Processing: ${audio.name}, Size: ${Math.round(originalBuffer.length / 1024)}KB, Type: ${originalMimeType}`);
+    console.log(`[Transcribe] Processing: ${audio.name}, Size: ${Math.round(originalBuffer.length / 1024)}KB, Type: ${originalMimeType}, Tier: ${subscriptionTier}`);
 
-    const sizeCheck = checkFileSize(originalBuffer, 20);
+    // Use tier-specific file size limit
+    const maxFileSizeMb = tierLimits.maxFileSizeMb;
+    const sizeCheck = checkFileSize(originalBuffer, maxFileSizeMb);
     if (!sizeCheck.ok) {
+      const upgradeHint = subscriptionTier === 'free' 
+        ? ' Upgrade to a paid plan for larger file support.' 
+        : '';
       return NextResponse.json({ 
-        error: `File too large (${sizeCheck.sizeMB.toFixed(1)}MB). Maximum size is 20MB.` 
+        error: `File too large (${sizeCheck.sizeMB.toFixed(1)}MB). Maximum size for ${subscriptionTier} tier is ${maxFileSizeMb}MB.${upgradeHint}` 
       }, { status: 400 });
     }
 
@@ -107,65 +120,14 @@ export async function POST(req: NextRequest) {
     let text = '';
     let usedModel = '';
 
-    const systemPrompt = `
-You are an EXTREMELY STRICT and CRITICAL call quality analyst. You have very high standards and are known for being tough but fair. You analyze calls for a medical/healthcare company where quality matters greatly.
-
-${aiContext ? `\n--- ORGANIZATION CONTEXT ---\n${aiContext}\n----------------------------\n` : ''}
-
-Analyze this audio call between a patient/customer and a support agent. The audio may be in English, Hindi, or Hinglish.
-
-CRITICAL EVALUATION MINDSET:
-- BE HARSH. A score of 90+ should be EXCEPTIONAL and rare.
-- Average performance = 60-70 score, NOT 80+.
-- Always look for what the agent COULD have done better.
-- If the agent missed ANY opportunity to help, upsell, or improve the experience, note it.
-- Don't give the benefit of the doubt - judge based on what actually happened.
-- A "good enough" call is NOT excellent. Distinguish mediocrity from excellence.
-- If the agent didn't actively probe for needs, that's a weakness.
-- If the agent didn't offer additional services/solutions, that's a missed opportunity.
-- If the agent rushed the customer or didn't build rapport, penalize it.
-
-Respond ONLY with strict JSON in this exact shape:
-{
-  "language": string,
-  "durationSec": number,
-  "transcription": string,
-  "summary": string,
-  "mom": { "participants": string[], "decisions": string[], "actionItems": string[], "nextSteps": string[] },
-  "insights": { "sentiment": "Positive" | "Neutral" | "Negative", "sentimentScore": number, "topics": string[], "keywords": string[] },
-  "conversationMetrics": { "agentTalkRatio": number, "customerTalkRatio": number, "silenceRatio": number, "totalQuestions": number, "openQuestions": number, "closedQuestions": number, "agentInterruptions": number, "customerInterruptions": number, "avgResponseTimeSec": number, "longestPauseSec": number, "wordsPerMinuteAgent": number, "wordsPerMinuteCustomer": number },
-  "conversationSegments": [ { "name": string, "startTime": string, "endTime": string, "durationSec": number, "quality": "excellent" | "good" | "average" | "poor", "notes": string } ],
-  "keyMoments": [ { "timestamp": string, "type": "complaint" | "compliment" | "objection" | "competitor_mention" | "pricing_discussion" | "commitment" | "breakthrough" | "escalation_risk" | "pain_point" | "positive_signal", "speaker": "agent" | "customer", "text": string, "sentiment": "positive" | "neutral" | "negative", "importance": "high" | "medium" | "low" } ],
-  "coaching": { "overallScore": number, "categoryScores": { "opening": number, "discovery": number, "solutionPresentation": number, "objectionHandling": number, "closing": number, "empathy": number, "clarity": number, "compliance": number }, "strengths": string[], "weaknesses": string[], "missedOpportunities": string[], "customerHandling": { "score": number, "feedback": string }, "communicationQuality": { "score": number, "feedback": string }, "pitchEffectiveness": { "score": number, "feedback": string }, "objectionHandling": { "score": number, "feedback": string }, "forcedSale": { "detected": boolean, "severity": "none" | "mild" | "moderate" | "severe", "indicators": string[], "feedback": string }, "improvementSuggestions": string[], "scriptRecommendations": string[], "redFlags": string[], "coachingSummary": string },
-  "predictions": { "conversionProbability": number, "churnRisk": "high" | "medium" | "low", "escalationRisk": "high" | "medium" | "low", "satisfactionLikely": "high" | "medium" | "low", "followUpNeeded": boolean, "urgencyLevel": "high" | "medium" | "low" },
-  "customerProfile": { "communicationStyle": "detailed" | "brief" | "emotional" | "analytical", "decisionStyle": "quick" | "deliberate" | "needs_reassurance" | "price_focused", "engagementLevel": "high" | "medium" | "low", "pricesSensitivity": "high" | "medium" | "low", "concerns": string[], "preferences": string[] },
-  "actionItems": { "forAgent": string[], "forManager": string[], "forFollowUp": string[] }
-}
-
-STRICT SCORING GUIDELINES:
-- 90-100: EXCEPTIONAL - Flawless execution, exceeded expectations, built strong rapport, no missed opportunities
-- 80-89: VERY GOOD - Minor issues only, mostly excellent
-- 70-79: GOOD - Solid performance with some areas for improvement
-- 60-69: AVERAGE - Did the job but nothing special, several improvement areas
-- 50-59: BELOW AVERAGE - Significant issues that need training
-- Below 50: POOR - Serious concerns, immediate coaching needed
-
-ANALYSIS REQUIREMENTS:
-1. TRANSCRIPTION: Full verbatim transcription with speaker labels (A: for Agent, C: for Customer).
-2. SUMMARY: 6-10 bullet points covering key discussion points.
-3. CONVERSATION METRICS: Calculate talk ratios as percentages (e.g., 45 for 45%, NOT 0.45).
-4. CONVERSATION SEGMENTS: Break call into distinct phases.
-5. KEY MOMENTS: Identify 5-10 critical moments.
-6. COACHING SCORES: Be STRICT. Average calls get 60-70, not 80+.
-7. WEAKNESSES: Always find at least 2-3 areas for improvement, even in good calls.
-8. MISSED OPPORTUNITIES: What could the agent have done better? Always find something.
-9. RED FLAGS: Serious issues only. Leave array EMPTY [] if none exist. Do NOT include "None detected" as an item.
-10. FORCED SALE DETECTION: Check for high-pressure tactics, urgency manipulation, not respecting customer's pace.
-11. PREDICTIONS: Be realistic, not optimistic.
-12. ACTION ITEMS: Specific, actionable follow-ups.
-
-IMPORTANT: For redFlags array - if there are no red flags, return an EMPTY ARRAY []. Do NOT return ["None detected"] or ["None"] or similar.
-`;
+    // Build industry-specific, context-aware prompt
+    const systemPrompt = buildAnalysisPrompt({
+      organization: organizationContext,
+      callType: 'general', // Could be passed from form in future
+      language: 'English, Hindi, or Hinglish',
+    });
+    
+    console.log(`[Transcribe] Using industry: ${organizationContext?.industry || 'general'}, org: ${organizationContext?.name || 'N/A'}`);
 
     const audioBase64 = processedAudio.buffer.toString('base64');
     const finalMimeType = processedAudio.mimeType;

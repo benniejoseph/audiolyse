@@ -11,8 +11,13 @@ const navItems = [
   { href: '/dashboard', icon: '📊', label: 'Dashboard' },
   { href: '/analyze', icon: '🎙️', label: 'Analyze Calls' },
   { href: '/history', icon: '📁', label: 'History' },
+  { href: '/customers', icon: '👤', label: 'Customers' },
   { href: '/team', icon: '👥', label: 'Team', badge: 'PRO' },
+  { href: '/leaderboard', icon: '🏆', label: 'Leaderboard' },
+  { href: '/coaching', icon: '🎯', label: 'Coaching', showForManager: true },
+  { href: '/knowledge', icon: '📚', label: 'Knowledge Base' },
   { href: '/settings', icon: '⚙️', label: 'Settings' },
+  { href: '/security', icon: '🔐', label: 'Security' },
   { href: '/compliance', icon: '🛡️', label: 'Compliance' },
   { href: '/credits', icon: '💳', label: 'Buy Credits', showForPayg: true },
   { href: '/transactions', icon: '📋', label: 'Transactions', showForPayg: true },
@@ -21,6 +26,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isManager, setIsManager] = useState(false);
   const [usage, setUsage] = useState({ used: 0, limit: 10 });
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
   const supabase = createClient();
@@ -30,15 +36,18 @@ export function Sidebar() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check admin status
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single();
+      // Check admin status and role
+      const [profileResult, memberResult] = await Promise.all([
+        supabase.from('profiles').select('is_admin').eq('id', user.id).single(),
+        supabase.from('organization_members').select('role').eq('user_id', user.id).single(),
+      ]);
       
-      if (profile?.is_admin) {
+      if (profileResult.data?.is_admin) {
         setIsAdmin(true);
+      }
+      
+      if (memberResult.data?.role && ['owner', 'admin', 'manager'].includes(memberResult.data.role)) {
+        setIsManager(true);
       }
 
       // Use API route to bypass RLS issues
@@ -75,6 +84,10 @@ export function Sidebar() {
         {navItems.map((item) => {
           // Hide credits link unless user is on payg tier
           if (item.showForPayg && subscriptionTier !== 'payg') {
+            return null;
+          }
+          // Hide manager-only links for non-managers
+          if ((item as any).showForManager && !isManager) {
             return null;
           }
           return (

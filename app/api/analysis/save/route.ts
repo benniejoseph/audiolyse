@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { sanitizeFileName, isValidIdentifier } from '@/lib/constants';
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,10 +11,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized', details: userError?.message },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get request body
@@ -28,24 +28,36 @@ export async function POST(request: NextRequest) {
       sentiment,
       analysis_json,
       status = 'completed',
+      file_path,
+      audio_url,
     } = body;
 
     // Validate required fields
     if (!organization_id || !file_name || file_size_bytes === undefined) {
       return NextResponse.json(
-        { error: 'Missing required fields', details: 'organization_id, file_name, and file_size_bytes are required' },
+        { error: 'Missing required fields' },
         { status: 400 }
       );
     }
+
+    // Validate organization_id format (should be UUID)
+    if (!isValidIdentifier(organization_id.replace(/-/g, ''))) {
+      return NextResponse.json(
+        { error: 'Invalid organization ID format' },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize file name to prevent injection attacks
+    const sanitizedFileName = sanitizeFileName(file_name);
 
     // Use service client to bypass RLS
     let serviceClient;
     try {
       serviceClient = createServiceClient();
-    } catch (e: any) {
-      console.error('Service client not configured in /api/analysis/save:', e.message);
+    } catch {
       return NextResponse.json(
-        { error: 'Server configuration error', details: e.message },
+        { error: 'Server configuration error' },
         { status: 500 }
       );
     }
@@ -58,17 +70,9 @@ export async function POST(request: NextRequest) {
       .eq('organization_id', organization_id)
       .maybeSingle();
 
-    if (membershipError) {
-      console.error('Error checking organization membership in /api/analysis/save:', membershipError);
+    if (membershipError || !membership) {
       return NextResponse.json(
-        { error: 'Failed to verify organization membership', details: membershipError.message },
-        { status: 500 }
-      );
-    }
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: 'User is not a member of this organization' },
+        { error: 'Access denied' },
         { status: 403 }
       );
     }
@@ -79,7 +83,7 @@ export async function POST(request: NextRequest) {
       .insert({
         organization_id,
         uploaded_by: user.id,
-        file_name,
+        file_name: sanitizedFileName,
         file_size_bytes,
         duration_sec: duration_sec || null,
         language: language || null,
@@ -89,62 +93,51 @@ export async function POST(request: NextRequest) {
         sentiment: sentiment || null,
         analysis_json: analysis_json || null,
         status,
+        file_path: file_path || null,
+        audio_url: audio_url || null,
       })
       .select('id')
       .single();
 
-    if (insertError) {
-      console.error('Error inserting call analysis in /api/analysis/save:', insertError);
+    if (insertError || !analysis?.id) {
+      if (!isProduction) {
+        console.error('Insert error:', insertError);
+      }
       return NextResponse.json(
-        { error: 'Failed to save analysis', details: insertError.message },
+        { error: 'Failed to save analysis' },
         { status: 500 }
       );
     }
 
-    if (!analysis?.id) {
-      return NextResponse.json(
-        { error: 'Failed to save analysis: No ID returned' },
-        { status: 500 }
-      );
-    }
-
-    // Increment usage - use database function
+    // Increment usage - use database function (non-blocking errors)
     const fileSizeMb = file_size_bytes / (1024 * 1024);
-    const { error: usageError } = await serviceClient.rpc('increment_usage', {
+    await serviceClient.rpc('increment_usage', {
       org_id: organization_id,
       file_size_mb: fileSizeMb,
       user_id: user.id,
     });
 
-    if (usageError) {
-      console.error('Error incrementing usage in /api/analysis/save:', usageError);
-      // Don't fail the request if usage increment fails, just log it
-    }
-
-    // Log usage
-    const { error: logError } = await serviceClient
+    // Log usage (non-blocking)
+    await serviceClient
       .from('usage_logs')
       .insert({
         organization_id,
         user_id: user.id,
         action: 'call_analyzed',
         call_analysis_id: analysis.id,
-        metadata: { file_name: file_name, file_size: file_size_bytes },
+        metadata: { file_name: sanitizedFileName, file_size: file_size_bytes },
       });
-
-    if (logError) {
-      console.error('Error logging usage in /api/analysis/save:', logError);
-      // Don't fail the request if logging fails, just log it
-    }
 
     return NextResponse.json({
       success: true,
       id: analysis.id,
     });
   } catch (error: any) {
-    console.error('Unexpected error in /api/analysis/save:', error);
+    if (!isProduction) {
+      console.error('API error:', error);
+    }
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

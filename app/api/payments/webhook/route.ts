@@ -37,10 +37,19 @@ function getRazorpayInstance() {
 }
 
 // Webhook secret from Razorpay dashboard
-const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || '';
+const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 
 export async function POST(request: Request) {
   try {
+    // CRITICAL: Fail if webhook secret is not configured
+    if (!WEBHOOK_SECRET) {
+      console.error('[Webhook] RAZORPAY_WEBHOOK_SECRET is not configured');
+      return NextResponse.json(
+        { error: 'Webhook not configured' }, 
+        { status: 500 }
+      );
+    }
+
     const body = await request.text();
     const signature = request.headers.get('x-razorpay-signature');
 
@@ -48,13 +57,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
     }
 
-    // Verify webhook signature
+    // Verify webhook signature with constant-time comparison
     const expectedSignature = crypto
       .createHmac('sha256', WEBHOOK_SECRET)
       .update(body)
       .digest('hex');
 
-    if (signature !== expectedSignature) {
+    // Use timing-safe comparison to prevent timing attacks
+    if (!crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    )) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -64,37 +77,76 @@ export async function POST(request: Request) {
     // Handle payment success events
     if (eventType === 'payment.captured' || eventType === 'payment.authorized') {
       const payment = payload.payment.entity;
-      const order = payload.order.entity;
+      const order = payload.order?.entity;
 
       // Get metadata from order notes
-      const credits = parseInt(order.notes?.credits || '0');
-      const organizationId = order.notes?.organization_id;
-      const userId = order.notes?.user_id;
+      const credits = parseInt(order?.notes?.credits || '0');
+      const organizationId = order?.notes?.organization_id;
+      const userId = order?.notes?.user_id;
 
       if (!credits || !organizationId || !userId) {
-        console.error('Missing metadata in order notes');
-        return NextResponse.json({ error: 'Invalid order metadata' }, { status: 400 });
+        // Log but acknowledge - might be a different type of payment
+        console.warn('[Webhook] Missing metadata in order notes:', { credits, organizationId, userId });
+        return NextResponse.json({ received: true, skipped: 'missing_metadata' });
       }
 
       // Use service client to bypass RLS
       const supabase = createServiceClient();
       
-      // Add credits (if not already added)
+      // Check idempotency - prevent double-processing
+      const idempotencyKey = `webhook_${order.id}_${payment.id}`;
+      const { data: existingPayment } = await supabase
+        .from('payment_idempotency')
+        .select('id, status')
+        .eq('razorpay_payment_id', payment.id)
+        .eq('status', 'completed')
+        .maybeSingle();
+
+      if (existingPayment) {
+        // Already processed - acknowledge webhook
+        return NextResponse.json({ received: true, alreadyProcessed: true });
+      }
+
+      // Record attempt
+      await supabase
+        .from('payment_idempotency')
+        .upsert({
+          idempotency_key: idempotencyKey,
+          razorpay_order_id: order.id,
+          razorpay_payment_id: payment.id,
+          organization_id: organizationId,
+          user_id: userId,
+          credits,
+          amount: payment.amount / 100,
+          currency: payment.currency === 'INR' ? 'INR' : 'USD',
+          status: 'pending',
+        }, { onConflict: 'idempotency_key' });
+
+      // Add credits
       const { data: transactionId, error: creditError } = await supabase.rpc('add_credits', {
         org_id: organizationId,
         user_id: userId,
         credits: credits,
-        amount_paid: payment.amount / 100, // Convert from paise/cents
+        amount_paid: payment.amount / 100,
         currency_type: payment.currency === 'INR' ? 'INR' : 'USD',
         description: `Purchased ${credits} credits via Razorpay (Payment: ${payment.id})`,
       });
 
       if (creditError) {
-        console.error('Error adding credits via webhook:', creditError);
-        // Don't return error - webhook should acknowledge receipt
+        console.error('[Webhook] Error adding credits:', creditError);
+        await supabase
+          .from('payment_idempotency')
+          .update({ status: 'failed' })
+          .eq('idempotency_key', idempotencyKey);
+      } else {
+        // Mark as completed
+        await supabase
+          .from('payment_idempotency')
+          .update({ status: 'completed', processed_at: new Date().toISOString() })
+          .eq('idempotency_key', idempotencyKey);
       }
 
-      // Send email receipt
+      // Send email receipt (non-blocking)
       try {
         const { data: profile } = await supabase
           .from('profiles')
@@ -103,8 +155,8 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (profile?.email) {
-          const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-          await fetch(`${origin}/api/email/send-receipt`, {
+          const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://audiolyse.com';
+          fetch(`${origin}/api/email/send-receipt`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -115,10 +167,10 @@ export async function POST(request: Request) {
               transactionId: transactionId || payment.id,
               date: new Date().toISOString(),
             }),
-          });
+          }).catch(() => {});
         }
-      } catch (emailError) {
-        console.error('Error sending receipt email via webhook:', emailError);
+      } catch {
+        // Non-critical
       }
     }
 

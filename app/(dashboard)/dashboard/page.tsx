@@ -3,22 +3,34 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import type { Organization, CallAnalysis } from '@/lib/types/database';
-import '@/app/styles/dashboard.css';
-
+import type { Organization } from '@/lib/types/database';
 import { DashboardSkeleton } from '@/components/Skeleton';
+import { 
+  ScoreTrendWidget, 
+  RecentCallsWidget, 
+  TeamPerformanceWidget, 
+  QuickActionsWidget,
+  NotificationWidget 
+} from '@/components/dashboard/widgets';
+import { getAtRiskCustomers, getTopCustomers, type CustomerProfile } from '@/lib/customer';
+
+interface DashboardData {
+  org: Organization | null;
+  userId: string;
+  isManager: boolean;
+  stats: {
+    totalCalls: number;
+    avgScore: number;
+    callsThisMonth: number;
+    callsLimit: number;
+  };
+  atRiskCustomers: CustomerProfile[];
+  topCustomers: CustomerProfile[];
+}
 
 export default function DashboardPage() {
-  const [org, setOrg] = useState<Organization | null>(null);
-  const [recentCalls, setRecentCalls] = useState<CallAnalysis[]>([]);
-  const [teamStats, setTeamStats] = useState<any>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [viewMode, setViewMode] = useState<'personal' | 'team'>('personal');
-  const [stats, setStats] = useState({
-    totalCalls: 0,
-    avgScore: 0,
-    callsThisMonth: 0,
-    topPerformer: '-',
-  });
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -30,98 +42,55 @@ export default function DashboardPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Use API route to bypass RLS issues
-        const response = await fetch('/api/organization/me');
-        const data = await response.json();
+        // Parallel fetch: organization + member role + personal calls
+        const [orgResponse, memberResult, personalCallsResult] = await Promise.all([
+          fetch('/api/organization/me'),
+          supabase.from('organization_members').select('role').eq('user_id', user.id).single(),
+          supabase
+            .from('call_analyses')
+            .select('id, status, overall_score')
+            .or(`uploaded_by.eq.${user.id},assigned_to.eq.${user.id}`)
+        ]);
 
-        if (!data.organization) return;
+        const orgData = await orgResponse.json();
+        if (!orgData.organization) return;
 
-        const organization = data.organization;
-        setOrg(organization);
+        const organization = orgData.organization;
+        const isManager = ['owner', 'admin'].includes(memberResult.data?.role || '');
 
-        // Check if user manages a team (Owner, Admin, or has reports)
-        const { data: memberInfo } = await supabase
-          .from('organization_members')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
-        
-        const isManager = ['owner', 'admin'].includes(memberInfo?.role || '') || false;
+        // Calculate personal stats
+        const personalCalls = personalCallsResult.data || [];
+        const completed = personalCalls.filter(c => c.status === 'completed');
+        const scores = completed.map(c => c.overall_score).filter(Boolean) as number[];
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
 
-        // Get personal recent calls
-        const { data: calls } = await supabase
-          .from('call_analyses')
-          .select('*')
-          .or(`uploaded_by.eq.${user.id},assigned_to.eq.${user.id}`) // Personal or Assigned
-          .order('created_at', { ascending: false })
-          .limit(5);
+        // Fetch customer insights
+        const [atRisk, topCust] = await Promise.all([
+          getAtRiskCustomers(organization.id, 3),
+          getTopCustomers(organization.id, 3, 'calls'),
+        ]);
 
-        if (calls) setRecentCalls(calls);
-
-        // Calculate Personal Stats
-        const { data: allPersonalCalls } = await supabase
-          .from('call_analyses')
-          .select('*')
-          .or(`uploaded_by.eq.${user.id},assigned_to.eq.${user.id}`);
-
-        if (allPersonalCalls) {
-          const completed = allPersonalCalls.filter(c => c.status === 'completed');
-          const scores = completed.map(c => c.overall_score).filter(Boolean) as number[];
-          const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-
-          setStats({
-            totalCalls: allPersonalCalls.length,
+        setData({
+          org: organization,
+          userId: user.id,
+          isManager,
+          stats: {
+            totalCalls: personalCalls.length,
             avgScore,
             callsThisMonth: organization.calls_used || 0,
-            topPerformer: '-', // Only relevant for team view
-          });
-        }
+            callsLimit: organization.calls_limit || 10,
+          },
+          atRiskCustomers: atRisk,
+          topCustomers: topCust,
+        });
 
-        // If Manager, load Team Stats
         if (isManager) {
-          const { data: teamCalls } = await supabase
-            .from('call_analyses')
-            .select('*, profiles:uploaded_by(full_name)')
-            .eq('organization_id', organization.id);
-            
-          if (teamCalls) {
-            const completed = teamCalls.filter(c => c.status === 'completed');
-            const scores = completed.map(c => c.overall_score).filter(Boolean) as number[];
-            const teamAvg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-            
-            // Find top performer
-            const userScores: Record<string, number[]> = {};
-            completed.forEach(c => {
-              const name = (c as any).profiles?.full_name || 'Unknown';
-              if (!userScores[name]) userScores[name] = [];
-              if (c.overall_score) userScores[name].push(c.overall_score);
-            });
-            
-            let bestPerformer = '-';
-            let bestAvg = 0;
-            
-            Object.entries(userScores).forEach(([name, scores]) => {
-              const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-              if (avg > bestAvg) {
-                bestAvg = avg;
-                bestPerformer = name;
-              }
-            });
-
-            setTeamStats({
-              totalCalls: teamCalls.length,
-              avgScore: teamAvg,
-              topPerformer: bestPerformer,
-              calls: teamCalls
-            });
-            
-            // Default to team view for managers
-            setViewMode('team');
-          }
+          setViewMode('team');
         }
-
       } catch (error) {
-        console.error('Unexpected error loading dashboard:', error);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Error loading dashboard:', error);
+        }
       } finally {
         setLoading(false);
       }
@@ -135,43 +104,33 @@ export default function DashboardPage() {
     setRefreshKey(prev => prev + 1);
   };
 
-  if (loading) {
+  if (loading || !data) {
     return <DashboardSkeleton />;
   }
 
+  const { org, userId, isManager, stats, atRiskCustomers, topCustomers } = data;
+  const usagePercent = Math.round((stats.callsThisMonth / stats.callsLimit) * 100);
+
   return (
     <div className="dashboard-page">
+      {/* Header */}
       <div className="dashboard-header">
         <div>
           <h1>Welcome back!</h1>
           <p>Here&apos;s an overview of your call analytics</p>
         </div>
         <div className="header-actions">
-          {teamStats && (
-            <div className="view-toggle" style={{ background: 'var(--bg-secondary)', padding: '4px', borderRadius: '8px', display: 'flex', gap: '4px', marginRight: '12px' }}>
+          {isManager && (
+            <div className="view-toggle">
               <button 
                 onClick={() => setViewMode('personal')}
-                style={{ 
-                  padding: '6px 12px', 
-                  borderRadius: '6px', 
-                  background: viewMode === 'personal' ? 'var(--accent)' : 'transparent',
-                  color: viewMode === 'personal' ? 'white' : 'var(--text-secondary)',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
+                className={viewMode === 'personal' ? 'active' : ''}
               >
                 My Stats
               </button>
               <button 
                 onClick={() => setViewMode('team')}
-                style={{ 
-                  padding: '6px 12px', 
-                  borderRadius: '6px', 
-                  background: viewMode === 'team' ? 'var(--accent)' : 'transparent',
-                  color: viewMode === 'team' ? 'white' : 'var(--text-secondary)',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
+                className={viewMode === 'team' ? 'active' : ''}
               >
                 Team View
               </button>
@@ -186,34 +145,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Medical Disclaimer */}
       {org?.industry === 'Medical' && (
-        <div className="medical-disclaimer-banner" style={{
-          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1))',
-          border: '1px solid rgba(239, 68, 68, 0.2)',
-          borderRadius: '12px',
-          padding: '1rem',
-          marginBottom: '2rem',
-          display: 'flex',
-          gap: '1rem',
-          alignItems: 'center'
-        }}>
-          <span style={{ fontSize: '1.5rem' }}>⚕️</span>
+        <div className="medical-disclaimer">
+          <span>⚕️</span>
           <div>
-            <strong style={{ color: 'var(--text)', display: 'block', marginBottom: '0.25rem' }}>Medical Industry Disclaimer</strong>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              This AI tool is for <strong>coaching & quality assurance only</strong>. It is not a medical device and must not be used for diagnosis, treatment planning, or triage. Always verify AI insights with professional medical judgment.
-            </p>
+            <strong>Medical Industry Disclaimer</strong>
+            <p>This AI tool is for coaching & quality assurance only. Not for diagnosis or treatment.</p>
           </div>
         </div>
       )}
 
       {/* Usage Alert */}
-      {org && org.calls_used >= org.calls_limit && (
-        <div className="usage-alert">
-          <span className="alert-icon">⚠️</span>
+      {usagePercent >= 90 && (
+        <div className={`usage-alert ${usagePercent >= 100 ? 'critical' : 'warning'}`}>
+          <span className="alert-icon">{usagePercent >= 100 ? '🚫' : '⚠️'}</span>
           <div className="alert-content">
-            <strong>You&apos;ve reached your monthly limit!</strong>
-            <p>Upgrade to continue analyzing calls</p>
+            <strong>
+              {usagePercent >= 100 ? 'You\'ve reached your monthly limit!' : 'Approaching usage limit'}
+            </strong>
+            <p>{stats.callsThisMonth}/{stats.callsLimit} calls used</p>
           </div>
           <Link href="/pricing" className="alert-cta">
             Upgrade Now
@@ -221,90 +172,439 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stats Grid */}
+      {/* Stats Overview */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon">📊</div>
           <div className="stat-content">
-            <span className="stat-value">
-              {viewMode === 'team' ? teamStats?.totalCalls || 0 : stats.totalCalls}
-            </span>
+            <span className="stat-value">{stats.totalCalls}</span>
             <span className="stat-label">Total Calls</span>
           </div>
         </div>
-
         <div className="stat-card">
           <div className="stat-icon">🎯</div>
           <div className="stat-content">
-            <span className="stat-value">
-              {viewMode === 'team' ? teamStats?.avgScore || 0 : stats.avgScore}
+            <span className="stat-value" style={{ color: stats.avgScore >= 70 ? '#10b981' : stats.avgScore >= 50 ? '#f59e0b' : '#ef4444' }}>
+              {stats.avgScore}
             </span>
             <span className="stat-label">Avg. Score</span>
           </div>
         </div>
-
         <div className="stat-card">
           <div className="stat-icon">📈</div>
           <div className="stat-content">
-            <span className="stat-value">
-              {org?.calls_used || 0}/{org?.calls_limit || 10}
-            </span>
-            <span className="stat-label">Org Usage</span>
+            <span className="stat-value">{stats.callsThisMonth}/{stats.callsLimit}</span>
+            <span className="stat-label">Monthly Usage</span>
+            <div className="usage-bar">
+              <div 
+                className="usage-fill" 
+                style={{ 
+                  width: `${Math.min(usagePercent, 100)}%`,
+                  backgroundColor: usagePercent >= 100 ? '#ef4444' : usagePercent >= 80 ? '#f59e0b' : '#10b981'
+                }}
+              />
+            </div>
           </div>
         </div>
-
         <div className="stat-card">
-          <div className="stat-icon">⭐</div>
+          <div className="stat-icon">👤</div>
           <div className="stat-content">
-            <span className="stat-value">
-              {viewMode === 'team' ? teamStats?.topPerformer || '-' : stats.topPerformer}
-            </span>
-            <span className="stat-label">Top Performer</span>
+            <span className="stat-value">{topCustomers.length > 0 ? topCustomers[0].name.split(' ')[0] : '—'}</span>
+            <span className="stat-label">Top Customer</span>
           </div>
         </div>
       </div>
 
-      {/* Recent Calls */}
-      <div className="recent-calls-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h2>{viewMode === 'team' ? 'Team Activity' : 'Your Recent Analyses'}</h2>
-          <Link href="/history" style={{ color: '#00d9ff', textDecoration: 'none', fontSize: '0.95rem' }}>
-            View All →
-          </Link>
+      {/* Dashboard Grid */}
+      <div className="dashboard-grid">
+        {/* Main Column */}
+        <div className="main-column">
+          {/* Quick Actions */}
+          <QuickActionsWidget 
+            subscriptionTier={org?.subscription_tier}
+            isManager={isManager}
+          />
+
+          {/* Score Trend */}
+          <ScoreTrendWidget
+            organizationId={org?.id || ''}
+            userId={userId}
+            viewMode={viewMode}
+          />
+
+          {/* Recent Calls */}
+          <RecentCallsWidget
+            organizationId={org?.id || ''}
+            userId={userId}
+            viewMode={viewMode}
+          />
         </div>
 
-        {(viewMode === 'team' ? teamStats?.calls?.slice(0,5) : recentCalls)?.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🎙️</div>
-            <h3>No calls analyzed yet</h3>
-            <p>Upload your first call recording to get started</p>
-            <Link href="/analyze" className="cta-button" style={{ marginTop: '1rem', display: 'inline-block' }}>
-              Analyze Your First Call
-            </Link>
-          </div>
-        ) : (
-          <div className="calls-list">
-            {(viewMode === 'team' ? teamStats?.calls?.slice(0,5) : recentCalls)?.map((call: any) => (
-              <Link key={call.id} href={`/analyze?call=${call.id}`} className="call-item">
-                <div className="call-item-info">
-                  <div className="call-item-name">{call.file_name}</div>
-                  <div className="call-item-meta">
-                    {new Date(call.created_at).toLocaleDateString()} • {call.duration_sec ? `${Math.round(call.duration_sec / 60)} min` : 'N/A'}
-                    {viewMode === 'team' && call.profiles?.full_name && ` • by ${call.profiles.full_name}`}
-                  </div>
-                </div>
-                {call.status === 'completed' && call.overall_score && (
-                  <div className="call-item-score">{Math.round(call.overall_score)}</div>
-                )}
-                <div className="call-item-link">→</div>
+        {/* Side Column */}
+        <div className="side-column">
+          {/* Notifications */}
+          <NotificationWidget
+            userId={userId}
+            organizationId={org?.id || ''}
+          />
+
+          {/* Team Performance (Managers Only) */}
+          {isManager && (
+            <TeamPerformanceWidget
+              organizationId={org?.id || ''}
+            />
+          )}
+
+          {/* At-Risk Customers */}
+          {atRiskCustomers.length > 0 && (
+            <div className="customer-alert-card">
+              <h3>⚠️ At-Risk Customers</h3>
+              <div className="customer-alert-list">
+                {atRiskCustomers.map(customer => (
+                  <Link key={customer.id} href={`/customers/${customer.id}`} className="customer-alert-item">
+                    <span className="customer-name">{customer.name}</span>
+                    <span 
+                      className="customer-sentiment"
+                      style={{ color: '#ef4444' }}
+                    >
+                      {Math.round(customer.avg_sentiment_score || 0)}%
+                    </span>
+                  </Link>
+                ))}
+              </div>
+              <Link href="/customers?filter=at-risk" className="view-all-link">
+                View All At-Risk →
               </Link>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
+
+      <style jsx>{`
+        .dashboard-page {
+          padding: 24px;
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+
+        .dashboard-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+
+        .dashboard-header h1 {
+          font-size: 28px;
+          margin: 0 0 4px;
+          color: var(--text);
+        }
+
+        .dashboard-header p {
+          margin: 0;
+          color: var(--muted);
+        }
+
+        .header-actions {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .view-toggle {
+          display: flex;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 8px;
+          padding: 4px;
+        }
+
+        .view-toggle button {
+          padding: 8px 16px;
+          border: none;
+          background: transparent;
+          color: var(--muted);
+          cursor: pointer;
+          border-radius: 6px;
+          font-size: 13px;
+          transition: all 0.2s;
+        }
+
+        .view-toggle button.active {
+          background: var(--accent);
+          color: white;
+        }
+
+        .refresh-button {
+          padding: 10px 16px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          color: var(--text);
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s;
+        }
+
+        .refresh-button:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .cta-button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 20px;
+          background: linear-gradient(135deg, var(--accent), var(--accent-2));
+          border-radius: 8px;
+          color: white;
+          text-decoration: none;
+          font-weight: 600;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 20px rgba(0, 217, 255, 0.3);
+        }
+
+        .medical-disclaimer {
+          display: flex;
+          gap: 16px;
+          align-items: center;
+          padding: 16px;
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1));
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 12px;
+          margin-bottom: 24px;
+        }
+
+        .medical-disclaimer span {
+          font-size: 24px;
+        }
+
+        .medical-disclaimer strong {
+          display: block;
+          color: var(--text);
+          margin-bottom: 4px;
+        }
+
+        .medical-disclaimer p {
+          margin: 0;
+          font-size: 14px;
+          color: var(--muted);
+        }
+
+        .usage-alert {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px;
+          border-radius: 12px;
+          margin-bottom: 24px;
+        }
+
+        .usage-alert.warning {
+          background: rgba(245, 158, 11, 0.1);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .usage-alert.critical {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .alert-icon {
+          font-size: 24px;
+        }
+
+        .alert-content {
+          flex: 1;
+        }
+
+        .alert-content strong {
+          display: block;
+          color: var(--text);
+        }
+
+        .alert-content p {
+          margin: 4px 0 0;
+          font-size: 14px;
+          color: var(--muted);
+        }
+
+        .alert-cta {
+          padding: 10px 20px;
+          background: linear-gradient(135deg, var(--accent), var(--accent-2));
+          border-radius: 8px;
+          color: white;
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .stat-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 20px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
+        }
+
+        .stat-icon {
+          font-size: 28px;
+        }
+
+        .stat-content {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .stat-value {
+          font-size: 28px;
+          font-weight: 700;
+          color: var(--text);
+        }
+
+        .stat-label {
+          font-size: 13px;
+          color: var(--muted);
+        }
+
+        .usage-bar {
+          width: 100%;
+          height: 6px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 3px;
+          margin-top: 8px;
+          overflow: hidden;
+        }
+
+        .usage-fill {
+          height: 100%;
+          border-radius: 3px;
+          transition: width 0.3s;
+        }
+
+        .dashboard-grid {
+          display: grid;
+          grid-template-columns: 1fr 380px;
+          gap: 24px;
+        }
+
+        .main-column {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .side-column {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .customer-alert-card {
+          background: rgba(239, 68, 68, 0.05);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 16px;
+          padding: 20px;
+        }
+
+        .customer-alert-card h3 {
+          font-size: 14px;
+          color: var(--text);
+          margin: 0 0 16px;
+        }
+
+        .customer-alert-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .customer-alert-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 8px;
+          text-decoration: none;
+          transition: background 0.2s;
+        }
+
+        .customer-alert-item:hover {
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        .customer-name {
+          color: var(--text);
+          font-weight: 500;
+        }
+
+        .customer-sentiment {
+          font-weight: 700;
+        }
+
+        .view-all-link {
+          display: block;
+          text-align: center;
+          margin-top: 16px;
+          color: var(--accent);
+          text-decoration: none;
+          font-size: 13px;
+        }
+
+        .view-all-link:hover {
+          text-decoration: underline;
+        }
+
+        @media (max-width: 1024px) {
+          .dashboard-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .side-column {
+            order: -1;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .header-actions {
+            width: 100%;
+            justify-content: flex-start;
+          }
+        }
+
+        /* Light theme */
+        [data-theme="light"] .stat-card,
+        [data-theme="light"] .view-toggle {
+          background: rgba(0, 0, 0, 0.02);
+          border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .refresh-button {
+          background: rgba(0, 0, 0, 0.02);
+          border-color: rgba(0, 0, 0, 0.1);
+        }
+      `}</style>
     </div>
   );
 }
-
-
-

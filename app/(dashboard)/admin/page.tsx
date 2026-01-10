@@ -31,6 +31,17 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newLimit, setNewLimit] = useState('');
   
+  // Email testing state
+  const [emailTemplate, setEmailTemplate] = useState('welcome');
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailResult, setEmailResult] = useState<{ success: boolean; message: string } | null>(null);
+  
+  // Audio storage testing state
+  const [testingStorage, setTestingStorage] = useState(false);
+  const [storageTestResult, setStorageTestResult] = useState<any>(null);
+  const [testingUpload, setTestingUpload] = useState(false);
+  
   const router = useRouter();
   const supabase = createClient();
 
@@ -163,6 +174,78 @@ export default function AdminPage() {
     }
   }
 
+  async function sendTestEmail() {
+    setSendingEmail(true);
+    setEmailResult(null);
+    
+    try {
+      const response = await fetch('/api/test/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          template: emailTemplate,
+          testEmail: testEmail || undefined,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setEmailResult({ success: true, message: data.message });
+      } else {
+        setEmailResult({ success: false, message: data.error || 'Failed to send email' });
+      }
+    } catch (error) {
+      setEmailResult({ 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Failed to send email'
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  }
+
+  async function testAudioStorage() {
+    setTestingStorage(true);
+    setStorageTestResult(null);
+    
+    try {
+      const response = await fetch('/api/test/audio-storage');
+      const data = await response.json();
+      setStorageTestResult(data);
+    } catch (error) {
+      setStorageTestResult({ 
+        overallStatus: 'FAIL',
+        error: error instanceof Error ? error.message : 'Test failed',
+      });
+    } finally {
+      setTestingStorage(false);
+    }
+  }
+
+  async function testAudioUpload() {
+    setTestingUpload(true);
+    
+    try {
+      const response = await fetch('/api/test/audio-storage', { method: 'POST' });
+      const data = await response.json();
+      setStorageTestResult((prev: any) => ({
+        ...prev,
+        uploadTest: data,
+      }));
+    } catch (error) {
+      setStorageTestResult((prev: any) => ({
+        ...prev,
+        uploadTest: { 
+          success: false,
+          error: error instanceof Error ? error.message : 'Upload test failed',
+        },
+      }));
+    } finally {
+      setTestingUpload(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="admin-loading">
@@ -265,6 +348,217 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Email Testing Section */}
+      <div className="admin-section" style={{ marginTop: '24px' }}>
+        <h2>📧 Email Testing</h2>
+        <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>
+          Test email templates by sending them to yourself or a specific address.
+        </p>
+        
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="form-group" style={{ flex: '1', minWidth: '200px', marginBottom: 0 }}>
+            <label>Template</label>
+            <select 
+              value={emailTemplate}
+              onChange={(e) => setEmailTemplate(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+              }}
+            >
+              <option value="welcome">Welcome Email</option>
+              <option value="invitation">Team Invitation</option>
+              <option value="analysis-complete">Analysis Complete</option>
+              <option value="assignment">Call Assignment</option>
+              <option value="receipt">Payment Receipt</option>
+              <option value="password-reset">Password Reset</option>
+            </select>
+          </div>
+          
+          <div className="form-group" style={{ flex: '1', minWidth: '250px', marginBottom: 0 }}>
+            <label>Test Email (optional - defaults to your email)</label>
+            <input 
+              type="email"
+              placeholder="test@example.com"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+              }}
+            />
+          </div>
+          
+          <button
+            onClick={sendTestEmail}
+            disabled={sendingEmail}
+            style={{
+              padding: '12px 24px',
+              background: sendingEmail ? 'rgba(0, 217, 255, 0.3)' : 'linear-gradient(135deg, #00d9ff, #8b5cf6)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              fontWeight: 600,
+              cursor: sendingEmail ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            {sendingEmail ? 'Sending...' : '🚀 Send Test Email'}
+          </button>
+        </div>
+        
+        {emailResult && (
+          <div style={{
+            marginTop: '16px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            background: emailResult.success ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+            border: `1px solid ${emailResult.success ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+            color: emailResult.success ? '#22c55e' : '#ef4444',
+          }}>
+            {emailResult.success ? '✅' : '❌'} {emailResult.message}
+          </div>
+        )}
+      </div>
+
+      {/* Audio Storage Testing Section */}
+      <div className="admin-section" style={{ marginTop: '24px' }}>
+        <h2>🗄️ Audio Storage Testing</h2>
+        <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>
+          Test the audio storage system including bucket configuration, quotas, and upload/download.
+        </p>
+        
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+          <button
+            onClick={testAudioStorage}
+            disabled={testingStorage}
+            style={{
+              padding: '12px 24px',
+              background: testingStorage ? 'rgba(0, 217, 255, 0.3)' : 'linear-gradient(135deg, #00d9ff, #8b5cf6)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              fontWeight: 600,
+              cursor: testingStorage ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {testingStorage ? 'Testing...' : '🔍 Run Storage Tests'}
+          </button>
+          
+          <button
+            onClick={testAudioUpload}
+            disabled={testingUpload}
+            style={{
+              padding: '12px 24px',
+              background: testingUpload ? 'rgba(139, 92, 246, 0.3)' : 'rgba(139, 92, 246, 0.2)',
+              border: '1px solid rgba(139, 92, 246, 0.4)',
+              borderRadius: '8px',
+              color: '#a78bfa',
+              fontWeight: 600,
+              cursor: testingUpload ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {testingUpload ? 'Testing...' : '📤 Test Upload Cycle'}
+          </button>
+        </div>
+        
+        {storageTestResult && (
+          <div style={{
+            background: 'rgba(0,0,0,0.3)',
+            borderRadius: '12px',
+            padding: '16px',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '16px',
+              paddingBottom: '12px',
+              borderBottom: '1px solid rgba(255,255,255,0.1)',
+            }}>
+              <span style={{
+                fontSize: '24px',
+              }}>
+                {storageTestResult.overallStatus === 'PASS' ? '✅' : 
+                 storageTestResult.overallStatus === 'PARTIAL' ? '⚠️' : '❌'}
+              </span>
+              <div>
+                <div style={{ fontWeight: 600, color: '#fff' }}>
+                  Overall: {storageTestResult.overallStatus}
+                </div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
+                  {storageTestResult.summary || storageTestResult.error}
+                </div>
+              </div>
+            </div>
+            
+            {storageTestResult.tests && (
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {Object.entries(storageTestResult.tests).map(([key, test]: [string, any]) => (
+                  <div key={key} style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    padding: '8px 12px',
+                    background: test.passed ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    borderRadius: '6px',
+                    borderLeft: `3px solid ${test.passed ? '#22c55e' : '#ef4444'}`,
+                  }}>
+                    <span>{test.passed ? '✓' : '✗'}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 500, color: '#fff', fontSize: '13px' }}>
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                        {test.message}
+                      </div>
+                      {test.value && typeof test.value === 'object' && (
+                        <div style={{ 
+                          fontSize: '11px', 
+                          color: 'rgba(255,255,255,0.4)',
+                          marginTop: '4px',
+                          fontFamily: 'monospace',
+                        }}>
+                          {JSON.stringify(test.value, null, 2).slice(0, 200)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {storageTestResult.uploadTest && (
+              <div style={{
+                marginTop: '16px',
+                padding: '12px',
+                background: storageTestResult.uploadTest.success ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                borderRadius: '6px',
+                border: `1px solid ${storageTestResult.uploadTest.success ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+              }}>
+                <div style={{ fontWeight: 500, color: '#fff', marginBottom: '8px' }}>
+                  Upload Cycle Test: {storageTestResult.uploadTest.success ? '✅ Passed' : '❌ Failed'}
+                </div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                  {storageTestResult.uploadTest.message || storageTestResult.uploadTest.error}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}

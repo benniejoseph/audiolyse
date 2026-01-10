@@ -3,17 +3,18 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Organization } from '@/lib/types/database';
+import { CREDIT_PRICING } from '@/lib/types/database';
 import '@/app/globals.css';
 import '@/app/styles/credits.css';
 
-const CREDIT_PACKAGES = [
-  { credits: 10, priceINR: 50, priceUSD: 0.60, popular: false },
-  { credits: 25, priceINR: 120, priceUSD: 1.44, popular: false },
-  { credits: 50, priceINR: 225, priceUSD: 2.70, popular: true, discount: '10% off' },
-  { credits: 100, priceINR: 400, priceUSD: 4.80, popular: false, discount: '20% off' },
-  { credits: 250, priceINR: 900, priceUSD: 10.80, popular: false, discount: '28% off' },
-  { credits: 500, priceINR: 1600, priceUSD: 19.20, popular: false, discount: '36% off' },
-];
+// Generate packages from centralized CREDIT_PRICING
+const CREDIT_PACKAGES = CREDIT_PRICING.packages.map((pkg, index) => ({
+  credits: pkg.credits,
+  priceINR: pkg.priceINR,
+  priceUSD: pkg.priceUSD,
+  popular: pkg.credits === 50, // 50 credits is most popular
+  discount: pkg.discount > 0 ? `${Math.round(pkg.discount * 100)}% off` : undefined,
+}));
 
 export default function CreditsPage() {
   const [org, setOrg] = useState<Organization | null>(null);
