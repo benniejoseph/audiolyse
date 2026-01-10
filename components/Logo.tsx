@@ -22,8 +22,9 @@ export function Logo({ size = 'md', showTagline = false }: LogoProps) {
           fontFamily: "'Poppins', sans-serif",
           fontSize: `${s.text}px`,
           fontWeight: 700,
-          letterSpacing: '-0.5px',
+          letterSpacing: '-0.02em', // Tighter tracking for modern look
           color: 'var(--text)',
+          lineHeight: 1,
         }}
       >
         Audiolyse
@@ -33,9 +34,11 @@ export function Logo({ size = 'md', showTagline = false }: LogoProps) {
           style={{
             fontFamily: "'Poppins', sans-serif",
             fontSize: `${s.tagline}px`,
-            fontWeight: 400,
-            color: 'var(--muted)',
-            marginTop: '2px',
+            fontWeight: 500,
+            color: 'var(--accent)', // Emerald green tagline
+            marginTop: '4px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
           }}
         >
           Call Analytics
@@ -51,7 +54,7 @@ export function LogoIcon({ size = 32 }: { size?: number }) {
     <span
       style={{
         fontFamily: "'Poppins', sans-serif",
-        fontSize: `${size * 0.5}px`,
+        fontSize: `${size * 0.6}px`,
         fontWeight: 700,
         color: 'var(--text)',
       }}
