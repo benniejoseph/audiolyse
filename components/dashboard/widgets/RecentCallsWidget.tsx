@@ -154,24 +154,6 @@ export function RecentCallsWidget({
       )}
 
       <style jsx>{`
-        .view-all-link {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          color: var(--accent);
-          text-decoration: none;
-          font-family: 'Poppins', sans-serif;
-          font-size: 13px;
-          font-weight: 500;
-          padding: 6px 12px;
-          border-radius: 6px;
-          transition: all 0.2s;
-        }
-        
-        .view-all-link:hover {
-          background: var(--accent-light);
-        }
-        
         .no-calls {
           text-align: center;
           padding: 40px 20px;
@@ -192,87 +174,109 @@ export function RecentCallsWidget({
           margin: 0 0 16px;
         }
         
-        .analyze-link {
-          display: inline-block;
-          padding: 10px 20px;
-          background: var(--accent);
-          color: #00120f;
-          text-decoration: none;
-          border-radius: 8px;
-          font-family: 'Poppins', sans-serif;
-          font-weight: 600;
-          font-size: 14px;
-          transition: all 0.2s;
-        }
-
-        .analyze-link:hover {
-          background: var(--accent-hover);
-          transform: translateY(-1px);
-        }
-        
         .calls-list {
           display: flex;
           flex-direction: column;
           gap: 10px;
         }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
+
+      <style jsx global>{`
+        .view-all-link {
+          display: flex !important;
+          align-items: center !important;
+          gap: 4px !important;
+          color: var(--accent) !important;
+          text-decoration: none !important;
+          font-family: 'Poppins', sans-serif !important;
+          font-size: 13px !important;
+          font-weight: 500 !important;
+          padding: 6px 12px !important;
+          border-radius: 6px !important;
+          transition: all 0.2s !important;
+        }
         
+        .view-all-link:hover {
+          background: var(--accent-light);
+        }
+
+        .analyze-link {
+          display: inline-block !important;
+          padding: 10px 20px !important;
+          background: var(--accent) !important;
+          color: #00120f !important;
+          text-decoration: none !important;
+          border-radius: 8px !important;
+          font-family: 'Poppins', sans-serif !important;
+          font-weight: 600 !important;
+          font-size: 14px !important;
+          transition: all 0.2s !important;
+        }
+
+        .analyze-link:hover {
+          background: var(--accent-hover) !important;
+          transform: translateY(-1px);
+        }
+
         .call-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 14px 16px;
-          background: var(--item-bg);
-          border: 1px solid transparent;
-          border-radius: 12px;
-          text-decoration: none;
-          transition: all 0.2s ease;
+          display: flex !important;
+          flex-direction: row !important;
+          justify-content: space-between !important;
+          align-items: center !important;
+          padding: 14px 16px !important;
+          background: var(--item-bg) !important;
+          border: 1px solid transparent !important;
+          border-radius: 12px !important;
+          text-decoration: none !important;
+          transition: all 0.2s ease !important;
         }
         
         .call-item:hover {
-          background: var(--item-hover);
-          border-color: var(--border-color);
+          background: var(--item-hover) !important;
+          border-color: var(--border-color) !important;
           transform: translateX(2px);
         }
         
-        .call-left {
+        .call-item .call-left {
           display: flex;
+          flex-direction: row;
           gap: 14px;
           align-items: center;
           min-width: 0;
           flex: 1;
         }
         
-        .call-status {
+        .call-item .call-status {
           flex-shrink: 0;
         }
         
-        .status-dot {
+        .call-item .status-dot {
           display: block;
           width: 10px;
           height: 10px;
           border-radius: 50%;
         }
         
-        .status-dot.completed { background: #10b981; }
-        .status-dot.failed { background: #ef4444; }
-        .status-dot.processing { 
+        .call-item .status-dot.completed { background: #10b981; }
+        .call-item .status-dot.failed { background: #ef4444; }
+        .call-item .status-dot.processing { 
           background: #f59e0b;
           animation: pulse 1.5s infinite;
         }
         
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        
-        .call-info {
+        .call-item .call-info {
           display: flex;
           flex-direction: column;
           gap: 3px;
           min-width: 0;
         }
         
-        .call-name {
+        .call-item .call-name {
           font-family: 'Poppins', sans-serif;
           font-weight: 500;
           font-size: 14px;
@@ -282,36 +286,40 @@ export function RecentCallsWidget({
           text-overflow: ellipsis;
           max-width: 240px;
           line-height: 1.3;
+          text-decoration: none !important;
         }
         
-        .call-meta {
+        .call-item .call-meta {
           font-family: 'Poppins', sans-serif;
           font-size: 12px;
           color: var(--main-text-muted);
           line-height: 1.4;
+          text-decoration: none !important;
         }
         
-        .call-uploader {
+        .call-item .call-uploader {
           color: var(--accent);
         }
         
-        .call-customer {
+        .call-item .call-customer {
           font-family: 'Poppins', sans-serif;
           font-size: 11px;
           color: #8b5cf6;
           display: flex;
           align-items: center;
           gap: 4px;
+          text-decoration: none !important;
         }
         
-        .call-right {
+        .call-item .call-right {
           display: flex;
+          flex-direction: row;
           align-items: center;
           gap: 12px;
           flex-shrink: 0;
         }
         
-        .call-sentiment {
+        .call-item .call-sentiment {
           display: flex;
           align-items: center;
           justify-content: center;
@@ -321,7 +329,7 @@ export function RecentCallsWidget({
           background: var(--item-hover);
         }
         
-        .call-score {
+        .call-item .call-score {
           font-family: 'Poppins', sans-serif;
           font-size: 18px;
           font-weight: 600;
@@ -329,7 +337,7 @@ export function RecentCallsWidget({
           text-align: right;
         }
         
-        .call-arrow {
+        .call-item .call-arrow {
           color: var(--main-text-muted);
           display: flex;
           align-items: center;

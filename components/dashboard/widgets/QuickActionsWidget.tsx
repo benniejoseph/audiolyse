@@ -126,43 +126,53 @@ export function QuickActionsWidget({
           grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
           gap: 12px;
         }
-        
+
+        @media (max-width: 640px) {
+          .actions-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <style jsx global>{`
         .action-card {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 16px;
-          background: var(--item-bg);
-          border: 1px solid transparent;
-          border-radius: 12px;
-          text-decoration: none;
-          transition: all 0.2s ease;
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          gap: 14px !important;
+          padding: 16px !important;
+          background: var(--item-bg) !important;
+          border: 1px solid transparent !important;
+          border-radius: 12px !important;
+          text-decoration: none !important;
+          transition: all 0.2s ease !important;
         }
         
         .action-card:hover {
-          background: var(--item-hover);
-          border-color: var(--action-color);
+          background: var(--item-hover) !important;
+          border-color: var(--action-color) !important;
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
         
-        .action-icon-wrapper {
+        .action-card .action-icon-wrapper {
           display: flex;
           align-items: center;
           justify-content: center;
           width: 42px;
+          min-width: 42px;
           height: 42px;
           border-radius: 10px;
           flex-shrink: 0;
         }
         
-        .action-icon {
+        .action-card .action-icon {
           display: flex;
           align-items: center;
           justify-content: center;
         }
         
-        .action-content {
+        .action-card .action-content {
           flex: 1;
           min-width: 0;
           display: flex;
@@ -170,7 +180,7 @@ export function QuickActionsWidget({
           gap: 2px;
         }
         
-        .action-label {
+        .action-card .action-label {
           display: flex;
           align-items: center;
           gap: 8px;
@@ -179,9 +189,10 @@ export function QuickActionsWidget({
           color: var(--main-text);
           font-size: 14px;
           line-height: 1.3;
+          text-decoration: none !important;
         }
         
-        .action-badge {
+        .action-card .action-badge {
           padding: 2px 6px;
           color: white;
           font-size: 9px;
@@ -191,14 +202,15 @@ export function QuickActionsWidget({
           letter-spacing: 0.5px;
         }
         
-        .action-description {
+        .action-card .action-description {
           font-family: 'Poppins', sans-serif;
           font-size: 12px;
           color: var(--main-text-muted);
           line-height: 1.4;
+          text-decoration: none !important;
         }
         
-        .action-arrow {
+        .action-card .action-arrow {
           color: var(--main-text-muted);
           display: flex;
           align-items: center;
@@ -211,12 +223,6 @@ export function QuickActionsWidget({
           opacity: 1;
           transform: translateX(0);
           color: var(--action-color);
-        }
-
-        @media (max-width: 640px) {
-          .actions-grid {
-            grid-template-columns: 1fr;
-          }
         }
       `}</style>
     </Widget>
