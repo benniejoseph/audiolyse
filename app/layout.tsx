@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './styles/themes.css';
 import './styles/landing.css';
 import './styles/legal.css';
 import { ThemeProvider } from '@/components/ThemeProvider';

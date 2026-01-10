@@ -1,4 +1,5 @@
 import '../globals.css';
+import '../styles/dashboard.css';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 
 export default function DashboardLayout({

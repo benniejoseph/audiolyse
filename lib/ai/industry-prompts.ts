@@ -43,58 +43,57 @@ export const INDUSTRY_PROMPTS: Record<IndustryType, IndustryPrompt> = {
 This is a healthcare/medical services call. The conversation involves patient care, medical services, or health-related inquiries.
 
 HEALTHCARE-SPECIFIC ANALYSIS PRIORITIES:
-1. PATIENT SAFETY: Any mention of symptoms, medications, or health concerns must be handled appropriately
-2. HIPAA COMPLIANCE: Verify patient identity before sharing PHI, use secure language
-3. EMPATHY: Healthcare calls require exceptional empathy and active listening
-4. MEDICAL ACCURACY: Information provided should be accurate and not misleading
-5. URGENCY ASSESSMENT: Recognize emergency vs routine situations
-6. CARE COORDINATION: Follow-up appointments, referrals, and continuity of care
-7. INSURANCE/BILLING: Handle financial discussions with sensitivity
+1. PATIENT SAFETY & TRIAGE: Immediately identify if this is an emergency. Any mention of severe symptoms (chest pain, difficulty breathing, suicide risk) REQUIRES immediate escalation instructions.
+2. HIPAA COMPLIANCE: Strict adherence to verification standards. No PHI discussion without 3-point verification (Name, DOB, Address/ID).
+3. EMPATHY & BEDSIDE MANNER: This is CRITICAL. Agents must validate feelings ("I understand how painful that is") before moving to business logic. Transactional tones are failures.
+4. SCOPE OF PRACTICE: Non-clinical agents MUST NOT give medical advice. They must use phrases like "I recommend consulting your doctor" or "According to our protocols."
+5. CARE COORDINATION: Clear next steps are vital. Patients are often anxious/confused. Repetition and "teach-back" (asking patient to repeat instructions) are quality markers.
+6. FINANCIAL SENSITIVITY: Medical costs are stressful. Financial discussions must be clear but compassionate.
 `,
     evaluationCriteria: [
-      'Verified patient identity before discussing medical information',
-      'Demonstrated appropriate empathy for health concerns',
-      'Provided accurate medical/service information',
-      'Assessed urgency level appropriately',
-      'Offered appropriate follow-up or escalation',
-      'Maintained HIPAA compliance throughout',
-      'Explained procedures and expectations clearly',
+      'Verified patient identity (3-point check) before discussing ANY medical info',
+      'Demonstrated deep empathy ("I can hear how difficult this is for you")',
+      'Stayed within scope of practice (No unauthorized medical advice)',
+      'Performed appropriate triage/urgency assessment immediately',
+      'Used "Teach-Back" method to ensure patient understood instructions',
+      ' maintained professional yet warm "Bedside Manner"',
+      'Protected patient privacy (HIPAA) throughout',
     ],
     complianceRequirements: [
-      'HIPAA compliance - Protected Health Information handling',
-      'Patient consent verification',
-      'Proper documentation requirements',
-      'Medical advice disclaimers when appropriate',
-      'Emergency protocol awareness',
+      'HIPAA: 3-point identity verification',
+      'Emergency Disclaimers: "If this is a medical emergency, hang up and dial 911"',
+      'Scope of Practice: No diagnostic statements by non-clinicians',
+      'Consent: Explicit consent for recording/treatment discussions',
+      'Documentation: Accurate logging of symptoms reported',
     ],
     keyTerminology: [
-      'patient', 'appointment', 'consultation', 'symptoms', 'medication',
-      'treatment', 'diagnosis', 'referral', 'insurance', 'copay', 'deductible',
-      'prescription', 'follow-up', 'specialist', 'lab results', 'vital signs',
+      'patient', 'provider', 'triage', 'symptoms', 'consultation', 'referral',
+      'copay', 'deductible', 'out-of-pocket', 'pre-authorization', 'formulary',
+      'HIPAA', 'PHI', 'vital signs', 'emergency', 'urgent care', 'follow-up',
     ],
     commonObjections: [
-      'Wait times too long',
-      'Cost concerns',
-      'Insurance coverage questions',
-      'Appointment availability',
-      'Second opinion requests',
-      'Treatment hesitation',
+      'Appointment wait times too long',
+      'Cost of service/medication too high',
+      'Insurance denial/coverage issues',
+      'Provider unavailability',
+      'Referral processing delays',
+      'Dissatisfaction with previous care',
     ],
     redFlagIndicators: [
-      'Sharing PHI without verification',
-      'Providing medical advice beyond scope',
-      'Ignoring urgent symptoms',
-      'Dismissing patient concerns',
-      'Discussing other patients',
-      'Unauthorized treatment promises',
+      'IGNORING EMERGENCY SYMPTOMS (Chest pain, shortness of breath, suicidal ideation)',
+      'Discussing PHI without full verification',
+      'Agent giving medical advice ("You should take X", "It sounds like Y")',
+      'Dismissive or transactional tone with distressed patient',
+      'Failure to escalate unsatisfied clinical complaints',
+      'Discussing other patients\' information',
     ],
     qualityMarkers: [
-      'Warm, empathetic opening',
-      'Clear identity verification',
-      'Active listening to health concerns',
-      'Accurate information delivery',
-      'Appropriate urgency handling',
-      'Clear next steps communication',
+      'Warm, reassuring opening tone',
+      'Active validation of distress',
+      'Clear/Safe escalation of medical questions',
+      'Patient comprehension verification',
+      'Compassionate financial discussion',
+      'Clear, written-like summary of next steps',
     ],
   },
 

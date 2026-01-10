@@ -56,33 +56,36 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               {toast.type === 'info' && 'ℹ'}
             </span>
             <span className="toast-message">{toast.message}</span>
-            <button className="toast-close" onClick={() => removeToast(toast.id)}>×</button>
+            <button className="toast-close" onClick={(e) => { e.stopPropagation(); removeToast(toast.id); }}>×</button>
           </div>
         ))}
       </div>
       <style jsx global>{`
         .toast-container {
           position: fixed;
-          top: 20px;
-          right: 20px;
+          top: 24px;
+          right: 24px;
           z-index: 10000;
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 12px;
           max-width: 400px;
+          width: 100%;
+          pointer-events: none;
         }
         .toast {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 14px 18px;
-          border-radius: 12px;
-          background: rgba(20, 20, 30, 0.95);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+          padding: 16px;
+          border-radius: var(--radius);
+          background: var(--card-elevated);
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-lg);
           animation: slideIn 0.3s ease-out;
           cursor: pointer;
+          pointer-events: auto;
+          overflow: hidden;
         }
         @keyframes slideIn {
           from {
@@ -102,62 +105,54 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           align-items: center;
           justify-content: center;
           font-size: 14px;
-          font-weight: bold;
+          font-weight: 700;
           flex-shrink: 0;
         }
         .toast-success .toast-icon {
-          background: rgba(124, 255, 199, 0.2);
-          color: #7cffc7;
+          background: var(--success-bg);
+          color: var(--success);
         }
         .toast-error .toast-icon {
-          background: rgba(255, 107, 107, 0.2);
-          color: #ff6b6b;
+          background: var(--danger-bg);
+          color: var(--danger);
         }
         .toast-warning .toast-icon {
-          background: rgba(255, 209, 102, 0.2);
-          color: #ffd166;
+          background: var(--warning-bg);
+          color: var(--warning);
         }
         .toast-info .toast-icon {
-          background: rgba(0, 217, 255, 0.2);
-          color: #00d9ff;
+          background: var(--accent-bg);
+          color: var(--accent);
         }
         .toast-message {
           flex: 1;
-          color: #fff;
+          color: var(--text);
           font-size: 14px;
-          line-height: 1.4;
+          line-height: 1.5;
+          font-weight: 500;
         }
         .toast-close {
-          background: none;
+          background: transparent;
           border: none;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-tertiary);
           font-size: 18px;
           cursor: pointer;
-          padding: 0;
-          width: 24px;
-          height: 24px;
+          padding: 4px;
+          line-height: 1;
+          border-radius: var(--radius-sm);
+          transition: all 0.2s;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 50%;
-          transition: all 0.2s;
         }
         .toast-close:hover {
-          color: #fff;
-          background: rgba(255, 255, 255, 0.1);
+          color: var(--text);
+          background: var(--bg-tertiary);
         }
-        .toast-success {
-          border-color: rgba(124, 255, 199, 0.3);
-        }
-        .toast-error {
-          border-color: rgba(255, 107, 107, 0.3);
-        }
-        .toast-warning {
-          border-color: rgba(255, 209, 102, 0.3);
-        }
-        .toast-info {
-          border-color: rgba(0, 217, 255, 0.3);
-        }
+        .toast-success { border-left: 4px solid var(--success); }
+        .toast-error { border-left: 4px solid var(--danger); }
+        .toast-warning { border-left: 4px solid var(--warning); }
+        .toast-info { border-left: 4px solid var(--accent); }
       `}</style>
     </ToastContext.Provider>
   );
