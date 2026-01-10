@@ -90,7 +90,7 @@ export function Sidebar({ isCollapsed, toggleCollapse, isMobileOpen, closeMobile
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-header">
         <Link href="/dashboard" className="sidebar-logo" onClick={closeMobile}>
-          <Logo size={isCollapsed ? 'sm' : 'md'} showTagline={!isCollapsed} />
+          <Logo collapsed={isCollapsed} />
         </Link>
       </div>
 
