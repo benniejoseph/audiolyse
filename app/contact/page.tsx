@@ -38,7 +38,7 @@ export default function ContactPage() {
     <div className="legal-page">
       <header className="legal-header">
         <Link href="/" className="legal-logo">
-          <Logo size="md" showText={true} />
+          <Logo size="lg" />
         </Link>
         <nav className="legal-nav">
           <Link href="/">Home</Link>

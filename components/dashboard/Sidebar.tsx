@@ -76,7 +76,7 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-header">
         <Link href="/dashboard" className="sidebar-logo">
-          <Logo size="sm" showText={true} />
+          <Logo size="md" />
         </Link>
       </div>
 

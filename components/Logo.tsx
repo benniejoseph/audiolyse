@@ -8,12 +8,12 @@ interface LogoProps {
   showTagline?: boolean;
 }
 
-export function Logo({ size = 'md', showText = true, showTagline = false }: LogoProps) {
+export function Logo({ size = 'md', showText = false, showTagline = false }: LogoProps) {
   const sizes = {
-    sm: { icon: 28, text: 18, tagline: 8 },
-    md: { icon: 36, text: 22, tagline: 10 },
-    lg: { icon: 44, text: 28, tagline: 12 },
-    xl: { icon: 56, text: 36, tagline: 14 },
+    sm: { icon: 32, text: 18, tagline: 8 },
+    md: { icon: 40, text: 22, tagline: 10 },
+    lg: { icon: 48, text: 28, tagline: 12 },
+    xl: { icon: 60, text: 36, tagline: 14 },
   };
 
   const s = sizes[size];

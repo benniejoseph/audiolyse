@@ -62,7 +62,7 @@ function LoginForm() {
       {/* Mobile Logo */}
       <div className="mobile-auth-header">
         <Link href="/">
-          <Logo size="md" showText={true} />
+          <Logo size="lg" />
         </Link>
       </div>
 
@@ -190,7 +190,7 @@ export default function LoginPage() {
       <div className="auth-panel-left">
         <div className="auth-brand">
           <Link href="/" className="auth-logo-link">
-            <Logo size="lg" showText={true} showTagline={true} />
+            <Logo size="xl" />
           </Link>
 
           <h1 className="auth-headline">

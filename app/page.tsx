@@ -44,7 +44,7 @@ export default function LandingPage() {
       <header className="header-v2">
         <div className="header-inner">
           <Link href="/" className="logo-link">
-            <Logo size="md" showText={true} />
+            <Logo size="lg" />
           </Link>
           <nav className="nav-v2">
             <Link href="#features">Features</Link>
@@ -371,7 +371,7 @@ export default function LandingPage() {
       <footer className="footer-v2">
         <div className="footer-inner">
           <div className="footer-brand-v2">
-            <Logo size="md" showText={true} showTagline={true} />
+            <Logo size="xl" />
           </div>
           <div className="footer-links-v2">
             <div className="link-group">
