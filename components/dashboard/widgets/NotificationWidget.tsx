@@ -359,11 +359,6 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
           margin: 0 0 24px 0;
         }
 
-        .notifications-subtitle .highlight {
-          color: var(--accent);
-          font-weight: 500;
-        }
-
         .loading-state {
           display: flex;
           flex-direction: column;
@@ -430,67 +425,6 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
           gap: 4px;
         }
 
-        .notification-item {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 12px 8px;
-          text-decoration: none;
-          border-radius: 12px;
-          transition: all 0.2s ease;
-          position: relative;
-        }
-
-        .notification-item:hover {
-          background: var(--item-bg);
-        }
-
-        .unread-dot {
-          position: absolute;
-          left: 0;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 8px;
-          height: 8px;
-          background: #ef4444;
-          border-radius: 50%;
-        }
-
-        .avatar {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .notification-body {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .notification-text {
-          font-family: 'Poppins', sans-serif;
-          font-size: 13px;
-          color: var(--main-text-muted);
-          margin: 0 0 2px 0;
-          line-height: 1.5;
-        }
-
-        .notification-name {
-          color: var(--accent);
-          font-weight: 500;
-        }
-
-        .notification-time {
-          font-family: 'Poppins', sans-serif;
-          font-size: 12px;
-          color: var(--main-text-muted);
-          opacity: 0.7;
-        }
-
         .mark-all-read {
           margin-top: 12px;
           padding: 10px 16px;
@@ -509,6 +443,79 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
           background: var(--accent-light);
           border-color: var(--accent);
           color: var(--accent);
+        }
+      `}</style>
+
+      <style jsx global>{`
+        .notifications-subtitle .highlight {
+          color: var(--accent);
+          font-weight: 500;
+        }
+
+        .notification-item {
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          gap: 14px !important;
+          padding: 12px 8px !important;
+          text-decoration: none !important;
+          border-radius: 12px !important;
+          transition: all 0.2s ease !important;
+          position: relative !important;
+        }
+
+        .notification-item:hover {
+          background: var(--item-bg);
+        }
+
+        .notification-item .unread-dot {
+          position: absolute;
+          left: -4px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 8px;
+          height: 8px;
+          background: #ef4444;
+          border-radius: 50%;
+        }
+
+        .notification-item .avatar {
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .notification-item .notification-body {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .notification-item .notification-text {
+          font-family: 'Poppins', sans-serif;
+          font-size: 13px;
+          color: var(--main-text-muted);
+          margin: 0 0 2px 0;
+          line-height: 1.5;
+          text-decoration: none !important;
+        }
+
+        .notification-item .notification-name {
+          color: var(--accent);
+          font-weight: 500;
+          text-decoration: none !important;
+        }
+
+        .notification-item .notification-time {
+          font-family: 'Poppins', sans-serif;
+          font-size: 12px;
+          color: var(--main-text-muted);
+          opacity: 0.7;
+          display: block;
         }
       `}</style>
     </div>
