@@ -21,8 +21,7 @@ import {
   Zap, 
   Lock,
   ChevronLeft,
-  ChevronRight,
-  Menu
+  ChevronRight
 } from 'lucide-react';
 
 const navItems = [
@@ -88,156 +87,80 @@ export function Sidebar({ isCollapsed, toggleCollapse, isMobileOpen, closeMobile
   }, [supabase]);
 
   return (
-    <>
-      {/* Mobile Header (Only visible on mobile) */}
-      <div className="mobile-header">
-        <button onClick={toggleCollapse} className="mobile-menu-btn">
-          {/* Note: In real mobile layout, we usually toggle isMobileOpen, but for now reuse toggle */}
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
+      <div className="sidebar-header">
+        <Link href="/dashboard" className="sidebar-logo" onClick={closeMobile}>
+          <Logo size={isCollapsed ? 'sm' : 'md'} showTagline={!isCollapsed} />
+        </Link>
+      </div>
+
+      <nav className="sidebar-nav">
+        {navItems.map((item) => {
+          if (item.showForPayg && subscriptionTier !== 'payg') return null;
+          if ((item as any).showForManager && !isManager) return null;
+          
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`nav-item ${pathname === item.href ? 'active' : ''}`}
+              title={isCollapsed ? item.label : undefined}
+              onClick={closeMobile}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-label">{item.label}</span>
+              {item.badge && !isCollapsed && <span className="nav-badge">{item.badge}</span>}
+            </Link>
+          );
+        })}
+        
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={`nav-item ${pathname === '/admin' ? 'active' : ''}`}
+            title={isCollapsed ? 'Admin' : undefined}
+            style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '12px' }}
+            onClick={closeMobile}
+          >
+            <span className="nav-icon"><Zap size={20} /></span>
+            <span className="nav-label">Admin</span>
+          </Link>
+        )}
+      </nav>
+
+      <div className="sidebar-footer">
+        <div className="sidebar-footer-content">
+          <ThemeToggle />
+        </div>
+        
+        <button 
+          className="collapse-btn" 
+          onClick={toggleCollapse}
+          aria-label={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
 
-      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
-        <div className="sidebar-header">
-          <Link href="/dashboard" className="sidebar-logo" onClick={closeMobile}>
-            <Logo size={isCollapsed ? 'sm' : 'md'} showTagline={!isCollapsed} />
-          </Link>
-        </div>
-
-        <nav className="sidebar-nav">
-          {navItems.map((item) => {
-            if (item.showForPayg && subscriptionTier !== 'payg') return null;
-            if ((item as any).showForManager && !isManager) return null;
-            
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`nav-item ${pathname === item.href ? 'active' : ''}`}
-                title={isCollapsed ? item.label : undefined}
-                onClick={closeMobile}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                <span className="nav-label">{item.label}</span>
-                {item.badge && !isCollapsed && <span className="nav-badge">{item.badge}</span>}
-              </Link>
-            );
-          })}
-          
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className={`nav-item ${pathname === '/admin' ? 'active' : ''}`}
-              title={isCollapsed ? 'Admin' : undefined}
-              style={{ marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}
-              onClick={closeMobile}
-            >
-              <span className="nav-icon"><Zap size={20} /></span>
-              <span className="nav-label">Admin</span>
-            </Link>
-          )}
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="sidebar-footer-content">
-            <ThemeToggle />
-          </div>
-          
-          <button 
-            className="collapse-btn" 
-            onClick={toggleCollapse}
-            aria-label={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
-        </div>
-      </aside>
-
       <style jsx>{`
-        .sidebar-header {
-          height: var(--header-height);
-          display: flex;
-          align-items: center;
-          padding: 0 24px;
-          border-bottom: 1px solid var(--border);
-          transition: all 0.3s;
+        /* Styles handled by globals.css now for cleaner separation */
+        .sidebar {
+          /* Additional component-specific overrides if needed */
         }
-
-        .sidebar-nav {
-          flex: 1;
-          padding: 24px 12px;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .nav-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
-          color: var(--text-secondary);
-          text-decoration: none;
-          font-weight: 500;
-          border-radius: var(--radius);
-          transition: all 0.2s;
-          white-space: nowrap;
-          overflow: hidden;
-        }
-
-        .nav-item:hover {
-          background: var(--bg-tertiary);
-          color: var(--text);
-        }
-
-        .nav-item.active {
-          background: var(--accent-light);
-          color: var(--accent);
-          border-right: 3px solid var(--accent);
-        }
-
-        .nav-icon {
-          flex-shrink: 0;
-          width: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .nav-label {
-          transition: opacity 0.2s;
-        }
-
-        .nav-badge {
-          margin-left: auto;
-          background: var(--accent);
-          color: var(--text-inverse);
-          font-size: 10px;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-weight: 700;
-        }
-
-        .sidebar-footer {
-          padding: 16px;
-          border-top: 1px solid var(--border);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
+        
         .collapse-btn {
           width: 32px;
           height: 32px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--bg-tertiary);
+          background: rgba(255,255,255,0.05);
           border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
+          border-radius: 50%;
           color: var(--text-secondary);
           cursor: pointer;
           transition: all 0.2s;
+          margin: 0 auto;
         }
 
         .collapse-btn:hover {
@@ -245,44 +168,7 @@ export function Sidebar({ isCollapsed, toggleCollapse, isMobileOpen, closeMobile
           color: var(--text-inverse);
           border-color: var(--accent);
         }
-
-        /* Collapsed State Overrides */
-        .sidebar.collapsed .sidebar-header {
-          padding: 0;
-          justify-content: center;
-        }
-
-        .sidebar.collapsed .nav-item {
-          padding: 12px;
-          justify-content: center;
-        }
-
-        .sidebar.collapsed .nav-label,
-        .sidebar.collapsed .nav-badge,
-        .sidebar.collapsed .sidebar-footer-content {
-          display: none;
-        }
-
-        .sidebar.collapsed .sidebar-footer {
-          justify-content: center;
-        }
-
-        /* Mobile Styles */
-        @media (max-width: 768px) {
-          .sidebar {
-            transform: translateX(-100%);
-            width: 260px !important; /* Always full width on mobile when open */
-          }
-
-          .sidebar.mobile-open {
-            transform: translateX(0);
-          }
-
-          .collapse-btn {
-            display: none;
-          }
-        }
       `}</style>
-    </>
+    </aside>
   );
 }
