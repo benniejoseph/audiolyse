@@ -1,20 +1,17 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
-  ArrowLeft, FileAudio, Activity, TrendingUp, AlertOctagon, Loader2, Link, 
-  MapPin, Phone, MessageSquare, Zap, Clock, Calendar, CheckCircle, XCircle, 
-  AlertCircle, CheckCircle2, ChevronRight, Volume2, User, Mic, 
-  Download, Share2, UploadCloud, FileText, Database, Music
+  ArrowLeft, FileAudio, Activity, TrendingUp, AlertOctagon,
+  AlertCircle, CheckCircle2, Zap, FileText, Database, Music,
+  Play, Pause, Volume2
 } from 'lucide-react';
-import { CallAnalysis } from '@/lib/types/database';
 
-// --- Shared Helper Components ---
-
+// --- Helper Functions ---
 const getScoreColor = (score: number) => {
   if (score >= 90) return 'var(--success)';
-  if (score >= 75) return 'var(--accent)'; // Good/Accent
-  if (score >= 60) return '#fbbf24'; // Warning/Yellow
+  if (score >= 75) return 'var(--accent)';
+  if (score >= 60) return '#fbbf24';
   return 'var(--danger)';
 };
 
@@ -23,7 +20,7 @@ const getRiskColor = (risk: string) => {
     case 'high': return 'var(--danger)';
     case 'medium': return 'var(--warning)';
     case 'low': return 'var(--success)';
-    default: return 'var(--text-muted)';
+    default: return 'var(--main-text-muted)';
   }
 };
 
@@ -33,20 +30,19 @@ const formatTime = (seconds: number) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const ScoreRing = ({ score, size = 80, strokeWidth = 6, color, label }: { score: number; size?: number; strokeWidth?: number; color?: string; label?: string }) => {
+// --- Score Ring Component ---
+const ScoreRing = ({ score, size = 80, strokeWidth = 6 }: { score: number; size?: number; strokeWidth?: number }) => {
   const circumference = 2 * Math.PI * 35;
   const offset = circumference - (score / 100) * circumference;
-  const strokeColor = color || getScoreColor(score);
+  const color = getScoreColor(score);
   
   return (
-    <div className="score-ring" style={{ width: size, height: size, position: 'relative' }}>
+    <div style={{ width: size, height: size, position: 'relative' }}>
       <svg viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
-        <circle cx="40" cy="40" r="35" stroke="var(--bg-tertiary)" strokeWidth={strokeWidth} fill="none" />
+        <circle cx="40" cy="40" r="35" stroke="var(--border-color)" strokeWidth={strokeWidth} fill="none" />
         <circle 
-          cx="40" 
-          cy="40" 
-          r="35" 
-          stroke={strokeColor} 
+          cx="40" cy="40" r="35" 
+          stroke={color} 
           strokeWidth={strokeWidth} 
           fill="none" 
           strokeDasharray={circumference} 
@@ -55,53 +51,56 @@ const ScoreRing = ({ score, size = 80, strokeWidth = 6, color, label }: { score:
           style={{ transition: 'stroke-dashoffset 0.5s ease' }} 
         />
       </svg>
-      <div className="score-value" style={{ 
-        color: strokeColor, 
-        fontSize: size < 60 ? '0.9rem' : undefined,
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
+      <div style={{ 
+        position: 'absolute', top: '50%', left: '50%', 
         transform: 'translate(-50%, -50%)',
-        fontWeight: 'bold'
+        fontSize: size < 70 ? '16px' : '20px',
+        fontWeight: 'bold',
+        color
       }}>{score}</div>
-      {label && <div className="score-label" style={{ textAlign: 'center', marginTop: '4px', fontSize: '12px' }}>{label}</div>}
     </div>
   );
 };
 
-const TalkRatioBar = ({ agent, customer, silence, style }: { agent: number; customer: number; silence: number; style?: React.CSSProperties }) => {
+// --- Talk Ratio Bar ---
+const TalkRatioBar = ({ agent, customer, silence }: { agent: number; customer: number; silence: number }) => {
   const normalize = (val: number) => val > 1 ? val / 100 : val;
   const agentPct = normalize(agent) * 100;
   const customerPct = normalize(customer) * 100;
   const silencePct = normalize(silence) * 100;
   
   return (
-    <div className="talk-ratio-container" style={style}>
-      <div className="talk-ratio-bar" style={{ display: 'flex', height: '100%', borderRadius: '999px', overflow: 'hidden' }}>
-        <div className="ratio-segment agent" style={{ width: `${agentPct}%`, background: 'var(--accent)' }} title={`Agent: ${agentPct.toFixed(1)}%`} />
-        <div className="ratio-segment customer" style={{ width: `${customerPct}%`, background: '#8b5cf6' }} title={`Customer: ${customerPct.toFixed(1)}%`} />
-        <div className="ratio-segment silence" style={{ width: `${silencePct}%`, background: 'var(--bg-tertiary)' }} title={`Silence: ${silencePct.toFixed(1)}%`} />
+    <div>
+      <div style={{ display: 'flex', height: '12px', borderRadius: '999px', overflow: 'hidden', marginBottom: '12px' }}>
+        <div style={{ width: `${agentPct}%`, background: 'var(--accent)' }} title={`Agent: ${agentPct.toFixed(1)}%`} />
+        <div style={{ width: `${customerPct}%`, background: '#8b5cf6' }} title={`Customer: ${customerPct.toFixed(1)}%`} />
+        <div style={{ width: `${silencePct}%`, background: 'var(--border-color)' }} title={`Silence: ${silencePct.toFixed(1)}%`} />
       </div>
-      {!style && (
-        <div className="ratio-legend" style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.8rem' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span className="dot" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }} /> Agent {agentPct.toFixed(1)}%</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span className="dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#8b5cf6' }} /> Customer {customerPct.toFixed(1)}%</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span className="dot" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--bg-tertiary)' }} /> Silence {silencePct.toFixed(1)}%</span>
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: '20px', fontSize: '13px' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent)' }} /> Agent {agentPct.toFixed(0)}%
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#8b5cf6' }} /> Customer {customerPct.toFixed(0)}%
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--border-color)' }} /> Silence {silencePct.toFixed(0)}%
+        </span>
+      </div>
     </div>
   );
 };
 
-const AudioPlayer = ({ audioUrl, callId }: { audioUrl?: string; callId?: string }) => {
+// --- Modern Audio Player ---
+const AudioPlayer = ({ audioUrl }: { audioUrl?: string }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  React.useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.src = audioUrl || '';
+  useEffect(() => {
+    if (audioRef.current && audioUrl) {
+      audioRef.current.src = audioUrl;
       audioRef.current.onloadedmetadata = () => setDuration(audioRef.current?.duration || 0);
       audioRef.current.ontimeupdate = () => setCurrentTime(audioRef.current?.currentTime || 0);
       audioRef.current.onended = () => setIsPlaying(false);
@@ -124,39 +123,69 @@ const AudioPlayer = ({ audioUrl, callId }: { audioUrl?: string; callId?: string 
     }
   };
 
-  if (!audioUrl) return <div className="text-muted-foreground italic text-sm">Audio not available</div>;
+  if (!audioUrl) return <div style={{ color: 'var(--main-text-muted)', fontStyle: 'italic', fontSize: '14px' }}>Audio not available</div>;
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="audio-player flex items-center gap-4 w-full">
+    <div className="audio-player-modern">
       <audio ref={audioRef} style={{ display: 'none' }} />
-      <button 
-        onClick={togglePlay}
-        className="flex-shrink-0 w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center hover:bg-accent-hover transition-colors"
-      >
-        {isPlaying ? '⏸️' : '▶️'}
+      <button className="audio-play-btn" onClick={togglePlay}>
+        {isPlaying ? <Pause size={20} /> : <Play size={20} style={{ marginLeft: 2 }} />}
       </button>
-      <div className="flex-1 flex flex-col gap-1">
+      <div className="audio-progress-container">
         <input 
           type="range" 
           min="0" 
           max={duration || 100} 
           value={currentTime} 
           onChange={handleSeek}
-          className="w-full accent-accent h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          className="audio-slider"
+          style={{ background: `linear-gradient(to right, var(--accent) ${progress}%, rgba(255,255,255,0.1) ${progress}%)` }}
         />
-        <div className="flex justify-between text-xs text-muted-foreground font-mono">
-           <span>{formatTime(currentTime)}</span>
-           <span>{formatTime(duration)}</span>
+        <div className="audio-time">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
         </div>
       </div>
     </div>
   );
 };
 
-// --- Main Detail Components ---
+// --- Transcript Display ---
+const TranscriptDisplay = ({ text }: { text: string }) => {
+  const lines = text.split('\n').filter(line => line.trim());
+  
+  return (
+    <div className="transcript-container">
+      {lines.length > 0 ? lines.map((line, i) => {
+        const isAgent = line.toLowerCase().includes('agent:') || line.toLowerCase().includes('representative:');
+        const isCustomer = line.toLowerCase().includes('customer:') || line.toLowerCase().includes('caller:');
+        const speaker = isAgent ? 'agent' : isCustomer ? 'customer' : null;
+        const cleanLine = line.replace(/^(agent:|customer:|representative:|caller:)/i, '').trim();
+        
+        return (
+          <div key={i} className="transcript-line">
+            {speaker && (
+              <span className={`transcript-speaker ${speaker}`}>
+                {speaker === 'agent' ? 'Agent' : 'Customer'}
+              </span>
+            )}
+            <span className="transcript-text">{speaker ? cleanLine : line}</span>
+          </div>
+        );
+      }) : (
+        <div style={{ color: 'var(--main-text-muted)', textAlign: 'center', padding: '40px' }}>
+          No transcription available.
+        </div>
+      )}
+    </div>
+  );
+};
 
+// --- Main Component ---
 interface CallDetailViewProps {
-  call: any; // Using any for now to be compatible with different result structures, can refine to CallAnalysis | BulkCallResult
+  call: any;
   onBack: () => void;
   showBackButton?: boolean;
 }
@@ -167,80 +196,74 @@ export default function CallDetailView({ call, onBack, showBackButton = true }: 
   const result = call.result || call.analysis_json;
   const fileName = call.fileName || call.file_name;
   const durationSec = result?.durationSec || call.duration_sec;
-  const audioUrl = call.audioUrl || call.audio_url || call.file_path; // Handle various property names
+  const audioUrl = call.audioUrl || call.audio_url || call.file_path;
 
-  if (!result) return <div className="p-8 text-center">Analysis data not available.</div>;
+  if (!result) return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--main-text-muted)' }}>Analysis data not available.</div>;
 
-  const handleDownloadPDF = () => {
-      // Logic for PDF download (placeholder or passed prop)
-      console.log('Download PDF requested');
-  };
-  
   const download = (filename: string, content: string, type: string = 'text/plain') => {
-      const blob = new Blob([content], { type });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
-  
-  const copyToClipboard = (text: string) => {
-      navigator.clipboard.writeText(text);
-      // Optional: Show toast
-  };
+
+  const tabs = [
+    { id: 'metrics', label: 'Metrics' },
+    { id: 'coaching', label: 'Coaching' },
+    { id: 'moments', label: 'Moments' },
+    { id: 'predictions', label: 'Predictions' },
+    { id: 'transcript', label: 'Transcript' },
+    { id: 'summary', label: 'Summary' },
+  ] as const;
 
   return (
-    <div className="detail-view fade-in">
+    <div className="detail-view">
+      {/* Back Button */}
       {showBackButton && (
-        <button 
-          className="btn-ghost" 
-          onClick={onBack}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', paddingLeft: 0, color: 'var(--text-secondary)' }}
-        >
+        <button className="btn-ghost" onClick={onBack} style={{ marginBottom: '20px' }}>
           <ArrowLeft size={16} /> Back
         </button>
       )}
       
-      {/* Audio Player Card - Styled */}
-      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid var(--border-light)' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Music size={20} className="text-accent" /> Original Recording
-        </h3>
-        <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '12px' }}>
-          <AudioPlayer audioUrl={audioUrl} callId={call.id} />
+      {/* Audio Player Section */}
+      <div className="detail-section">
+        <div className="detail-section-title">
+          <Music size={18} style={{ color: 'var(--accent)' }} /> Original Recording
         </div>
+        <AudioPlayer audioUrl={audioUrl} />
       </div>
 
-      {/* Header Metadata Card */}
-      <div className="card" style={{ padding: '2rem', marginBottom: '2rem', border: '1px solid var(--border-light)', background: 'linear-gradient(to right, var(--card), var(--bg-secondary))' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '2rem' }}>
+      {/* Header Card */}
+      <div className="detail-header-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
           <div>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text)' }}>{fileName}</h2>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <span className="badge badge-outline"><FileAudio size={12} style={{marginRight:4}}/> {result.language}</span>
-              {durationSec && <span className="badge badge-outline"><Activity size={12} style={{marginRight:4}}/> {formatTime(durationSec)}</span>}
+            <h2 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '12px' }}>{fileName}</h2>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <span className="badge badge-outline"><FileAudio size={12} /> {result.language || 'Unknown'}</span>
+              {durationSec && <span className="badge badge-outline"><Activity size={12} /> {formatTime(durationSec)}</span>}
               <span className={`badge ${result.insights?.sentiment === 'Positive' ? 'badge-success' : result.insights?.sentiment === 'Negative' ? 'badge-danger' : 'badge-warning'}`}>
-                {result.insights?.sentiment} Sentiment
+                {result.insights?.sentiment || 'Neutral'} Sentiment
               </span>
             </div>
           </div>
           
-          <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-               <ScoreRing score={result.coaching?.overallScore || 0} size={80} />
-               <div style={{ marginTop: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>Overall Score</div>
+              <ScoreRing score={result.coaching?.overallScore || 0} size={80} />
+              <div style={{ marginTop: '8px', fontSize: '13px', fontWeight: 600 }}>Overall Score</div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', width: '180px', background: 'var(--bg-secondary)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Conversion</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="card" style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', gap: '20px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--main-text-muted)' }}>Conversion</span>
                 <strong style={{ color: getScoreColor(result.predictions?.conversionProbability || 0) }}>{result.predictions?.conversionProbability || 0}%</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', width: '180px', background: 'var(--bg-secondary)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Churn Risk</span>
+              <div className="card" style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', gap: '20px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--main-text-muted)' }}>Churn Risk</span>
                 <strong style={{ color: getRiskColor(result.predictions?.churnRisk || 'low') }}>{(result.predictions?.churnRisk || 'low').toUpperCase()}</strong>
               </div>
             </div>
@@ -248,318 +271,231 @@ export default function CallDetailView({ call, onBack, showBackButton = true }: 
         </div>
       </div>
 
-
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b mb-6" style={{ margin: '0 -2rem 2rem -2rem', padding: '0 2rem' }}>
-         <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-2">
-            {(['metrics', 'coaching', 'moments', 'predictions', 'transcript', 'summary'] as const).map((tab) => (
-               <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`
-                     relative py-3 text-sm font-medium transition-colors hover:text-foreground
-                     ${activeTab === tab
-                        ? 'text-accent border-b-2 border-accent'
-                        : 'text-muted-foreground'}
-                  `}
-               >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-               </button>
-            ))}
-         </div>
+      {/* Tab Navigation */}
+      <div className="tab-container" style={{ marginBottom: '24px' }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`tab-item ${activeTab === tab.id ? 'active' : ''}`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Tab Content */}
-      <div className="tab-content min-h-[500px]">
-         {activeTab === 'metrics' && (
-            <div className="space-y-6">
-               {/* Conversation Flow */}
-               <div className="grid gap-6 md:grid-cols-2">
-                  <div className="card p-6">
-                     <h3 className="font-semibold mb-4 flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-accent" /> Talk Ratio
-                     </h3>
-                     <div className="h-64 flex items-center justify-center">
-                        <TalkRatioBar
-                           agent={result.conversationMetrics?.agentTalkRatio || 0}
-                           customer={result.conversationMetrics?.customerTalkRatio || 0}
-                           silence={result.conversationMetrics?.silenceRatio || 0}
-                           style={{ width: '100%', height: '40px' }}
-                        />
-                     </div>
-                  </div>
-
-                  <div className="card p-6">
-                     <h3 className="font-semibold mb-4 flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-accent" /> Quick Stats
-                     </h3>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-secondary rounded-lg">
-                           <div className="text-2xl font-bold">{result.conversationMetrics?.wordsPerMinuteAgent?.toFixed(0) || 0}</div>
-                           <div className="text-xs text-muted-foreground uppercase tracking-wider">Agent WPM</div>
-                        </div>
-                        <div className="p-4 bg-secondary rounded-lg">
-                           <div className="text-2xl font-bold">{result.conversationMetrics?.wordsPerMinuteCustomer?.toFixed(0) || 0}</div>
-                           <div className="text-xs text-muted-foreground uppercase tracking-wider">Customer WPM</div>
-                        </div>
-                        <div className="p-4 bg-secondary rounded-lg">
-                           <div className="text-2xl font-bold">{result.conversationMetrics?.agentInterruptions || 0}</div>
-                           <div className="text-xs text-muted-foreground uppercase tracking-wider">Interruptions</div>
-                        </div>
-                        <div className="p-4 bg-secondary rounded-lg">
-                           <div className="text-2xl font-bold">{result.conversationMetrics?.longestPauseSec || 0}s</div>
-                           <div className="text-xs text-muted-foreground uppercase tracking-wider">Longest Pause</div>
-                        </div>
-                     </div>
-                  </div>
-               </div>
+      <div className="detail-section">
+        {activeTab === 'metrics' && (
+          <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+            <div className="card" style={{ padding: '24px' }}>
+              <div className="detail-section-title"><Activity size={16} /> Talk Ratio</div>
+              <TalkRatioBar
+                agent={result.conversationMetrics?.agentTalkRatio || 0}
+                customer={result.conversationMetrics?.customerTalkRatio || 0}
+                silence={result.conversationMetrics?.silenceRatio || 0}
+              />
             </div>
-         )}
-
-         {activeTab === 'coaching' && result.coaching && (
-            <div className="space-y-6">
-               {/* Overall Score */}
-               <div className="card p-6 flex items-center justify-between bg-gradient-to-r from-secondary to-background border-l-4 border-accent">
-                  <div>
-                     <h3 className="text-lg font-semibold mb-1">Overall Assessment</h3>
-                     <p className="text-muted-foreground max-w-xl">{result.coaching.coachingSummary}</p>
-                  </div>
-                  <div className="relative w-24 h-24 flex-shrink-0">
-                     <ScoreRing score={result.coaching.overallScore} size={96} strokeWidth={8} />
-                     <div className="absolute inset-0 flex items-center justify-center text-xl font-bold">
-                        {result.coaching.overallScore}
-                     </div>
-                  </div>
-               </div>
-
-               {/* Detailed Scores Grid */}
-               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {/* Strengths */}
-                  <div className="card p-6">
-                     <h4 className="font-semibold mb-4 flex items-center gap-2 text-green-500">
-                        <CheckCircle2 className="h-4 w-4" /> Strengths
-                     </h4>
-                     <ul className="space-y-3">
-                        {result.coaching.strengths.map((s: string, i: number) => (
-                           <li key={i} className="flex items-start gap-2 text-sm">
-                              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                              {s}
-                           </li>
-                        ))}
-                     </ul>
-                  </div>
-
-                  {/* Areas for Improvement */}
-                  <div className="card p-6">
-                     <h4 className="font-semibold mb-4 flex items-center gap-2 text-orange-500">
-                        <TrendingUp className="h-4 w-4" /> Improvements
-                     </h4>
-                     <ul className="space-y-3">
-                        {result.coaching.improvementSuggestions.map((s: string, i: number) => (
-                           <li key={i} className="flex items-start gap-2 text-sm">
-                              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-orange-500 flex-shrink-0" />
-                              {s}
-                           </li>
-                        ))}
-                     </ul>
-                  </div>
-
-                  {/* Category Scores */}
-                  <div className="card p-6">
-                     <h4 className="font-semibold mb-4">Skill Breakdown</h4>
-                     <div className="space-y-4">
-                        {Object.entries(result.coaching.categoryScores || {}).map(([key, score]) => (
-                           <div key={key}>
-                              <div className="flex justify-between text-sm mb-1">
-                                 <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                 <span className="font-mono">{(score as number)}</span>
-                              </div>
-                              <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                 <div
-                                    className="h-full bg-accent transition-all duration-500"
-                                    style={{ width: `${(score as number)}%` }}
-                                 />
-                              </div>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
-               </div>
+            <div className="card" style={{ padding: '24px' }}>
+              <div className="detail-section-title"><Zap size={16} /> Quick Stats</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ padding: '16px', background: 'var(--item-bg)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 700 }}>{result.conversationMetrics?.wordsPerMinuteAgent?.toFixed(0) || 0}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--main-text-muted)', textTransform: 'uppercase' }}>Agent WPM</div>
+                </div>
+                <div style={{ padding: '16px', background: 'var(--item-bg)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 700 }}>{result.conversationMetrics?.wordsPerMinuteCustomer?.toFixed(0) || 0}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--main-text-muted)', textTransform: 'uppercase' }}>Customer WPM</div>
+                </div>
+                <div style={{ padding: '16px', background: 'var(--item-bg)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 700 }}>{result.conversationMetrics?.agentInterruptions || 0}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--main-text-muted)', textTransform: 'uppercase' }}>Interruptions</div>
+                </div>
+                <div style={{ padding: '16px', background: 'var(--item-bg)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 700 }}>{result.conversationMetrics?.longestPauseSec || 0}s</div>
+                  <div style={{ fontSize: '12px', color: 'var(--main-text-muted)', textTransform: 'uppercase' }}>Longest Pause</div>
+                </div>
+              </div>
             </div>
-         )}
+          </div>
+        )}
 
-         {activeTab === 'moments' && result.keyMoments && (
-            <div className="space-y-4">
-               {result.keyMoments.map((m: any, i: number) => (
-                  <div key={i} className="card p-4 flex gap-4 items-start transition-colors hover:bg-secondary/50">
-                     <div className={`mt-1 p-2 rounded-full ${m.sentiment === 'positive' ? 'bg-green-500/10 text-green-500' : m.sentiment === 'negative' ? 'bg-red-500/10 text-red-500' : 'bg-gray-500/10 text-gray-500'}`}>
-                        {m.type === 'pain_point' ? <AlertCircle size={16} /> : <Activity size={16} />}
-                     </div>
-                     <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                           <span className="font-semibold capitalize">{m.type.replace(/_/g, ' ')}</span>
-                           <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">{m.timestamp}</span>
-                           {m.importance === 'high' && <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 font-medium">High Importance</span>}
-                        </div>
-                        <p className="text-sm text-foreground mb-2">&quot;{m.text}&quot;</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                           <span className="uppercase tracking-wide font-semibold">{m.speaker}</span>
-                           <span>•</span>
-                           <span className="capitalize">{m.sentiment} sentiment</span>
-                        </p>
-                     </div>
-                  </div>
-               ))}
-               {result.keyMoments.length === 0 && (
-                  <div className="text-center p-8 text-muted-foreground">No key moments detected.</div>
-               )}
+        {activeTab === 'coaching' && result.coaching && (
+          <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+            {/* Strengths */}
+            <div className="card" style={{ padding: '24px' }}>
+              <div className="detail-section-title" style={{ color: 'var(--success)' }}><CheckCircle2 size={16} /> Strengths</div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {(result.coaching.strengths || []).map((s: string, i: number) => (
+                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px', fontSize: '14px' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', marginTop: 6, flexShrink: 0 }} />
+                    {s}
+                  </li>
+                ))}
+              </ul>
             </div>
-         )}
-
-         {activeTab === 'predictions' && result.predictions && (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {/* Conversion Card */}
-               <div className="card p-6 flex flex-col items-center justify-center text-center">
-                  <div className="relative w-32 h-32 mb-4">
-                     <ScoreRing score={result.predictions.conversionProbability} size={128} strokeWidth={8} color="var(--accent)" />
-                     <div className="absolute inset-0 flex items-center justify-center flex-col">
-                        <span className="text-3xl font-bold">{result.predictions.conversionProbability}%</span>
-                     </div>
-                  </div>
-                  <h3 className="text-lg font-semibold">Conversion Probability</h3>
-                  <p className="text-sm text-muted-foreground mt-2">Likelihood of successful outcome based on engagement signals.</p>
-               </div>
-
-               {/* Risk Indicators */}
-               <div className="card p-6 space-y-6">
-                  <h3 className="font-semibold flex items-center gap-2">
-                     <AlertOctagon className="h-4 w-4 text-orange-500" /> Risk Assessment
-                  </h3>
-
-                  <div className="space-y-4">
-                      <div>
-                         <div className="flex justify-between text-sm mb-1">
-                            <span>Churn Risk</span>
-                            <span className={`font-bold ${result.predictions.churnRisk === 'high' ? 'text-red-500' : 'text-green-500'}`}>
-                               {result.predictions.churnRisk.toUpperCase()}
-                            </span>
-                         </div>
-                         <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                            <div className={`h-full ${result.predictions.churnRisk === 'high' ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: result.predictions.churnRisk === 'high' ? '90%' : '20%' }} />
-                         </div>
-                      </div>
-
-                      <div>
-                         <div className="flex justify-between text-sm mb-1">
-                            <span>Escalation Risk</span>
-                            <span className={`font-bold ${result.predictions.escalationRisk === 'high' ? 'text-red-500' : 'text-green-500'}`}>
-                               {result.predictions.escalationRisk.toUpperCase()}
-                            </span>
-                         </div>
-                         <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                            <div className={`h-full ${result.predictions.escalationRisk === 'high' ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: result.predictions.escalationRisk === 'high' ? '80%' : '15%' }} />
-                         </div>
-                      </div>
-                  </div>
-               </div>
-
-               {/* Next Steps */}
-               <div className="card p-6">
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                     <Zap className="h-4 w-4 text-accent" /> Recommended Actions
-                  </h3>
-                  <div className={`p-4 rounded-lg mb-4 ${result.predictions.followUpNeeded ? 'bg-accent/10 border border-accent/20' : 'bg-secondary'}`}>
-                     <div className="font-medium mb-1">Follow-up Required?</div>
-                     <div className="flex items-center gap-2">
-                        {result.predictions.followUpNeeded
-                           ? <><AlertCircle className="h-4 w-4 text-accent" /> <span className="text-accent font-bold">YES</span></>
-                           : <><CheckCircle2 className="h-4 w-4 text-green-500" /> <span className="text-green-500">NO</span></>
-                        }
-                     </div>
-                  </div>
-                  <div>
-                     <div className="text-sm font-medium text-muted-foreground mb-1">Urgency Level</div>
-                     <div className="capitalize font-bold text-lg">{result.predictions.urgencyLevel}</div>
-                  </div>
-               </div>
+            {/* Improvements */}
+            <div className="card" style={{ padding: '24px' }}>
+              <div className="detail-section-title" style={{ color: '#f59e0b' }}><TrendingUp size={16} /> Improvements</div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {(result.coaching.improvementSuggestions || []).map((s: string, i: number) => (
+                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px', fontSize: '14px' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', marginTop: 6, flexShrink: 0 }} />
+                    {s}
+                  </li>
+                ))}
+              </ul>
             </div>
-         )}
-
-         {activeTab === 'transcript' && (
-            <div className="card p-0 overflow-hidden">
-               <div className="p-4 border-b bg-secondary/50 flex justify-between items-center">
-                  <h3 className="font-semibold">Full Transcription</h3>
-                  <button
-                     onClick={() => copyToClipboard(result?.transcription || '')}
-                     className="text-xs flex items-center gap-1 hover:text-accent transition-colors"
-                  >
-                     <FileText size={14} /> Copy Text
-                  </button>
-               </div>
-               <div className="p-6 max-h-[600px] overflow-y-auto font-mono text-sm leading-relaxed whitespace-pre-wrap">
-                  {result.transcription || 'No transcription available.'}
-               </div>
-            </div>
-         )}
-
-         {activeTab === 'summary' && (
-            <div className="space-y-6">
-               {/* Executive Summary */}
-               <div className="card p-6">
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                     <FileText className="h-4 w-4 text-accent" /> Executive Summary
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                     {result.summary || 'No summary available.'}
-                  </p>
-               </div>
-
-               {/* MOM */}
-               {result.mom && (
-                  <div className="grid gap-6 md:grid-cols-2">
-                     <div className="card p-6">
-                        <h4 className="font-semibold mb-4 text-green-500">Decisions Made</h4>
-                        <ul className="space-y-2">
-                           {(result.mom.decisions || []).length > 0 ? (
-                              result.mom.decisions.map((d: string, i: number) => (
-                                 <li key={i} className="flex items-start gap-2 text-sm">
-                                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                                    {d}
-                                 </li>
-                              ))
-                           ) : (
-                              <li className="text-muted-foreground text-sm italic">No specific decisions recorded.</li>
-                           )}
-                        </ul>
-                     </div>
-
-                     <div className="card p-6">
-                        <h4 className="font-semibold mb-4 text-accent">Action Items</h4>
-                        <ul className="space-y-2">
-                           {(result.mom.actionItems || []).length > 0 ? (
-                              result.mom.actionItems.map((a: string, i: number) => (
-                                 <li key={i} className="flex items-start gap-2 text-sm">
-                                    <Zap className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
-                                    {a}
-                                 </li>
-                              ))
-                           ) : (
-                              <li className="text-muted-foreground text-sm italic">No action items detected.</li>
-                           )}
-                        </ul>
-                     </div>
+            {/* Skill Breakdown */}
+            <div className="card" style={{ padding: '24px' }}>
+              <div className="detail-section-title">Skill Breakdown</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {Object.entries(result.coaching.categoryScores || {}).map(([key, score]) => (
+                  <div key={key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
+                      <span style={{ textTransform: 'capitalize' }}>{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      <span style={{ fontWeight: 600 }}>{score as number}</span>
+                    </div>
+                    <div style={{ height: 6, background: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${score as number}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.3s' }} />
+                    </div>
                   </div>
-               )}
+                ))}
+              </div>
             </div>
-         )}
+          </div>
+        )}
+
+        {activeTab === 'moments' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {(result.keyMoments || []).length > 0 ? result.keyMoments.map((m: any, i: number) => (
+              <div key={i} className="card" style={{ padding: '16px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div style={{ 
+                  padding: '10px', 
+                  borderRadius: '10px', 
+                  background: m.sentiment === 'positive' ? 'rgba(16,185,129,0.1)' : m.sentiment === 'negative' ? 'rgba(239,68,68,0.1)' : 'var(--item-bg)',
+                  color: m.sentiment === 'positive' ? 'var(--success)' : m.sentiment === 'negative' ? 'var(--danger)' : 'var(--main-text-muted)'
+                }}>
+                  {m.type === 'pain_point' ? <AlertCircle size={18} /> : <Activity size={18} />}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                    <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{m.type?.replace(/_/g, ' ')}</span>
+                    <span className="badge badge-outline">{m.timestamp}</span>
+                    {m.importance === 'high' && <span className="badge badge-danger">High</span>}
+                  </div>
+                  <p style={{ fontSize: '14px', margin: '0 0 6px', lineHeight: 1.5 }}>&quot;{m.text}&quot;</p>
+                  <div style={{ fontSize: '12px', color: 'var(--main-text-muted)' }}>
+                    <strong>{m.speaker}</strong> • {m.sentiment} sentiment
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--main-text-muted)' }}>No key moments detected.</div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'predictions' && result.predictions && (
+          <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+            <div className="card" style={{ padding: '24px', textAlign: 'center' }}>
+              <ScoreRing score={result.predictions.conversionProbability} size={100} strokeWidth={8} />
+              <h3 style={{ marginTop: '16px', fontSize: '16px', fontWeight: 600 }}>Conversion Probability</h3>
+              <p style={{ fontSize: '13px', color: 'var(--main-text-muted)', marginTop: '8px' }}>Likelihood of successful outcome</p>
+            </div>
+            <div className="card" style={{ padding: '24px' }}>
+              <div className="detail-section-title"><AlertOctagon size={16} style={{ color: '#f59e0b' }} /> Risk Assessment</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
+                    <span>Churn Risk</span>
+                    <strong style={{ color: getRiskColor(result.predictions.churnRisk) }}>{result.predictions.churnRisk?.toUpperCase()}</strong>
+                  </div>
+                  <div style={{ height: 6, background: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: result.predictions.churnRisk === 'high' ? '90%' : '20%', height: '100%', background: getRiskColor(result.predictions.churnRisk) }} />
+                  </div>
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
+                    <span>Escalation Risk</span>
+                    <strong style={{ color: getRiskColor(result.predictions.escalationRisk) }}>{result.predictions.escalationRisk?.toUpperCase()}</strong>
+                  </div>
+                  <div style={{ height: 6, background: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: result.predictions.escalationRisk === 'high' ? '80%' : '15%', height: '100%', background: getRiskColor(result.predictions.escalationRisk) }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="card" style={{ padding: '24px' }}>
+              <div className="detail-section-title"><Zap size={16} /> Next Steps</div>
+              <div style={{ padding: '16px', background: result.predictions.followUpNeeded ? 'rgba(0,223,129,0.1)' : 'var(--item-bg)', borderRadius: '12px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '13px', color: 'var(--main-text-muted)', marginBottom: '4px' }}>Follow-up Required?</div>
+                <div style={{ fontWeight: 700, color: result.predictions.followUpNeeded ? 'var(--accent)' : 'var(--success)' }}>
+                  {result.predictions.followUpNeeded ? 'YES' : 'NO'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', color: 'var(--main-text-muted)', marginBottom: '4px' }}>Urgency Level</div>
+                <div style={{ fontWeight: 700, fontSize: '18px', textTransform: 'capitalize' }}>{result.predictions.urgencyLevel}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'transcript' && (
+          <TranscriptDisplay text={result.transcription || ''} />
+        )}
+
+        {activeTab === 'summary' && (
+          <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+            <div className="card" style={{ padding: '24px' }}>
+              <div className="detail-section-title"><FileText size={16} /> Executive Summary</div>
+              <p style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--main-text)' }}>
+                {result.summary || 'No summary available.'}
+              </p>
+            </div>
+            {result.mom && (
+              <>
+                <div className="card" style={{ padding: '24px' }}>
+                  <div className="detail-section-title" style={{ color: 'var(--success)' }}><CheckCircle2 size={16} /> Decisions Made</div>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    {(result.mom.decisions || []).map((d: string, i: number) => (
+                      <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '10px', fontSize: '14px' }}>
+                        <CheckCircle2 size={14} style={{ color: 'var(--success)', marginTop: 3, flexShrink: 0 }} />
+                        {d}
+                      </li>
+                    ))}
+                    {(result.mom.decisions || []).length === 0 && <li style={{ color: 'var(--main-text-muted)', fontStyle: 'italic' }}>No decisions recorded.</li>}
+                  </ul>
+                </div>
+                <div className="card" style={{ padding: '24px' }}>
+                  <div className="detail-section-title" style={{ color: 'var(--accent)' }}><Zap size={16} /> Action Items</div>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    {(result.mom.actionItems || []).map((a: string, i: number) => (
+                      <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '10px', fontSize: '14px' }}>
+                        <Zap size={14} style={{ color: 'var(--accent)', marginTop: 3, flexShrink: 0 }} />
+                        {a}
+                      </li>
+                    ))}
+                    {(result.mom.actionItems || []).length === 0 && <li style={{ color: 'var(--main-text-muted)', fontStyle: 'italic' }}>No action items detected.</li>}
+                  </ul>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Export Options */}
-      <div className="card" style={{ padding: '1.5rem', marginTop: '2rem', border: '1px solid var(--border-light)' }}>
-        <div style={{ fontWeight: 600, marginBottom: '1rem' }}>Export Options</div>
-        <div className="export-buttons" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <button className="btn-secondary" onClick={handleDownloadPDF}><FileText size={16} /> Download PDF Report</button>
-          <button className="btn-secondary" onClick={() => download(`${fileName}-full.json`, JSON.stringify(result, null, 2))}><Database size={16} /> Export JSON</button>
-          <button className="btn-secondary" onClick={() => download(`${fileName}-transcript.txt`, result?.transcription || '', 'text/plain')}><FileAudio size={16} /> Export Transcript</button>
+      <div className="card" style={{ padding: '20px', marginTop: '24px' }}>
+        <div style={{ fontWeight: 600, marginBottom: '16px' }}>Export Options</div>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button className="btn-secondary" onClick={() => download(`${fileName}-full.json`, JSON.stringify(result, null, 2), 'application/json')}>
+            <Database size={16} /> Export JSON
+          </button>
+          <button className="btn-secondary" onClick={() => download(`${fileName}-transcript.txt`, result?.transcription || '', 'text/plain')}>
+            <FileAudio size={16} /> Export Transcript
+          </button>
         </div>
       </div>
     </div>
