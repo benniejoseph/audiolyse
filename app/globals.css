@@ -1,66 +1,76 @@
-/* ==================== AUDIOLYSE: BLACK & EMERALD THEME ==================== */
-/* Design: Floating Glassmorphism + Axiforma Colors */
+/* ==================== AUDIOLYSE: GREEN DASHBOARD THEME ==================== */
+/* Design: "Foodaily" Inspired - Solid Green Sidebar, Clean White Content */
 
 :root {
-  /* ===== COLOR PALETTE (Axiforma Black/Emerald) ===== */
-  --bg: #010b09;           /* Rich Black */
-  --bg-secondary: rgba(2, 26, 24, 0.7); /* Translucent Dark Green */
-  --bg-tertiary: rgba(6, 48, 43, 0.5);  /* Translucent Pine */
+  /* ===== COLOR PALETTE ===== */
   
-  --card: rgba(3, 34, 33, 0.6);         /* Glassy Card */
-  --card-hover: rgba(5, 46, 44, 0.8);
-  --card-border: rgba(11, 69, 58, 0.5); /* Basil with opacity */
+  /* Main Backgrounds */
+  --bg: #F3F4F6;           /* Light Grey Main BG */
+  --bg-secondary: #2D8C70; /* "Foodaily" Green - Sidebar BG */
+  --bg-tertiary: rgba(255, 255, 255, 0.1); /* Sidebar Hover */
   
-  --text: #f1f7f6;
-  --text-secondary: #aacbc4;
-  --text-muted: #5c7570;
-  --text-inverse: #00120f;
+  /* Sidebar Specifics */
+  --sidebar-bg: #2D8C70;
+  --sidebar-text: #FFFFFF;
+  --sidebar-text-muted: rgba(255, 255, 255, 0.7);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.2);
+  --sidebar-active-text: #FFFFFF;
   
-  --accent: #00df81;       /* Caribbean Green */
-  --accent-hover: #00c06e;
-  --accent-light: rgba(0, 223, 129, 0.15);
-  --accent-glow: 0 0 20px rgba(0, 223, 129, 0.3);
+  /* Cards & Surfaces */
+  --card: #FFFFFF;
+  --card-hover: #FFFFFF;
+  --card-border: transparent; /* Clean look */
   
-  --border: rgba(23, 135, 109, 0.3); /* Frog with opacity */
-  --divider: rgba(6, 48, 43, 0.5);
+  /* Typography */
+  --text: #1F2937;         /* Dark Grey Text */
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  --text-inverse: #FFFFFF;
   
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
-  --shadow-lg: 0 10px 30px -10px rgba(0,0,0,0.7);
+  /* Accents */
+  --accent: #2D8C70;       /* Matching Green */
+  --accent-hover: #24755d;
+  --accent-light: rgba(45, 140, 112, 0.1);
+  --accent-glow: 0 4px 14px rgba(45, 140, 112, 0.4);
   
-  --radius: 16px;          /* More rounded for modern feel */
-  --radius-sm: 8px;
-  --radius-full: 9999px;
+  /* Semantic */
+  --danger: #EF4444;
+  --success: #10B981;
+  --warning: #F59E0B;
+  
+  /* UI Properties */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  --radius: 16px;
+  --radius-lg: 24px;
   
   /* Layout */
-  --sidebar-width: 280px;
+  --sidebar-width: 260px;
   --sidebar-width-collapsed: 80px;
-  --sidebar-margin: 16px;  /* Floating gap */
   --header-height: 80px;
 }
 
-[data-theme="light"] {
-  --bg: #f0f4f8;           /* Soft Blue-Grey */
-  --bg-secondary: rgba(255, 255, 255, 0.8);
-  --bg-tertiary: rgba(255, 255, 255, 0.5);
+[data-theme="dark"] {
+  /* Dark Mode Palette */
+  --bg: #111827;           /* Very Dark Grey */
+  --bg-secondary: #133D32; /* Darker Green Sidebar */
+  --bg-tertiary: rgba(255, 255, 255, 0.05);
   
-  --card: rgba(255, 255, 255, 0.7);
-  --card-hover: rgba(255, 255, 255, 0.9);
-  --card-border: rgba(200, 210, 220, 0.5);
+  --sidebar-bg: #133D32;
+  --card: #1F2937;
+  --card-hover: #374151;
   
-  --text: #1a202c;
-  --text-secondary: #4a5568;
-  --text-muted: #718096;
-  --text-inverse: #ffffff;
+  --text: #F9FAFB;
+  --text-secondary: #D1D5DB;
+  --text-muted: #9CA3AF;
   
-  --accent: #00df81;       /* Keep Emerald Identity */
-  --accent-hover: #00c06e;
-  --accent-light: rgba(0, 223, 129, 0.1);
+  --accent: #34D399;       /* Brighter Green for Dark Mode */
+  --accent-light: rgba(52, 211, 153, 0.1);
   
-  --border: rgba(200, 210, 220, 0.6);
-  --divider: rgba(200, 210, 220, 0.4);
-  
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-  --shadow-lg: 0 10px 30px -10px rgba(0,0,0,0.1);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -74,45 +84,44 @@ html, body {
   overflow-x: hidden;
 }
 
-/* ===== GLASSMORPHISM UTILS ===== */
-.glass {
-  background: var(--bg-secondary);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-}
-
 /* ===== LAYOUT ===== */
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
-  background: var(--bg);
-  /* Optional: Subtle gradient background */
-  background-image: 
-    radial-gradient(circle at 0% 0%, rgba(0, 223, 129, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(0, 223, 129, 0.03) 0%, transparent 50%);
+  background-color: var(--bg);
 }
 
-/* ===== SIDEBAR (FLOATING) ===== */
+/* ===== SIDEBAR (Solid Panel) ===== */
 .sidebar {
   position: fixed;
-  top: var(--sidebar-margin);
-  left: var(--sidebar-margin);
-  bottom: var(--sidebar-margin);
+  top: 0;
+  left: 0;
+  bottom: 0;
   width: var(--sidebar-width);
-  border-radius: 24px; /* Highly rounded */
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
   z-index: 50;
   display: flex;
   flex-direction: column;
-  transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
-  /* Glass Effect */
-  background: var(--bg-secondary);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border);
+  /* The "Foodaily" Curve */
+  border-top-right-radius: 40px;
+  border-bottom-right-radius: 40px;
+  
+  /* Shadow to lift it off the white bg */
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
+}
+
+/* LOGO OVERRIDES FOR SIDEBAR CONTEXT */
+.sidebar .logo-text {
+  color: var(--sidebar-text) !important;
+}
+
+.sidebar .logo-image {
+  /* Always show white logo icon on the green sidebar, disabling any theme inversion */
+  filter: none !important;
+  opacity: 1;
 }
 
 .sidebar.collapsed {
@@ -124,8 +133,7 @@ html, body {
   display: flex;
   align-items: center;
   padding: 0 24px;
-  /* No border for cleaner look, just spacing */
-  margin-bottom: 8px;
+  margin-bottom: 20px;
 }
 
 .sidebar.collapsed .sidebar-header {
@@ -135,9 +143,9 @@ html, body {
 
 .sidebar-nav {
   flex: 1;
-  padding: 0 16px;
+  padding: 0 20px;
   overflow-y: auto;
-  scrollbar-width: none; /* Hide scrollbar */
+  scrollbar-width: none;
 }
 
 .sidebar-nav::-webkit-scrollbar { display: none; }
@@ -145,27 +153,26 @@ html, body {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  margin-bottom: 4px;
-  color: var(--text-secondary);
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  color: var(--sidebar-text-muted);
   text-decoration: none;
   font-weight: 500;
-  border-radius: 14px; /* Soft rounding */
+  border-radius: 12px;
   transition: all 0.2s ease;
-  position: relative;
 }
 
 .nav-item:hover {
-  background: var(--bg-tertiary);
-  color: var(--text);
-  transform: translateX(2px);
+  background-color: var(--bg-tertiary);
+  color: var(--sidebar-text);
+  padding-left: 20px; /* Subtle slide */
 }
 
 .nav-item.active {
-  background: var(--accent);
-  color: var(--text-inverse);
-  box-shadow: var(--accent-glow);
+  background-color: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .nav-icon {
@@ -179,8 +186,12 @@ html, body {
 
 /* Collapsed State Items */
 .sidebar.collapsed .nav-item {
-  padding: 12px;
+  padding: 14px;
   justify-content: center;
+}
+
+.sidebar.collapsed .nav-item:hover {
+  padding-left: 14px; /* No slide in collapsed */
 }
 
 .sidebar.collapsed .nav-label,
@@ -190,40 +201,31 @@ html, body {
 
 /* Sidebar Footer */
 .sidebar-footer {
-  padding: 20px;
+  padding: 24px;
   background: transparent;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .sidebar.collapsed .sidebar-footer {
   align-items: center;
+  padding: 24px 0;
 }
 
 /* ===== MAIN CONTENT ===== */
 .dashboard-main {
   flex: 1;
-  margin-left: calc(var(--sidebar-width) + var(--sidebar-margin) * 2);
-  margin-top: var(--sidebar-margin);
-  margin-right: var(--sidebar-margin);
-  margin-bottom: var(--sidebar-margin);
-  min-height: calc(100vh - var(--sidebar-margin) * 2);
-  transition: margin-left 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* Margin matches sidebar width to prevent overlap, plus some breathing room if desired */
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
-  
-  /* Glass Effect for Main Area too? Optional, keeping it cleaner for now */
-  /* background: var(--bg-secondary); */
-  /* border-radius: 24px; */
-}
-
-.sidebar.collapsed + .dashboard-main { /* Note: This selector relies on DOM order */
-  /* Logic handled via inline styles in DashboardShell usually */
 }
 
 .dashboard-content {
-  padding: 0 24px 40px;
+  padding: 0 32px 40px;
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
@@ -231,41 +233,42 @@ html, body {
 
 /* ===== TOP BAR ===== */
 .topbar {
-  height: auto;
-  min-height: 80px;
-  padding: 0 24px;
+  height: var(--header-height);
+  padding: 0 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: transparent;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 /* ===== CARDS ===== */
 .card {
-  background: var(--card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: var(--card);
   border: 1px solid var(--card-border);
-  border-radius: 20px;
+  border-radius: var(--radius-lg); /* Larger radius for cards */
   padding: 24px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md); /* Soft shadow, no border usually */
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  border-color: var(--accent-light);
+}
+
+/* ===== UTILS ===== */
+.glass {
+  /* Optional glass utility if needed for overlays */
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
 }
 
 /* ===== MOBILE ===== */
 @media (max-width: 768px) {
   .sidebar {
-    left: -100%; /* Hide off-screen */
-    top: 0; bottom: 0;
-    margin: 0;
-    border-radius: 0 24px 24px 0;
+    left: -100%;
+    border-radius: 0 24px 24px 0; /* Only right side rounded on mobile */
     width: 280px !important;
   }
   
@@ -275,11 +278,14 @@ html, body {
   }
   
   .dashboard-main {
-    margin: 0;
-    width: 100%;
+    margin-left: 0 !important;
   }
   
-  .mobile-overlay {
-    backdrop-filter: blur(4px);
+  .dashboard-content {
+    padding: 20px;
+  }
+  
+  .topbar {
+    padding: 0 20px;
   }
 }
