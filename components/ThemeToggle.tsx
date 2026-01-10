@@ -42,8 +42,8 @@ export function ThemeToggle() {
         aria-label="Toggle theme"
         title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       >
-        <span className="theme-icon">{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</span>
-        <span className="theme-label">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+        <span className="theme-icon">{theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}</span>
+        <span className="theme-label">{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
       </button>
       
       <style jsx>{`
