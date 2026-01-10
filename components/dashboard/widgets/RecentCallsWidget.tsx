@@ -175,20 +175,20 @@ export function RecentCallsWidget({
         
         .empty-icon {
           margin-bottom: 12px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           opacity: 0.5;
         }
         
         .no-calls p {
-          color: var(--muted);
+          color: var(--main-text-muted);
           margin: 0 0 16px;
         }
         
         .analyze-link {
           display: inline-block;
           padding: 10px 20px;
-          background: linear-gradient(135deg, var(--accent), var(--accent-2));
-          color: white;
+          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+          color: #00120f;
           text-decoration: none;
           border-radius: 8px;
           font-weight: 600;
@@ -206,14 +206,14 @@ export function RecentCallsWidget({
           justify-content: space-between;
           align-items: center;
           padding: 12px 16px;
-          background: rgba(255, 255, 255, 0.02);
+          background: var(--item-bg);
           border-radius: 10px;
           text-decoration: none;
           transition: all 0.2s;
         }
         
         .call-item:hover {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--item-hover);
           transform: translateX(4px);
         }
         
@@ -256,7 +256,7 @@ export function RecentCallsWidget({
         
         .call-name {
           font-weight: 500;
-          color: var(--text);
+          color: var(--main-text);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -265,7 +265,7 @@ export function RecentCallsWidget({
         
         .call-meta {
           font-size: 12px;
-          color: var(--muted);
+          color: var(--main-text-muted);
         }
         
         .call-uploader {
@@ -298,18 +298,9 @@ export function RecentCallsWidget({
         }
         
         .call-arrow {
-          color: var(--muted);
+          color: var(--main-text-muted);
           display: flex;
           align-items: center;
-        }
-        
-        /* Light theme */
-        :global([data-theme="light"]) .call-item {
-          background: rgba(0, 0, 0, 0.02);
-        }
-        
-        :global([data-theme="light"]) .call-item:hover {
-          background: rgba(0, 0, 0, 0.05);
         }
       `}</style>
     </Widget>

@@ -199,10 +199,10 @@ export function ScoreTrendWidget({
       <style jsx>{`
         .trend-range-select {
           padding: 6px 10px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: var(--input-bg);
+          border: 1px solid var(--border-color);
           border-radius: 6px;
-          color: var(--text);
+          color: var(--main-text);
           font-size: 12px;
           cursor: pointer;
         }
@@ -210,7 +210,7 @@ export function ScoreTrendWidget({
         .no-data {
           text-align: center;
           padding: 40px 20px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -239,11 +239,11 @@ export function ScoreTrendWidget({
         
         .trend-text {
           font-weight: 600;
-          color: var(--text);
+          color: var(--main-text);
         }
         
         .trend-period {
-          color: var(--muted);
+          color: var(--main-text-muted);
           font-size: 12px;
         }
         
@@ -258,7 +258,7 @@ export function ScoreTrendWidget({
           flex-direction: column;
           justify-content: space-between;
           font-size: 11px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           width: 30px;
           text-align: right;
           padding: 4px 0;
@@ -270,7 +270,7 @@ export function ScoreTrendWidget({
           align-items: flex-end;
           gap: 6px;
           padding-bottom: 4px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: 1px solid var(--border-color);
         }
         
         .bar-wrapper {
@@ -299,7 +299,7 @@ export function ScoreTrendWidget({
           left: 50%;
           transform: translateX(-50%);
           font-size: 10px;
-          color: var(--text);
+          color: var(--main-text);
           opacity: 0;
           transition: opacity 0.2s;
         }
@@ -313,7 +313,7 @@ export function ScoreTrendWidget({
           justify-content: center;
           gap: 20px;
           font-size: 12px;
-          color: var(--muted);
+          color: var(--main-text-muted);
         }
         
         .legend-item {

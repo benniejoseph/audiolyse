@@ -216,23 +216,23 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
         .mark-read-btn {
           padding: 4px 10px;
           background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border-color);
           border-radius: 6px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           font-size: 11px;
           cursor: pointer;
           transition: all 0.2s;
         }
         
         .mark-read-btn:hover {
-          background: rgba(255, 255, 255, 0.05);
-          color: var(--text);
+          background: var(--item-hover);
+          color: var(--main-text);
         }
         
         .no-notifications {
           text-align: center;
           padding: 40px 20px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -255,11 +255,11 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
         }
         
         .notification-item:hover {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--item-hover);
         }
         
         .notification-item.unread {
-          background: rgba(0, 217, 255, 0.05);
+          background: var(--item-bg);
           border-left: 3px solid var(--accent);
         }
         
@@ -278,14 +278,14 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
         .notification-title {
           display: block;
           font-weight: 600;
-          color: var(--text);
+          color: var(--main-text);
           font-size: 13px;
         }
         
         .notification-message {
           display: block;
           font-size: 12px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           margin-top: 2px;
           white-space: nowrap;
           overflow: hidden;
@@ -294,7 +294,7 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
         
         .notification-time {
           font-size: 11px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           flex-shrink: 0;
         }
         

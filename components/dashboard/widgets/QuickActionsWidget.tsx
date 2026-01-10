@@ -128,18 +128,18 @@ export function QuickActionsWidget({
           align-items: center;
           gap: 12px;
           padding: 14px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: var(--item-bg);
+          border: 1px solid var(--border-color);
           border-radius: 12px;
           text-decoration: none;
           transition: all 0.2s;
         }
         
         .action-card:hover {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--item-hover);
           border-color: var(--action-color);
           transform: translateY(-2px);
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
         
         .action-icon {
@@ -160,7 +160,7 @@ export function QuickActionsWidget({
           align-items: center;
           gap: 6px;
           font-weight: 600;
-          color: var(--text);
+          color: var(--main-text);
           font-size: 14px;
         }
         
@@ -176,7 +176,7 @@ export function QuickActionsWidget({
         .action-description {
           display: block;
           font-size: 12px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           margin-top: 2px;
           white-space: nowrap;
           overflow: hidden;
@@ -184,7 +184,7 @@ export function QuickActionsWidget({
         }
         
         .action-arrow {
-          color: var(--muted);
+          color: var(--main-text-muted);
           font-size: 14px;
           transition: transform 0.2s;
         }
@@ -192,17 +192,6 @@ export function QuickActionsWidget({
         .action-card:hover .action-arrow {
           transform: translateX(4px);
           color: var(--action-color);
-        }
-        
-        /* Light theme */
-        :global([data-theme="light"]) .action-card {
-          background: rgba(0, 0, 0, 0.02);
-          border-color: rgba(0, 0, 0, 0.08);
-        }
-        
-        :global([data-theme="light"]) .action-card:hover {
-          background: rgba(0, 0, 0, 0.04);
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
       `}</style>
     </Widget>

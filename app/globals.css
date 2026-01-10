@@ -1,46 +1,65 @@
-/* ==================== AUDIOLYSE: HYBRID THEME ==================== */
-/* Design: Floating Dark Sidebar + Light Clean Dashboard (Foodaily Style) */
+/* ==================== AUDIOLYSE: THEME SYSTEM ==================== */
 
 :root {
-  /* ===== COLOR PALETTE (Axiforma Black/Emerald) ===== */
-  --bg: #010b09;           /* Rich Black (Sidebar Base) */
-  --bg-secondary: rgba(2, 26, 24, 0.7); /* Translucent Dark Green */
-  --bg-tertiary: rgba(6, 48, 43, 0.5);  /* Translucent Pine */
+  /* ===== CONSTANTS (Sidebar & Accents) ===== */
+  --bg-secondary: rgba(2, 26, 24, 0.7);
+  --bg-tertiary: rgba(6, 48, 43, 0.5);
   
-  /* Sidebar Colors */
   --sidebar-bg: #010b09;
   --sidebar-glass: rgba(2, 26, 24, 0.85);
   --sidebar-border: rgba(23, 135, 109, 0.3);
   --sidebar-text: #f1f7f6;
   --sidebar-text-muted: #aacbc4;
   
-  /* Main Content Colors (Foodaily Light Style) */
-  --main-bg: #F3F4F6;      /* Light Grey */
-  --main-text: #1F2937;    /* Dark Grey */
-  --main-text-muted: #6B7280;
-  
-  /* Cards (Light Clean) */
-  --card: #FFFFFF;
-  --card-hover: #FFFFFF;
-  --card-border: transparent;
-  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  
-  /* Accents */
-  --accent: #00df81;       /* Caribbean Green */
+  --accent: #00df81;
   --accent-hover: #00c06e;
-  --accent-light: rgba(0, 223, 129, 0.1);
-  --accent-text: #008f53;  /* Darker green for text on light bg */
+  --accent-light: rgba(0, 223, 129, 0.15);
+  --accent-text: #008f53;
   
   --danger: #EF4444;
   --success: #10B981;
   --warning: #F59E0B;
   
   --radius: 16px;
-  --radius-sm: 8px;
   --sidebar-width: 280px;
   --sidebar-width-collapsed: 80px;
   --sidebar-margin: 16px;
   --header-height: 80px;
+
+  /* ===== DEFAULT (LIGHT / HYBRID THEME) VARIABLES ===== */
+  /* This matches the Foodaily style: Light Main Content + Dark Sidebar */
+  --main-bg: #F3F4F6;
+  --main-text: #1F2937;
+  --main-text-muted: #6B7280;
+  
+  --card: #FFFFFF;
+  --card-hover: #FFFFFF;
+  --card-border: transparent;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  
+  --item-bg: rgba(0, 0, 0, 0.03);
+  --item-hover: rgba(0, 0, 0, 0.06);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --input-bg: #FFFFFF;
+}
+
+/* ===== DARK MODE OVERRIDES ===== */
+[data-theme="dark"] {
+  --main-bg: #010b09;
+  --main-text: #f1f7f6;
+  --main-text-muted: #aacbc4;
+  
+  --card: rgba(255, 255, 255, 0.03);
+  --card-hover: rgba(255, 255, 255, 0.05);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  
+  --item-bg: rgba(255, 255, 255, 0.03);
+  --item-hover: rgba(255, 255, 255, 0.06);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(0, 0, 0, 0.2);
+  
+  /* Sidebar remains dark, but maybe slightly adjusted if needed */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,9 +68,10 @@ html, body {
   min-height: 100vh;
   font-family: 'Axiforma', 'Poppins', sans-serif;
   font-size: 14px;
-  background-color: var(--main-bg); /* Body is Light now */
+  background-color: var(--main-bg);
   color: var(--main-text);
   overflow-x: hidden;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 /* ===== LAYOUT ===== */
@@ -59,9 +79,10 @@ html, body {
   display: flex;
   min-height: 100vh;
   background-color: var(--main-bg);
+  transition: background-color 0.3s;
 }
 
-/* ===== SIDEBAR (Floating Dark Glass) ===== */
+/* ===== SIDEBAR (Always Dark) ===== */
 .sidebar {
   position: fixed;
   top: var(--sidebar-margin);
@@ -74,7 +95,6 @@ html, body {
   flex-direction: column;
   transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   
-  /* Dark Glass Look */
   background: var(--sidebar-glass);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -83,9 +103,7 @@ html, body {
   color: var(--sidebar-text);
 }
 
-.sidebar.collapsed {
-  width: var(--sidebar-width-collapsed);
-}
+.sidebar.collapsed { width: var(--sidebar-width-collapsed); }
 
 .sidebar-header {
   height: var(--header-height);
@@ -94,11 +112,7 @@ html, body {
   padding: 0 24px;
   margin-bottom: 8px;
 }
-
-.sidebar.collapsed .sidebar-header {
-  padding: 0;
-  justify-content: center;
-}
+.sidebar.collapsed .sidebar-header { padding: 0; justify-content: center; }
 
 .sidebar-nav {
   flex: 1;
@@ -106,7 +120,6 @@ html, body {
   overflow-y: auto;
   scrollbar-width: none;
 }
-
 .sidebar-nav::-webkit-scrollbar { display: none; }
 
 .nav-item {
@@ -130,7 +143,7 @@ html, body {
 
 .nav-item.active {
   background: var(--accent);
-  color: #00120f; /* Dark text on bright accent */
+  color: #00120f;
   box-shadow: 0 0 20px rgba(0, 223, 129, 0.3);
 }
 
@@ -143,15 +156,8 @@ html, body {
   flex-shrink: 0;
 }
 
-.sidebar.collapsed .nav-item {
-  padding: 12px;
-  justify-content: center;
-}
-
-.sidebar.collapsed .nav-label,
-.sidebar.collapsed .nav-badge {
-  display: none;
-}
+.sidebar.collapsed .nav-item { padding: 12px; justify-content: center; }
+.sidebar.collapsed .nav-label, .sidebar.collapsed .nav-badge { display: none; }
 
 .sidebar-footer {
   padding: 20px;
@@ -159,26 +165,15 @@ html, body {
   flex-direction: column;
   gap: 12px;
 }
+.sidebar.collapsed .sidebar-footer { align-items: center; }
 
-.sidebar.collapsed .sidebar-footer {
-  align-items: center;
-}
+.sidebar .logo-text { color: var(--sidebar-text) !important; }
+.sidebar .logo-image { filter: none !important; }
 
-/* Ensure Logo text is white in sidebar */
-.sidebar .logo-text {
-  color: var(--sidebar-text) !important;
-}
-.sidebar .logo-image {
-  filter: none !important;
-}
-
-/* ===== MAIN CONTENT (Light Clean) ===== */
+/* ===== MAIN CONTENT ===== */
 .dashboard-main {
   flex: 1;
   margin-left: calc(var(--sidebar-width) + var(--sidebar-margin) * 2);
-  margin-top: 0; /* Full height feel for content */
-  margin-right: 0;
-  margin-bottom: 0;
   min-height: 100vh;
   transition: margin-left 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: flex;
@@ -193,7 +188,6 @@ html, body {
   width: 100%;
 }
 
-/* Top Bar Styling for Light BG */
 .topbar {
   height: auto;
   min-height: 80px;
@@ -203,52 +197,30 @@ html, body {
   margin-bottom: 24px;
 }
 
-/* Headings in Main Content */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--main-text);
-}
+h1, h2, h3, h4, h5, h6 { color: var(--main-text); }
+p, span, div { color: inherit; }
+.text-muted { color: var(--main-text-muted); }
 
-p, span, div {
-  color: inherit;
-}
-
-.text-muted {
-  color: var(--main-text-muted);
-}
-
-/* ===== CARDS (Foodaily Style) ===== */
-.card {
+/* ===== WIDGETS / CARDS ===== */
+.card, .widget, .stat-card {
   background: var(--card);
   border: 1px solid var(--card-border);
-  border-radius: 20px; /* Larger radius */
+  border-radius: 20px;
   padding: 24px;
   box-shadow: var(--card-shadow);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
   color: var(--main-text);
 }
 
-.card:hover {
+.card:hover, .widget:hover, .stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-/* Specific Widget Overrides for Light Theme compatibility */
-.stat-card {
-  background: var(--card) !important;
-  border: none !important;
-  box-shadow: var(--card-shadow) !important;
-}
-
-.stat-value {
-  color: var(--main-text) !important;
-}
-
-.stat-label {
-  color: var(--main-text-muted) !important;
-}
-
+/* Stats */
+.stat-value { color: var(--main-text) !important; }
+.stat-label { color: var(--main-text-muted) !important; }
 .stat-icon {
-  /* Give icons a background bubble */
   width: 48px;
   height: 48px;
   border-radius: 12px;
@@ -263,33 +235,25 @@ p, span, div {
 /* Buttons */
 .btn, .cta-button {
   background: var(--accent);
-  color: #00120f; /* Dark text for contrast on bright green */
+  color: #00120f;
   font-weight: 600;
   box-shadow: 0 4px 6px rgba(0, 223, 129, 0.2);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 10px 20px;
 }
-
 .btn:hover, .cta-button:hover {
   background: var(--accent-hover);
   box-shadow: 0 6px 12px rgba(0, 223, 129, 0.3);
 }
 
-/* ===== MOBILE ===== */
+/* Mobile */
 @media (max-width: 768px) {
   .sidebar {
-    left: -100%;
-    top: 0; bottom: 0;
-    margin: 0;
-    border-radius: 0 24px 24px 0;
-    width: 280px !important;
+    left: -100%; top: 0; bottom: 0; margin: 0;
+    border-radius: 0 24px 24px 0; width: 280px !important;
   }
-  
-  .sidebar.mobile-open {
-    left: 0;
-    box-shadow: 0 0 50px rgba(0,0,0,0.5);
-  }
-  
-  .dashboard-main {
-    margin-left: 0 !important;
-    padding: 16px;
-  }
+  .sidebar.mobile-open { left: 0; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+  .dashboard-main { margin-left: 0 !important; padding: 16px; }
 }

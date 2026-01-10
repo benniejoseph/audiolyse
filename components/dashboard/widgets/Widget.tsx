@@ -93,15 +93,16 @@ export function Widget({
 
       <style jsx>{`
         .widget {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--card);
+          border: 1px solid var(--card-border);
           border-radius: 16px;
           overflow: hidden;
           transition: all 0.3s ease;
+          box-shadow: var(--card-shadow);
         }
         
         .widget:hover {
-          border-color: rgba(255, 255, 255, 0.12);
+          border-color: var(--accent);
         }
         
         .widget-header {
@@ -109,8 +110,8 @@ export function Widget({
           justify-content: space-between;
           align-items: center;
           padding: 16px 20px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-          background: rgba(255, 255, 255, 0.02);
+          border-bottom: 1px solid var(--border-color);
+          background: transparent;
         }
         
         .widget.collapsed .widget-header {
@@ -125,13 +126,14 @@ export function Widget({
         
         .widget-icon {
           font-size: 20px;
+          color: var(--accent-text);
         }
         
         .widget-title h3 {
           margin: 0;
           font-size: 14px;
           font-weight: 600;
-          color: var(--text);
+          color: var(--main-text);
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
@@ -148,15 +150,15 @@ export function Widget({
           cursor: pointer;
           padding: 6px;
           border-radius: 6px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           font-size: 14px;
           transition: all 0.2s;
         }
         
         .widget-refresh:hover,
         .widget-collapse:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: var(--text);
+          background: var(--item-hover);
+          color: var(--main-text);
         }
         
         .widget-refresh:disabled {
@@ -166,6 +168,7 @@ export function Widget({
         
         .widget-content {
           padding: 20px;
+          color: var(--main-text);
         }
         
         .widget-loading {
@@ -174,14 +177,14 @@ export function Widget({
           align-items: center;
           justify-content: center;
           padding: 40px 20px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           gap: 12px;
         }
         
         .widget-spinner {
           width: 32px;
           height: 32px;
-          border: 3px solid rgba(0, 217, 255, 0.2);
+          border: 3px solid rgba(0, 223, 129, 0.2);
           border-top-color: var(--accent);
           border-radius: 50%;
           animation: spin 1s linear infinite;
@@ -206,34 +209,23 @@ export function Widget({
         }
         
         .widget-error p {
-          color: var(--muted);
+          color: var(--main-text-muted);
           margin: 0 0 16px;
         }
         
         .retry-btn {
           padding: 8px 16px;
-          background: rgba(0, 217, 255, 0.15);
-          border: 1px solid rgba(0, 217, 255, 0.3);
+          background: var(--accent-light);
+          border: 1px solid var(--accent);
           border-radius: 8px;
-          color: var(--accent);
+          color: var(--accent-text);
           cursor: pointer;
           font-size: 13px;
         }
         
         .retry-btn:hover {
-          background: rgba(0, 217, 255, 0.25);
-        }
-        
-        /* Light theme */
-        :global([data-theme="light"]) .widget {
-          background: white;
-          border-color: rgba(0, 0, 0, 0.1);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        }
-        
-        :global([data-theme="light"]) .widget-header {
-          background: rgba(0, 0, 0, 0.02);
-          border-bottom-color: rgba(0, 0, 0, 0.05);
+          background: var(--accent);
+          color: #00120f;
         }
       `}</style>
     </div>

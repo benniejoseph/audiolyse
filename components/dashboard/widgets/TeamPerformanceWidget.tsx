@@ -212,10 +212,10 @@ export function TeamPerformanceWidget({
       <style jsx>{`
         .sort-select {
           padding: 6px 10px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: var(--input-bg);
+          border: 1px solid var(--border-color);
           border-radius: 6px;
-          color: var(--text);
+          color: var(--main-text);
           font-size: 12px;
           cursor: pointer;
         }
@@ -223,7 +223,7 @@ export function TeamPerformanceWidget({
         .no-data {
           text-align: center;
           padding: 40px 20px;
-          color: var(--muted);
+          color: var(--main-text-muted);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -240,13 +240,13 @@ export function TeamPerformanceWidget({
           align-items: center;
           gap: 12px;
           padding: 12px;
-          background: rgba(255, 255, 255, 0.02);
+          background: var(--item-bg);
           border-radius: 10px;
           transition: background 0.2s;
         }
         
         .team-member:hover {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--item-hover);
         }
         
         .member-rank {
@@ -256,6 +256,7 @@ export function TeamPerformanceWidget({
           text-align: center;
           display: flex;
           justify-content: center;
+          color: var(--main-text);
         }
         
         .member-info {
@@ -268,7 +269,7 @@ export function TeamPerformanceWidget({
         
         .member-name {
           font-weight: 500;
-          color: var(--text);
+          color: var(--main-text);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -276,7 +277,7 @@ export function TeamPerformanceWidget({
         
         .member-calls {
           font-size: 12px;
-          color: var(--muted);
+          color: var(--main-text-muted);
         }
         
         .member-stats {
@@ -304,7 +305,7 @@ export function TeamPerformanceWidget({
           text-align: center;
           margin-top: 16px;
           padding-top: 16px;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          border-top: 1px solid var(--border-color);
           color: var(--accent);
           text-decoration: none;
           font-size: 13px;
@@ -313,15 +314,6 @@ export function TeamPerformanceWidget({
         
         .view-team-link:hover {
           text-decoration: underline;
-        }
-        
-        /* Light theme */
-        :global([data-theme="light"]) .team-member {
-          background: rgba(0, 0, 0, 0.02);
-        }
-        
-        :global([data-theme="light"]) .team-member:hover {
-          background: rgba(0, 0, 0, 0.05);
         }
       `}</style>
     </Widget>
