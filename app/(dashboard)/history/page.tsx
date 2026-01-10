@@ -8,6 +8,8 @@ import { SUBSCRIPTION_LIMITS } from '@/lib/types/database';
 import { toast } from '@/lib/toast';
 import { getAudioUrl } from '@/lib/storage/audio';
 import Link from 'next/link';
+import { XCircle } from 'lucide-react';
+import CallDetailView from '@/components/analysis/CallDetailView';
 
 interface CustomerOption {
   id: string;
@@ -488,133 +490,30 @@ export default function HistoryPage() {
         </div>
       )}
 
-      {/* Call Detail Modal */}
+      {/* Call Detail Full Screen Overlay */}
       {selectedCall && (
-        <div className="modal-overlay" onClick={() => setSelectedCall(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setSelectedCall(null)}>×</button>
-            
-            <h2>{selectedCall.file_name}</h2>
-            
-            {selectedCall.overall_score && (
-              <div className="modal-score" style={{ color: getScoreColor(selectedCall.overall_score) }}>
-                Score: {selectedCall.overall_score}
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm overflow-auto p-4 md:p-8 flex flex-col animate-in fade-in zoom-in-95 duration-200" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
+           <div className="max-w-7xl mx-auto w-full bg-background rounded-xl shadow-2xl overflow-hidden min-h-[90vh]">
+              <div className="p-4 border-b flex justify-between items-center bg-card">
+                 <h2 className="text-xl font-bold">Analysis Details</h2>
+                 <button 
+                  onClick={() => setSelectedCall(null)}
+                  className="p-2 hover:bg-secondary rounded-full transition-colors"
+                 >
+                    <XCircle size={24} />
+                 </button>
               </div>
-            )}
-
-            {/* Audio Player */}
-            {(selectedCall.file_path || selectedCall.audio_url) && (
-              <div className="modal-section" style={{ 
-                background: 'linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(139, 92, 246, 0.1))', 
-                padding: '16px', 
-                borderRadius: '12px', 
-                marginBottom: '16px',
-                border: '1px solid rgba(0, 217, 255, 0.2)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '1.2rem' }}>🎧</span>
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text)' }}>Original Recording</h4>
-                </div>
-                
-                {loadingAudio ? (
-                  <div style={{ textAlign: 'center', padding: '12px', color: 'var(--text-secondary)' }}>
-                    Loading audio...
-                  </div>
-                ) : currentAudioUrl ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <button 
-                      onClick={togglePlayPause}
-                      style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #00d9ff, #8b5cf6)',
-                        border: 'none',
-                        color: '#fff',
-                        fontSize: '1.2rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}
-                    >
-                      {isPlaying ? '⏸️' : '▶️'}
-                    </button>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max={audioDuration || 100}
-                        value={audioCurrentTime}
-                        onChange={handleSeek}
-                        style={{
-                          width: '100%',
-                          height: '6px',
-                          borderRadius: '3px',
-                          appearance: 'none',
-                          background: `linear-gradient(to right, #00d9ff ${(audioCurrentTime / (audioDuration || 1)) * 100}%, rgba(255,255,255,0.1) 0%)`,
-                          cursor: 'pointer'
-                        }}
-                      />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        <span>{formatTime(audioCurrentTime)}</span>
-                        <span>{formatTime(audioDuration)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '12px', color: 'var(--text-secondary)' }}>
-                    Audio not available
-                  </div>
-                )}
+              <div className="p-6">
+                <CallDetailView 
+                   call={selectedCall} 
+                   onBack={() => setSelectedCall(null)} 
+                   showBackButton={false} 
+                />
               </div>
-            )}
-
-            <div className="modal-section" style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '8px', color: 'var(--text-secondary)' }}>Assign to Team Member (Coaching)</label>
-              <select 
-                value={selectedCall.assigned_to || ''} 
-                onChange={(e) => handleAssignCall(selectedCall.id, e.target.value)}
-                disabled={assigning}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg)' }}
-              >
-                <option value="">-- Unassigned --</option>
-                {members.map(m => (
-                  <option key={m.id} value={m.id}>{m.full_name}</option>
-                ))}
-              </select>
-            </div>
-
-            {selectedCall.summary && (
-              <div className="modal-section">
-                <h4>Summary</h4>
-                <p>{selectedCall.summary}</p>
-              </div>
-            )}
-
-            {selectedCall.transcription && (
-              <div className="modal-section">
-                <h4>Transcription</h4>
-                <pre className="transcript-preview">{selectedCall.transcription}</pre>
-              </div>
-            )}
-
-            <div className="modal-actions">
-              {canExportPDF && selectedCall.status === 'completed' && (
-                <button className="modal-btn primary" onClick={() => handleExportPDF(selectedCall)}>
-                  📄 Download PDF Report
-                </button>
-              )}
-              <button className="modal-btn secondary" onClick={() => setSelectedCall(null)}>
-                Close
-              </button>
-            </div>
-          </div>
+           </div>
         </div>
       )}
     </div>
   );
 }
-
 
