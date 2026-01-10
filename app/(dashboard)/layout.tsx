@@ -1,7 +1,5 @@
 import '../globals.css';
-import '../styles/design-system.css';
-import { Sidebar } from '@/components/dashboard/Sidebar';
-import { TopBar } from '@/components/dashboard/TopBar';
+import { DashboardShell } from '@/components/dashboard/DashboardShell';
 
 export default function DashboardLayout({
   children,
@@ -9,16 +7,8 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="dashboard-layout">
-      <Sidebar />
-      <main className="dashboard-main">
-        <TopBar />
-        <div className="dashboard-content">
-          {children}
-        </div>
-      </main>
-    </div>
+    <DashboardShell>
+      {children}
+    </DashboardShell>
   );
 }
-
-
