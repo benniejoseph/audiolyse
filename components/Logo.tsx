@@ -10,10 +10,10 @@ interface LogoProps {
 
 export function Logo({ size = 'md', showText = false, showTagline = false }: LogoProps) {
   const sizes = {
-    sm: { icon: 32, text: 18, tagline: 8 },
-    md: { icon: 40, text: 22, tagline: 10 },
-    lg: { icon: 48, text: 28, tagline: 12 },
-    xl: { icon: 60, text: 36, tagline: 14 },
+    sm: { icon: 48, text: 18, tagline: 8 },
+    md: { icon: 120, text: 22, tagline: 10 },
+    lg: { icon: 150, text: 28, tagline: 12 },
+    xl: { icon: 180, text: 36, tagline: 14 },
   };
 
   const s = sizes[size];
