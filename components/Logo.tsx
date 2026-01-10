@@ -53,26 +53,23 @@ export function Logo({ size = 'md', collapsed = false }: LogoProps) {
           gap: 12px;
         }
 
+        /* Theme Handling */
+        /* Assuming logoicon.png is WHITE. */
+        
+        /* Default (Light Theme): Invert to Black */
         .logo-image {
           transition: filter 0.3s ease;
-        }
-
-        .logo-text {
-          font-family: 'Monoton', cursive;
-          font-weight: 400;
-          letter-spacing: 0.05em;
-          color: var(--text);
-          line-height: 1;
-        }
-
-        /* Theme Handling */
-        /* Assuming logoicon.png is WHITE. 
-           In Light Mode (data-theme="light"), we invert it to black.
-           Text color is handled by var(--text) which switches automatically.
-        */
-        
-        [data-theme="light"] .logo-image {
           filter: invert(1) brightness(0);
+        }
+
+        /* Dark Mode: Keep White */
+        :global([data-theme="dark"]) .logo-image {
+          filter: none;
+        }
+        
+        /* Sidebar: Always White (handled in globals but good to be safe) */
+        :global(.sidebar) .logo-image {
+          filter: none !important;
         }
       `}</style>
     </div>

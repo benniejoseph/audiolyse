@@ -1,5 +1,6 @@
 import '../styles/auth.css';
 import '../globals.css';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata = {
   title: 'Audiolyse - Sign In',
@@ -16,10 +17,12 @@ export default function AuthLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Monoton&display=swap" rel="stylesheet" />
       </head>
       <body>
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

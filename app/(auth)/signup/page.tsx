@@ -83,9 +83,9 @@ export default function SignupPage() {
             <h2 className="auth-card-title">Check your email</h2>
             <p className="auth-card-subtitle" style={{ marginBottom: '32px' }}>
               We&apos;ve sent a verification link to<br/>
-              <strong style={{ color: '#fff' }}>{email}</strong>
+              <strong style={{ color: 'var(--main-text)' }}>{email}</strong>
             </p>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '24px' }}>
+            <p style={{ color: 'var(--main-text-muted)', fontSize: '14px', marginBottom: '24px' }}>
               Click the link in your email to verify your account and get started.
             </p>
             <Link href="/login" className="form-link">
@@ -258,7 +258,7 @@ export default function SignupPage() {
               )}
             </button>
 
-            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: '16px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--main-text-muted)', textAlign: 'center', marginTop: '16px' }}>
               By signing up, you agree to our{' '}
               <Link href="/terms" className="form-link" style={{ fontSize: '12px' }}>Terms</Link>
               {' '}and{' '}

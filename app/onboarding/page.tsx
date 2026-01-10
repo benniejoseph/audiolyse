@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import '@/app/styles/auth.css'; // Reusing auth styles for consistency
+import { Logo } from '@/components/Logo';
+import '@/app/styles/auth.css';
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
@@ -115,9 +116,12 @@ export default function OnboardingPage() {
   return (
     <div className="auth-page-v2 onboarding-page">
       <div className="auth-card-v2" style={{ maxWidth: '600px' }}>
-        <div className="auth-header">
-          <h1>Welcome to Audiolyse</h1>
-          <p>Let&apos;s set up your workspace for success</p>
+        <div className="auth-header" style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+            <Logo size="lg" />
+          </div>
+          <h1 className="auth-card-title">Welcome to Audiolyse</h1>
+          <p className="auth-card-subtitle">Let&apos;s set up your workspace for success</p>
         </div>
 
         <div className="onboarding-steps">
@@ -129,7 +133,7 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="auth-form">
             <div className="form-group">
-              <label>Organization Name</label>
+              <label className="form-label">Organization Name</label>
               <input
                 type="text"
                 className="auth-input"
@@ -139,7 +143,7 @@ export default function OnboardingPage() {
               />
             </div>
             <div className="form-group">
-              <label>Industry</label>
+              <label className="form-label">Industry</label>
               <select 
                 className="auth-input"
                 value={industry}
@@ -167,7 +171,7 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div className="auth-form">
             <div className="form-group">
-              <label>Your Role</label>
+              <label className="form-label">Your Role</label>
               <input
                 type="text"
                 className="auth-input"
@@ -177,7 +181,7 @@ export default function OnboardingPage() {
               />
             </div>
             <div className="form-group">
-              <label>Team Size</label>
+              <label className="form-label">Team Size</label>
               <select
                 className="auth-input"
                 value={teamSize}
@@ -227,27 +231,29 @@ export default function OnboardingPage() {
           margin-bottom: 2rem;
         }
         .step-dot {
-          width: 30px;
-          height: 30px;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
-          background: var(--bg-secondary);
-          color: var(--text-secondary);
+          background: var(--item-bg);
+          color: var(--main-text-muted);
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: bold;
-          border: 1px solid var(--border);
+          border: 1px solid var(--border-color);
+          font-size: 14px;
         }
         .step-dot.active {
           background: var(--accent);
-          color: white;
+          color: #00120f;
           border-color: var(--accent);
+          box-shadow: 0 0 15px var(--accent-light);
         }
         .step-line {
-          width: 50px;
+          width: 60px;
           height: 2px;
-          background: var(--border);
-          margin: 0 10px;
+          background: var(--border-color);
+          margin: 0 12px;
         }
       `}</style>
     </div>

@@ -32,6 +32,11 @@
   --main-text: #1F2937;
   --main-text-muted: #6B7280;
   
+  /* Alias for backward compatibility */
+  --bg: var(--main-bg);
+  --text: var(--main-text);
+  --muted: var(--main-text-muted);
+  
   --card: #FFFFFF;
   --card-hover: #FFFFFF;
   --card-border: transparent;
@@ -48,6 +53,10 @@
   --main-bg: #010b09;
   --main-text: #f1f7f6;
   --main-text-muted: #aacbc4;
+  
+  --bg: var(--main-bg);
+  --text: var(--main-text);
+  --muted: var(--main-text-muted);
   
   --card: rgba(255, 255, 255, 0.03);
   --card-hover: rgba(255, 255, 255, 0.05);
