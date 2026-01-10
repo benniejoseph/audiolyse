@@ -15,11 +15,11 @@ const navItems = [
   { href: '/team', icon: '👥', label: 'Team', badge: 'PRO' },
   { href: '/leaderboard', icon: '🏆', label: 'Leaderboard' },
   { href: '/coaching', icon: '🎯', label: 'Coaching', showForManager: true },
-  { href: '/knowledge', icon: '📚', label: 'Knowledge Base' },
+  { href: '/knowledge', icon: '📚', label: 'Knowledge' },
   { href: '/settings', icon: '⚙️', label: 'Settings' },
   { href: '/security', icon: '🔐', label: 'Security' },
   { href: '/compliance', icon: '🛡️', label: 'Compliance' },
-  { href: '/credits', icon: '💳', label: 'Buy Credits', showForPayg: true },
+  { href: '/credits', icon: '💳', label: 'Credits', showForPayg: true },
   { href: '/transactions', icon: '📋', label: 'Transactions', showForPayg: true },
 ];
 
@@ -36,7 +36,6 @@ export function Sidebar() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check admin status and role
       const [profileResult, memberResult] = await Promise.all([
         supabase.from('profiles').select('is_admin').eq('id', user.id).single(),
         supabase.from('organization_members').select('role').eq('user_id', user.id).single(),
@@ -50,7 +49,6 @@ export function Sidebar() {
         setIsManager(true);
       }
 
-      // Use API route to bypass RLS issues
       try {
         const response = await fetch('/api/organization/me');
         const data = await response.json();
@@ -82,14 +80,9 @@ export function Sidebar() {
 
       <nav className="sidebar-nav">
         {navItems.map((item) => {
-          // Hide credits link unless user is on payg tier
-          if (item.showForPayg && subscriptionTier !== 'payg') {
-            return null;
-          }
-          // Hide manager-only links for non-managers
-          if ((item as any).showForManager && !isManager) {
-            return null;
-          }
+          if (item.showForPayg && subscriptionTier !== 'payg') return null;
+          if ((item as any).showForManager && !isManager) return null;
+          
           return (
             <Link
               key={item.href}
@@ -103,84 +96,86 @@ export function Sidebar() {
           );
         })}
         
-        {/* Admin Link */}
         {isAdmin && (
           <Link
             href="/admin"
-            className={`nav-item admin-link ${pathname === '/admin' ? 'active' : ''}`}
+            className={`nav-item ${pathname === '/admin' ? 'active' : ''}`}
+            style={{ marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}
           >
-            <span className="nav-icon">🔐</span>
-            <span className="nav-label">Admin Panel</span>
-            <span className="nav-badge admin">ADMIN</span>
+            <span className="nav-icon">⚡</span>
+            <span className="nav-label">Admin</span>
           </Link>
         )}
       </nav>
 
       <div className="sidebar-footer">
-        <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center' }}>
+        <div className="theme-toggle-wrapper">
           <ThemeToggle />
         </div>
-        {isAdmin ? (
-          <div className="admin-badge-card">
-            <span className="admin-icon">👑</span>
-            <span className="admin-text">Admin Account</span>
-            <span className="admin-subtext">Unlimited Access</span>
-          </div>
-        ) : (
+        
+        {!isAdmin && (
           <div className="usage-card">
             <div className="usage-header">
-              <span>Usage This Month</span>
-              <span className="usage-count">{usage.used}/{usage.limit} calls</span>
+              <span className="usage-title">Monthly Usage</span>
+              <span className="usage-count">{usage.used}/{usage.limit}</span>
             </div>
-            <div className="usage-bar">
+            <div className="progress">
               <div 
-                className="usage-fill" 
-                style={{ 
-                  width: `${usagePercent}%`,
-                  backgroundColor: usagePercent >= 100 ? '#ff6b6b' : usagePercent >= 80 ? '#ffd166' : '#c9a227'
-                }}
-              ></div>
+                className={`progress-bar ${usagePercent >= 90 ? 'danger' : usagePercent >= 70 ? 'warning' : ''}`}
+                style={{ width: `${usagePercent}%` }}
+              />
             </div>
             <Link href="/pricing" className="upgrade-link">
-              Upgrade for more →
+              Upgrade Plan
             </Link>
           </div>
         )}
       </div>
 
       <style jsx>{`
-        .admin-link {
-          border-top: 1px solid rgba(201, 162, 39, 0.2);
-          margin-top: 8px;
-          padding-top: 8px;
+        .theme-toggle-wrapper {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 16px;
         }
-        .nav-badge.admin {
-          background: linear-gradient(135deg, #c9a227, #e0b82f);
-          color: #0a0a0a;
-        }
-        .admin-badge-card {
-          background: linear-gradient(135deg, rgba(201, 162, 39, 0.2), rgba(26, 90, 110, 0.2));
-          border: 1px solid rgba(201, 162, 39, 0.3);
-          border-radius: 12px;
+        
+        .usage-card {
+          background: var(--bg-tertiary);
+          border-radius: 8px;
           padding: 16px;
-          text-align: center;
         }
-        .admin-icon {
-          font-size: 24px;
-          display: block;
-          margin-bottom: 8px;
+        
+        .usage-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
         }
-        .admin-text {
-          display: block;
-          color: #c9a227;
-          font-weight: 600;
-          font-size: 14px;
-        }
-        .admin-subtext {
-          display: block;
-          color: rgba(255,255,255,0.5);
+        
+        .usage-title {
           font-size: 12px;
-          margin-top: 4px;
+          font-weight: 500;
+          color: var(--muted);
+        }
+        
+        .usage-count {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text);
+        }
+        
+        .upgrade-link {
+          display: block;
+          text-align: center;
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--accent);
+          margin-top: 12px;
+          text-decoration: none;
+        }
+        
+        .upgrade-link:hover {
+          text-decoration: underline;
         }
       `}</style>
     </aside>

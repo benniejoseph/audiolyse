@@ -7,60 +7,53 @@ interface LogoProps {
 
 export function Logo({ size = 'md', showTagline = false }: LogoProps) {
   const sizes = {
-    sm: { text: 18, tagline: 10 },
-    md: { text: 24, tagline: 12 },
-    lg: { text: 32, tagline: 14 },
-    xl: { text: 40, tagline: 16 },
+    sm: { text: 16, tagline: 10 },
+    md: { text: 20, tagline: 11 },
+    lg: { text: 26, tagline: 13 },
+    xl: { text: 32, tagline: 14 },
   };
 
   const s = sizes[size];
 
   return (
-    <div className="logo-container" style={{ display: 'flex', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       <span 
-        className="logo-text-main"
         style={{
-          fontFamily: "'Monoton', cursive",
+          fontFamily: "'Poppins', sans-serif",
           fontSize: `${s.text}px`,
-          fontWeight: 400,
-          letterSpacing: '3px',
-          color: '#ffffff',
-          textTransform: 'uppercase',
+          fontWeight: 700,
+          letterSpacing: '-0.5px',
+          color: 'var(--text)',
         }}
       >
         Audiolyse
       </span>
       {showTagline && (
         <span 
-          className="logo-tagline"
           style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             fontSize: `${s.tagline}px`,
             fontWeight: 400,
-            letterSpacing: '0.8px',
-            color: '#94a3b8',
-            marginTop: '4px',
-            textTransform: 'uppercase',
+            color: 'var(--muted)',
+            marginTop: '2px',
           }}
         >
-          Precision Intelligence
+          Call Analytics
         </span>
       )}
     </div>
   );
 }
 
-// For favicon - just returns null since we don't have an icon anymore
+// For favicon representation
 export function LogoIcon({ size = 32 }: { size?: number }) {
   return (
     <span
       style={{
-        fontFamily: "'Monoton', cursive",
-        fontSize: `${size * 0.6}px`,
-        fontWeight: 400,
-        letterSpacing: '1px',
-        color: '#ffffff',
-        textTransform: 'uppercase',
+        fontFamily: "'Poppins', sans-serif",
+        fontSize: `${size * 0.5}px`,
+        fontWeight: 700,
+        color: 'var(--text)',
       }}
     >
       A
