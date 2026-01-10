@@ -58,9 +58,9 @@ export function Logo({ size = 'md', collapsed = false }: LogoProps) {
         }
 
         .logo-text {
-          font-family: 'Axiforma', 'Poppins', sans-serif;
-          font-weight: 700;
-          letter-spacing: 0.05em; /* Tracking for modern look */
+          font-family: 'Monoton', cursive;
+          font-weight: 400;
+          letter-spacing: 0.05em;
           color: var(--text);
           line-height: 1;
         }
