@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   title: 'Audiolyse - Precision Intelligence for Every Conversation',
   description: 'AI-powered call analysis platform. Get transcription, coaching scores, conversion predictions, and strategic marketing insights from your customer calls.',
   icons: {
-    icon: '/audiolyseLogo.png',
-    apple: '/audiolyseLogo.png',
+    icon: '/Full Logo.png',
+    apple: '/Full Logo.png',
   },
   manifest: '/manifest.json',
   appleWebApp: {
@@ -45,7 +45,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Monoton&display=swap" rel="stylesheet" />
-        <link rel="icon" type="image/png" href="/audiolyseLogo.png" />
+        <link rel="icon" type="image/png" href="/Full Logo.png" />
       </head>
       <body>
         <ThemeProvider>

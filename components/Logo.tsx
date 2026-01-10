@@ -31,7 +31,7 @@ export function Logo({ size = 'md', showText = true, showTagline = false }: Logo
         }}
       >
         <Image
-          src="/audiolyseLogo.png"
+          src="/Full Logo.png"
           alt="Audiolyse Logo"
           width={s.icon}
           height={s.icon}
@@ -95,7 +95,7 @@ export function LogoIcon({ size = 32 }: { size?: number }) {
       }}
     >
       <Image
-        src="/audiolyseLogo.png"
+        src="/Full Logo.png"
         alt="Audiolyse Logo"
         width={size}
         height={size}
