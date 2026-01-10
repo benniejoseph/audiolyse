@@ -8,10 +8,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Dynamic margin matches sidebar width directly (no floating gap)
+  // Reverted to Floating Sidebar Logic:
+  // Calculate dynamic margin based on sidebar state + double margin (left+gap)
   const marginLeft = isSidebarCollapsed 
-    ? 'var(--sidebar-width-collapsed)'
-    : 'var(--sidebar-width)';
+    ? 'calc(var(--sidebar-width-collapsed) + var(--sidebar-margin) * 2)'
+    : 'calc(var(--sidebar-width) + var(--sidebar-margin) * 2)';
 
   return (
     <div className="dashboard-layout">
@@ -51,7 +52,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         @media (max-width: 768px) {
           .dashboard-main {
             margin-left: 0 !important;
-            padding-top: 0;
+            margin-top: 0;
+            padding-top: 20px;
           }
         }
       `}</style>
