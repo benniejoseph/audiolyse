@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Widget } from './Widget';
 import { createClient } from '@/lib/supabase/client';
+import { Users, Medal, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface TeamMemberStats {
   userId: string;
@@ -145,9 +146,9 @@ export function TeamPerformanceWidget({
 
   const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
     switch (trend) {
-      case 'up': return '↗️';
-      case 'down': return '↘️';
-      default: return '➡️';
+      case 'up': return <TrendingUp size={16} className="text-emerald-500" />;
+      case 'down': return <TrendingDown size={16} className="text-red-500" />;
+      default: return <Minus size={16} className="text-gray-500" />;
     }
   };
 
@@ -155,7 +156,7 @@ export function TeamPerformanceWidget({
     <Widget
       id="team-performance"
       title="Team Performance"
-      icon="👥"
+      icon={<Users size={20} />}
       loading={loading}
       error={error}
       onRefresh={loadTeamStats}
@@ -172,7 +173,7 @@ export function TeamPerformanceWidget({
     >
       {members.length === 0 ? (
         <div className="no-data">
-          <span>👥</span>
+          <Users size={32} className="opacity-50 mb-3" />
           <p>No team data available</p>
         </div>
       ) : (
@@ -180,7 +181,11 @@ export function TeamPerformanceWidget({
           {members.map((member, index) => (
             <div key={member.userId} className="team-member">
               <div className="member-rank">
-                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                {index < 3 ? <Medal size={20} className={
+                  index === 0 ? 'text-yellow-400' : 
+                  index === 1 ? 'text-gray-400' : 
+                  'text-orange-400'
+                } /> : `#${index + 1}`}
               </div>
               <div className="member-info">
                 <span className="member-name">{member.name}</span>
@@ -219,12 +224,9 @@ export function TeamPerformanceWidget({
           text-align: center;
           padding: 40px 20px;
           color: var(--muted);
-        }
-        
-        .no-data span {
-          font-size: 32px;
-          display: block;
-          margin-bottom: 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
         
         .team-list {
@@ -248,9 +250,12 @@ export function TeamPerformanceWidget({
         }
         
         .member-rank {
-          font-size: 18px;
+          font-size: 14px;
+          font-weight: 600;
           width: 32px;
           text-align: center;
+          display: flex;
+          justify-content: center;
         }
         
         .member-info {
@@ -281,7 +286,8 @@ export function TeamPerformanceWidget({
         }
         
         .member-trend {
-          font-size: 16px;
+          display: flex;
+          align-items: center;
         }
         
         .member-score {

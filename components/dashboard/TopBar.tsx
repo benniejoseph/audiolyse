@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile, Organization } from '@/lib/types/database';
+import { ChevronDown, Settings, HelpCircle, LogOut } from 'lucide-react';
 
 export function TopBar() {
   const [user, setUser] = useState<Profile | null>(null);
@@ -116,7 +117,7 @@ export function TopBar() {
               )}
             </div>
             <span className="user-name">{user?.full_name || user?.email?.split('@')[0]}</span>
-            <span className="dropdown-arrow">▼</span>
+            <span className="dropdown-arrow"><ChevronDown size={14} /></span>
           </button>
 
           {showDropdown && (
@@ -125,21 +126,28 @@ export function TopBar() {
                 <p className="dropdown-email">{user?.email}</p>
               </div>
               <a href="/settings" className="dropdown-item">
-                <span>⚙️</span> Settings
+                <span className="item-icon"><Settings size={16} /></span> Settings
               </a>
               <a href="/help" className="dropdown-item">
-                <span>❓</span> Help
+                <span className="item-icon"><HelpCircle size={16} /></span> Help
               </a>
               <hr className="dropdown-divider" />
               <button onClick={handleLogout} className="dropdown-item logout">
-                <span>🚪</span> Sign Out
+                <span className="item-icon"><LogOut size={16} /></span> Sign Out
               </button>
             </div>
           )}
         </div>
       </div>
+      
+      <style jsx>{`
+        .item-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+        }
+      `}</style>
     </header>
   );
 }
-
-

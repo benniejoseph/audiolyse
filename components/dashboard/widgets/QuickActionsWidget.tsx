@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { Widget } from './Widget';
+import { Mic, FolderOpen, Users, Settings, ShieldCheck, FileText, Zap } from 'lucide-react';
 
 interface QuickAction {
   id: string;
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   description: string;
   href: string;
@@ -25,7 +26,7 @@ export function QuickActionsWidget({
   const actions: QuickAction[] = [
     {
       id: 'analyze',
-      icon: '🎙️',
+      icon: <Mic size={24} />,
       label: 'Analyze Call',
       description: 'Upload and analyze a new call',
       href: '/analyze',
@@ -33,7 +34,7 @@ export function QuickActionsWidget({
     },
     {
       id: 'history',
-      icon: '📁',
+      icon: <FolderOpen size={24} />,
       label: 'View History',
       description: 'Browse past analyses',
       href: '/history',
@@ -41,7 +42,7 @@ export function QuickActionsWidget({
     },
     {
       id: 'customers',
-      icon: '👤',
+      icon: <Users size={24} />,
       label: 'Customers',
       description: 'View customer profiles',
       href: '/customers',
@@ -50,7 +51,7 @@ export function QuickActionsWidget({
     },
     {
       id: 'team',
-      icon: '👥',
+      icon: <Users size={24} />,
       label: 'Team',
       description: isManager ? 'Manage your team' : 'View team members',
       href: '/team',
@@ -58,7 +59,7 @@ export function QuickActionsWidget({
     },
     {
       id: 'settings',
-      icon: '⚙️',
+      icon: <Settings size={24} />,
       label: 'AI Settings',
       description: 'Configure AI context',
       href: '/settings',
@@ -66,7 +67,7 @@ export function QuickActionsWidget({
     },
     {
       id: 'compliance',
-      icon: '🛡️',
+      icon: <ShieldCheck size={24} />,
       label: 'Compliance',
       description: 'Legal & privacy settings',
       href: '/compliance',
@@ -78,7 +79,7 @@ export function QuickActionsWidget({
   if (subscriptionTier !== 'free') {
     actions.push({
       id: 'export',
-      icon: '📊',
+      icon: <FileText size={24} />,
       label: 'Export Reports',
       description: 'Download analytics',
       href: '/history',
@@ -91,7 +92,7 @@ export function QuickActionsWidget({
     <Widget
       id="quick-actions"
       title="Quick Actions"
-      icon="⚡"
+      icon={<Zap size={20} />}
       minHeight="auto"
     >
       <div className="actions-grid">
@@ -142,7 +143,10 @@ export function QuickActionsWidget({
         }
         
         .action-icon {
-          font-size: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--action-color);
           flex-shrink: 0;
         }
         

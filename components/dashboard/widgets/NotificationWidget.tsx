@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Widget } from './Widget';
 import { createClient } from '@/lib/supabase/client';
+import { CheckCircle, FileText, MessageSquare, Trophy, AlertTriangle, Bell } from 'lucide-react';
 
 interface Notification {
   id: string;
@@ -85,7 +86,7 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
         notifs.push({
           id: `achievement-${latest.id}`,
           type: 'achievement',
-          title: '🏆 High Score!',
+          title: 'High Score!',
           message: `Excellent! You scored ${Math.round(latest.overall_score)} on a recent call`,
           link: `/history?id=${latest.id}`,
           read: false,
@@ -143,12 +144,12 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
-      case 'analysis_complete': return '✅';
-      case 'assignment': return '📋';
-      case 'feedback': return '💬';
-      case 'achievement': return '🏆';
-      case 'alert': return '⚠️';
-      default: return '🔔';
+      case 'analysis_complete': return <CheckCircle size={20} className="text-emerald-500" />;
+      case 'assignment': return <FileText size={20} className="text-blue-500" />;
+      case 'feedback': return <MessageSquare size={20} className="text-purple-500" />;
+      case 'achievement': return <Trophy size={20} className="text-yellow-500" />;
+      case 'alert': return <AlertTriangle size={20} className="text-red-500" />;
+      default: return <Bell size={20} className="text-gray-500" />;
     }
   };
 
@@ -172,7 +173,7 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
     <Widget
       id="notifications"
       title="Notifications"
-      icon="🔔"
+      icon={<Bell size={20} />}
       loading={loading}
       onRefresh={loadNotifications}
       headerAction={
@@ -185,7 +186,7 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
     >
       {notifications.length === 0 ? (
         <div className="no-notifications">
-          <span>🔔</span>
+          <Bell size={32} className="opacity-50 mb-3" />
           <p>No notifications</p>
         </div>
       ) : (
@@ -232,13 +233,9 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
           text-align: center;
           padding: 40px 20px;
           color: var(--muted);
-        }
-        
-        .no-notifications span {
-          font-size: 32px;
-          display: block;
-          margin-bottom: 12px;
-          opacity: 0.5;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
         
         .notification-list {
@@ -267,8 +264,10 @@ export function NotificationWidget({ userId, organizationId }: NotificationWidge
         }
         
         .notification-icon {
-          font-size: 20px;
           flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         
         .notification-content {

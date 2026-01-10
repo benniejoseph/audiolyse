@@ -4,6 +4,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from '@/lib/toast';
+import { 
+  Video, 
+  FileText, 
+  Link as LinkIcon, 
+  FileQuestion, 
+  BookOpen, 
+  Book, 
+  Hand, 
+  Shield, 
+  Target, 
+  Phone, 
+  DollarSign, 
+  Swords, 
+  Handshake, 
+  Clipboard,
+  Copy,
+  Plus
+} from 'lucide-react';
 
 interface Script {
   id: string;
@@ -161,25 +179,25 @@ export default function KnowledgePage() {
 
   const getResourceIcon = (type: string) => {
     switch (type) {
-      case 'video': return '🎥';
-      case 'document': return '📄';
-      case 'link': return '🔗';
-      case 'quiz': return '📝';
-      case 'course': return '📚';
-      default: return '📖';
+      case 'video': return <Video size={32} className="text-red-500" />;
+      case 'document': return <FileText size={32} className="text-blue-500" />;
+      case 'link': return <LinkIcon size={32} className="text-gray-500" />;
+      case 'quiz': return <FileQuestion size={32} className="text-purple-500" />;
+      case 'course': return <BookOpen size={32} className="text-green-500" />;
+      default: return <Book size={32} className="text-gray-500" />;
     }
   };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'opening': return '👋';
-      case 'objection_handling': return '🛡️';
-      case 'closing': return '🎯';
-      case 'follow_up': return '📞';
-      case 'pricing': return '💰';
-      case 'competitor': return '⚔️';
-      case 'trust': return '🤝';
-      default: return '📝';
+      case 'opening': return <Hand size={16} className="text-yellow-500" />;
+      case 'objection_handling': return <Shield size={16} className="text-red-500" />;
+      case 'closing': return <Target size={16} className="text-green-500" />;
+      case 'follow_up': return <Phone size={16} className="text-blue-500" />;
+      case 'pricing': return <DollarSign size={16} className="text-green-600" />;
+      case 'competitor': return <Swords size={16} className="text-red-600" />;
+      case 'trust': return <Handshake size={16} className="text-purple-500" />;
+      default: return <FileText size={16} className="text-gray-500" />;
     }
   };
 
@@ -214,12 +232,12 @@ export default function KnowledgePage() {
     <div className="knowledge-page">
       <div className="page-header">
         <div>
-          <h1>📚 Knowledge Base</h1>
+          <h1>Knowledge Base</h1>
           <p>Scripts, objection playbooks, and training resources</p>
         </div>
         {isManager && (
           <button className="add-btn" onClick={() => setShowScriptModal(true)}>
-            + Add Script
+            <Plus size={16} style={{marginRight: 8}} /> Add Script
           </button>
         )}
       </div>
@@ -230,19 +248,19 @@ export default function KnowledgePage() {
           className={activeTab === 'scripts' ? 'active' : ''}
           onClick={() => setActiveTab('scripts')}
         >
-          📝 Scripts ({scripts.length})
+          <span style={{marginRight: 8}}><FileText size={16} /></span> Scripts ({scripts.length})
         </button>
         <button 
           className={activeTab === 'playbooks' ? 'active' : ''}
           onClick={() => setActiveTab('playbooks')}
         >
-          🛡️ Objection Playbooks ({playbooks.length})
+          <span style={{marginRight: 8}}><Shield size={16} /></span> Playbooks ({playbooks.length})
         </button>
         <button 
           className={activeTab === 'training' ? 'active' : ''}
           onClick={() => setActiveTab('training')}
         >
-          🎓 Training ({training.length})
+          <span style={{marginRight: 8}}><BookOpen size={16} /></span> Training ({training.length})
         </button>
       </div>
 
@@ -297,7 +315,7 @@ export default function KnowledgePage() {
           <div className="scripts-content">
             {filteredScripts.length === 0 ? (
               <div className="no-data">
-                <span>📝</span>
+                <FileText size={48} className="opacity-50 mb-4" />
                 <p>No scripts found. {isManager && 'Create your first script!'}</p>
               </div>
             ) : (
@@ -305,7 +323,9 @@ export default function KnowledgePage() {
                 {filteredScripts.map(script => (
                   <div key={script.id} className="script-card">
                     <div className="script-header">
-                      <span className="script-category">{getCategoryIcon(script.category)} {script.category.replace('_', ' ')}</span>
+                      <span className="script-category" style={{display: 'flex', alignItems: 'center', gap: 4}}>
+                        {getCategoryIcon(script.category)} {script.category.replace('_', ' ')}
+                      </span>
                       <span className="usage-count">{script.usage_count} uses</span>
                     </div>
                     <h3>{script.title}</h3>
@@ -319,7 +339,7 @@ export default function KnowledgePage() {
                       </div>
                     )}
                     <button className="copy-btn" onClick={() => copyScript(script.script_text)}>
-                      📋 Copy Script
+                      <Clipboard size={14} style={{marginRight: 6}} /> Copy Script
                     </button>
                   </div>
                 ))}
@@ -333,7 +353,7 @@ export default function KnowledgePage() {
           <div className="playbooks-content">
             {filteredPlaybooks.length === 0 ? (
               <div className="no-data">
-                <span>🛡️</span>
+                <Shield size={48} className="opacity-50 mb-4" />
                 <p>No objection playbooks yet. They&apos;ll be auto-generated from call analyses.</p>
               </div>
             ) : (
@@ -341,7 +361,9 @@ export default function KnowledgePage() {
                 {filteredPlaybooks.map(playbook => (
                   <div key={playbook.id} className="playbook-card">
                     <div className="playbook-header">
-                      <span className="playbook-category">{getCategoryIcon(playbook.objection_category)} {playbook.objection_category}</span>
+                      <span className="playbook-category" style={{display: 'flex', alignItems: 'center', gap: 4}}>
+                        {getCategoryIcon(playbook.objection_category)} {playbook.objection_category}
+                      </span>
                       <div className="playbook-stats">
                         <span>{playbook.occurrence_count} occurrences</span>
                         {playbook.success_rate && <span>{Math.round(playbook.success_rate * 100)}% success</span>}
@@ -354,7 +376,7 @@ export default function KnowledgePage() {
                           {i === playbook.best_response_index && <span className="best-badge">⭐ Best Response</span>}
                           <p>{response.response}</p>
                           <button className="copy-btn small" onClick={() => copyScript(response.response)}>
-                            Copy
+                            <Copy size={12} />
                           </button>
                         </div>
                       ))}
@@ -371,7 +393,7 @@ export default function KnowledgePage() {
           <div className="training-content">
             {filteredTraining.length === 0 ? (
               <div className="no-data">
-                <span>🎓</span>
+                <BookOpen size={48} className="opacity-50 mb-4" />
                 <p>No training resources available yet.</p>
               </div>
             ) : (
@@ -501,6 +523,8 @@ export default function KnowledgePage() {
           color: white;
           font-weight: 600;
           cursor: pointer;
+          display: flex;
+          align-items: center;
         }
 
         .tabs {
@@ -510,6 +534,8 @@ export default function KnowledgePage() {
         }
 
         .tabs button {
+          display: flex;
+          align-items: center;
           padding: 12px 24px;
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
@@ -641,6 +667,9 @@ export default function KnowledgePage() {
           color: var(--accent);
           cursor: pointer;
           font-size: 13px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .copy-btn.small {
@@ -736,6 +765,9 @@ export default function KnowledgePage() {
 
         .training-icon {
           font-size: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .training-content-inner {
@@ -780,6 +812,9 @@ export default function KnowledgePage() {
           text-align: center;
           padding: 60px 20px;
           color: var(--muted);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
         .no-data span {

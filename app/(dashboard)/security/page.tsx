@@ -4,6 +4,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from '@/lib/toast';
+import { 
+  Shield, 
+  Lock, 
+  Unlock, 
+  Smartphone, 
+  Monitor, 
+  Tablet, 
+  AlertTriangle, 
+  CheckCircle, 
+  FileText, 
+  LogOut, 
+  Key, 
+  Bell 
+} from 'lucide-react';
 
 interface LoginEvent {
   id: string;
@@ -74,7 +88,7 @@ export default function SecurityPage() {
     activeSessions: 0,
     unresolvedAlerts: 0,
   });
-
+  
   const loadSecurityData = useCallback(async () => {
     setLoading(true);
     try {
@@ -253,14 +267,14 @@ export default function SecurityPage() {
   };
 
   const getEventIcon = (eventType: string, success: boolean) => {
-    if (!success) return '❌';
+    if (!success) return <AlertTriangle size={20} className="text-red-500" />;
     switch (eventType) {
-      case 'login': return '🔓';
-      case 'logout': return '🔒';
-      case 'password_reset': return '🔑';
-      case 'mfa_success': return '✅';
-      case 'mfa_failure': return '⚠️';
-      default: return '📝';
+      case 'login': return <Unlock size={20} className="text-blue-500" />;
+      case 'logout': return <Lock size={20} className="text-gray-500" />;
+      case 'password_reset': return <Key size={20} className="text-yellow-500" />;
+      case 'mfa_success': return <CheckCircle size={20} className="text-green-500" />;
+      case 'mfa_failure': return <AlertTriangle size={20} className="text-red-500" />;
+      default: return <FileText size={20} className="text-gray-500" />;
     }
   };
 
@@ -276,9 +290,9 @@ export default function SecurityPage() {
 
   const getDeviceIcon = (deviceType: string | null) => {
     switch (deviceType?.toLowerCase()) {
-      case 'mobile': return '📱';
-      case 'tablet': return '📟';
-      default: return '💻';
+      case 'mobile': return <Smartphone size={24} />;
+      case 'tablet': return <Tablet size={24} />;
+      default: return <Monitor size={24} />;
     }
   };
 
@@ -294,35 +308,35 @@ export default function SecurityPage() {
   return (
     <div className="security-page">
       <div className="page-header">
-        <h1>🔐 Security Settings</h1>
+        <h1>Security Settings</h1>
         <p>Manage your account security and privacy</p>
       </div>
 
       {/* Stats Overview */}
       <div className="security-stats">
         <div className="stat-card">
-          <span className="stat-icon">🔓</span>
+          <span className="stat-icon"><Unlock size={28} className="text-blue-500" /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.totalLogins}</span>
             <span className="stat-label">Logins (30 days)</span>
           </div>
         </div>
         <div className="stat-card">
-          <span className="stat-icon">📱</span>
+          <span className="stat-icon"><Smartphone size={28} className="text-green-500" /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.activeSessions}</span>
             <span className="stat-label">Active Sessions</span>
           </div>
         </div>
         <div className={`stat-card ${stats.suspiciousEvents > 0 ? 'warning' : ''}`}>
-          <span className="stat-icon">⚠️</span>
+          <span className="stat-icon"><AlertTriangle size={28} className="text-yellow-500" /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.suspiciousEvents}</span>
             <span className="stat-label">Suspicious Events</span>
           </div>
         </div>
         <div className={`stat-card ${stats.unresolvedAlerts > 0 ? 'danger' : ''}`}>
-          <span className="stat-icon">🔔</span>
+          <span className="stat-icon"><Bell size={28} className="text-red-500" /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.unresolvedAlerts}</span>
             <span className="stat-label">Unresolved Alerts</span>
@@ -332,19 +346,36 @@ export default function SecurityPage() {
 
       {/* Tabs */}
       <div className="security-tabs">
-        {(['overview', 'mfa', 'sessions', 'history', 'alerts'] as const).map(tab => (
-          <button
-            key={tab}
-            className={activeTab === tab ? 'active' : ''}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab === 'overview' && '📊 Overview'}
-            {tab === 'mfa' && '🔑 MFA'}
-            {tab === 'sessions' && '📱 Sessions'}
-            {tab === 'history' && '📜 Login History'}
-            {tab === 'alerts' && `🔔 Alerts ${stats.unresolvedAlerts > 0 ? `(${stats.unresolvedAlerts})` : ''}`}
-          </button>
-        ))}
+        <button
+          className={activeTab === 'overview' ? 'active' : ''}
+          onClick={() => setActiveTab('overview')}
+        >
+          Overview
+        </button>
+        <button
+          className={activeTab === 'mfa' ? 'active' : ''}
+          onClick={() => setActiveTab('mfa')}
+        >
+          MFA
+        </button>
+        <button
+          className={activeTab === 'sessions' ? 'active' : ''}
+          onClick={() => setActiveTab('sessions')}
+        >
+          Sessions
+        </button>
+        <button
+          className={activeTab === 'history' ? 'active' : ''}
+          onClick={() => setActiveTab('history')}
+        >
+          History
+        </button>
+        <button
+          className={activeTab === 'alerts' ? 'active' : ''}
+          onClick={() => setActiveTab('alerts')}
+        >
+          Alerts {stats.unresolvedAlerts > 0 && `(${stats.unresolvedAlerts})`}
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -353,11 +384,15 @@ export default function SecurityPage() {
         {activeTab === 'overview' && (
           <div className="overview-content">
             <div className="security-card">
-              <h3>🔑 Two-Factor Authentication</h3>
+              <h3>Two-Factor Authentication</h3>
               <p>Add an extra layer of security to your account</p>
               <div className="security-status">
                 <span className={`status-indicator ${mfaSettings.mfa_enabled ? 'enabled' : 'disabled'}`}>
-                  {mfaSettings.mfa_enabled ? '✅ Enabled' : '❌ Disabled'}
+                  {mfaSettings.mfa_enabled ? (
+                    <span style={{display: 'flex', alignItems: 'center', gap: 4}}><CheckCircle size={16} /> Enabled</span>
+                  ) : (
+                    <span style={{display: 'flex', alignItems: 'center', gap: 4}}><AlertTriangle size={16} /> Disabled</span>
+                  )}
                 </span>
                 <button 
                   className="configure-btn"
@@ -369,7 +404,7 @@ export default function SecurityPage() {
             </div>
 
             <div className="security-card">
-              <h3>📱 Active Sessions</h3>
+              <h3>Active Sessions</h3>
               <p>Manage devices logged into your account</p>
               <div className="security-status">
                 <span className="status-info">{stats.activeSessions} active sessions</span>
@@ -383,7 +418,7 @@ export default function SecurityPage() {
             </div>
 
             <div className="security-card">
-              <h3>🔒 Password</h3>
+              <h3>Password</h3>
               <p>Last changed: Never (use Supabase dashboard)</p>
               <div className="security-status">
                 <span className="status-info">Password authentication</span>
@@ -392,7 +427,7 @@ export default function SecurityPage() {
 
             {alerts.filter(a => a.status === 'new').length > 0 && (
               <div className="security-card alert">
-                <h3>⚠️ Recent Security Alerts</h3>
+                <h3>Recent Security Alerts</h3>
                 <div className="alert-preview">
                   {alerts.filter(a => a.status === 'new').slice(0, 3).map(alert => (
                     <div key={alert.id} className="alert-item">
@@ -422,7 +457,7 @@ export default function SecurityPage() {
           <div className="mfa-content">
             <div className="mfa-card">
               <div className="mfa-header">
-                <h3>🔑 Two-Factor Authentication</h3>
+                <h3>Two-Factor Authentication</h3>
                 <span className={`mfa-badge ${mfaSettings.mfa_enabled ? 'enabled' : 'disabled'}`}>
                   {mfaSettings.mfa_enabled ? 'ENABLED' : 'DISABLED'}
                 </span>
@@ -437,14 +472,14 @@ export default function SecurityPage() {
                   <div className="mfa-benefits">
                     <h4>Benefits of enabling MFA:</h4>
                     <ul>
-                      <li>✅ Prevents unauthorized access even if password is compromised</li>
-                      <li>✅ Alerts you of suspicious login attempts</li>
-                      <li>✅ Required for enterprise compliance (HIPAA, SOC2)</li>
-                      <li>✅ Backup codes for account recovery</li>
+                      <li><CheckCircle size={14} style={{display: 'inline', marginRight: 6}} /> Prevents unauthorized access even if password is compromised</li>
+                      <li><CheckCircle size={14} style={{display: 'inline', marginRight: 6}} /> Alerts you of suspicious login attempts</li>
+                      <li><CheckCircle size={14} style={{display: 'inline', marginRight: 6}} /> Required for enterprise compliance (HIPAA, SOC2)</li>
+                      <li><CheckCircle size={14} style={{display: 'inline', marginRight: 6}} /> Backup codes for account recovery</li>
                     </ul>
                   </div>
                   <button className="enable-mfa-btn" onClick={enableMFA}>
-                    🔐 Enable Two-Factor Authentication
+                    <Lock size={16} style={{marginRight: 8}} /> Enable Two-Factor Authentication
                   </button>
                   <p className="mfa-note">
                     Note: Full TOTP MFA requires Supabase Pro plan. This enables the MFA flag in your profile.
@@ -453,7 +488,7 @@ export default function SecurityPage() {
               ) : (
                 <div className="mfa-enabled-section">
                   <div className="mfa-method">
-                    <span className="method-icon">📱</span>
+                    <span className="method-icon"><Smartphone size={24} /></span>
                     <div className="method-info">
                       <span className="method-name">Authenticator App</span>
                       <span className="method-status">Primary method</span>
@@ -560,7 +595,7 @@ export default function SecurityPage() {
             <h3>Security Alerts</h3>
             {alerts.length === 0 ? (
               <div className="no-alerts">
-                <span>✅</span>
+                <CheckCircle size={48} className="text-green-500 mb-4" />
                 <p>No security alerts. Your account is secure!</p>
               </div>
             ) : (
@@ -644,7 +679,9 @@ export default function SecurityPage() {
         }
 
         .stat-icon {
-          font-size: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .stat-value {
@@ -827,6 +864,9 @@ export default function SecurityPage() {
           font-size: 14px;
           cursor: pointer;
           transition: transform 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .enable-mfa-btn:hover {
@@ -1124,6 +1164,9 @@ export default function SecurityPage() {
           text-align: center;
           padding: 40px;
           color: var(--muted);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
         .no-alerts span {

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Widget } from './Widget';
 import { createClient } from '@/lib/supabase/client';
-import type { CallAnalysis } from '@/lib/types/database';
+import { Phone, Mic, User, ChevronRight, Smile, Frown, Meh, HelpCircle } from 'lucide-react';
 
 interface RecentCallsWidgetProps {
   organizationId: string;
@@ -71,10 +71,10 @@ export function RecentCallsWidget({
 
   const getSentimentIcon = (sentiment: string | null) => {
     switch (sentiment?.toLowerCase()) {
-      case 'positive': return '😊';
-      case 'negative': return '😟';
-      case 'neutral': return '😐';
-      default: return '❔';
+      case 'positive': return <Smile size={18} className="text-green-500" />;
+      case 'negative': return <Frown size={18} className="text-red-500" />;
+      case 'neutral': return <Meh size={18} className="text-yellow-500" />;
+      default: return <HelpCircle size={18} className="text-gray-500" />;
     }
   };
 
@@ -88,7 +88,7 @@ export function RecentCallsWidget({
     <Widget
       id="recent-calls"
       title={viewMode === 'team' ? 'Team Activity' : 'Recent Calls'}
-      icon="📞"
+      icon={<Phone size={20} />}
       loading={loading}
       error={error}
       onRefresh={loadCalls}
@@ -100,7 +100,7 @@ export function RecentCallsWidget({
     >
       {calls.length === 0 ? (
         <div className="no-calls">
-          <span className="empty-icon">🎙️</span>
+          <Mic size={40} className="empty-icon" />
           <p>No calls analyzed yet</p>
           <Link href="/analyze" className="analyze-link">
             Analyze Your First Call
@@ -130,7 +130,7 @@ export function RecentCallsWidget({
                     )}
                   </span>
                   {call.customer?.name && (
-                    <span className="call-customer">👤 {call.customer.name}</span>
+                    <span className="call-customer"><User size={12} style={{display: 'inline', marginRight: 4}} /> {call.customer.name}</span>
                   )}
                 </div>
               </div>
@@ -146,7 +146,7 @@ export function RecentCallsWidget({
                     </span>
                   </>
                 )}
-                <span className="call-arrow">→</span>
+                <span className="call-arrow"><ChevronRight size={16} /></span>
               </div>
             </Link>
           ))}
@@ -168,12 +168,15 @@ export function RecentCallsWidget({
         .no-calls {
           text-align: center;
           padding: 40px 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
         
         .empty-icon {
-          font-size: 40px;
-          display: block;
           margin-bottom: 12px;
+          color: var(--muted);
+          opacity: 0.5;
         }
         
         .no-calls p {
@@ -272,6 +275,8 @@ export function RecentCallsWidget({
         .call-customer {
           font-size: 11px;
           color: #8b5cf6;
+          display: flex;
+          align-items: center;
         }
         
         .call-right {
@@ -281,7 +286,8 @@ export function RecentCallsWidget({
         }
         
         .call-sentiment {
-          font-size: 18px;
+          display: flex;
+          align-items: center;
         }
         
         .call-score {
@@ -293,7 +299,8 @@ export function RecentCallsWidget({
         
         .call-arrow {
           color: var(--muted);
-          font-size: 14px;
+          display: flex;
+          align-items: center;
         }
         
         /* Light theme */

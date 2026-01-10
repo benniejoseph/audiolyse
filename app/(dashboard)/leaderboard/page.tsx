@@ -3,6 +3,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { 
+  Trophy, 
+  Medal, 
+  Star, 
+  Flame, 
+  Target, 
+  Gift, 
+  Lock, 
+  CheckCircle, 
+  Zap, 
+  Crown, 
+  Sprout, 
+  Gem, 
+  Award,
+  Mic,
+  BarChart3,
+  TrendingUp,
+  Moon,
+  Rocket,
+  Swords
+} from 'lucide-react';
 
 interface UserPoints {
   user_id: string;
@@ -174,18 +195,37 @@ export default function LeaderboardPage() {
   };
 
   const getLevelIcon = (level: number) => {
-    if (level >= 8) return '👑';
-    if (level >= 6) return '💎';
-    if (level >= 4) return '🏆';
-    if (level >= 2) return '⭐';
-    return '🌱';
+    if (level >= 8) return <Crown size={20} className="text-yellow-500" />;
+    if (level >= 6) return <Gem size={20} className="text-blue-400" />;
+    if (level >= 4) return <Trophy size={20} className="text-yellow-400" />;
+    if (level >= 2) return <Star size={20} className="text-yellow-300" />;
+    return <Sprout size={20} className="text-green-400" />;
   };
 
   const getRankIcon = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return `#${rank}`;
+    if (rank === 1) return <Medal size={24} className="text-yellow-400" />;
+    if (rank === 2) return <Medal size={24} className="text-gray-400" />;
+    if (rank === 3) return <Medal size={24} className="text-orange-400" />;
+    return <span className="text-lg font-bold">#{rank}</span>;
+  };
+
+  const getBadgeIcon = (emoji: string) => {
+    switch (emoji) {
+      case '🎙️': return <Mic size={24} />;
+      case '📊': return <BarChart3 size={24} />;
+      case '⚔️': return <Swords size={24} />;
+      case '💯': return <Target size={24} />;
+      case '👑': return <Crown size={24} />;
+      case '🌟': return <Star size={24} />;
+      case '🏆': return <Trophy size={24} />;
+      case '📈': return <TrendingUp size={24} />;
+      case '🔥': return <Flame size={24} />;
+      case '⚡': return <Zap size={24} />;
+      case '🌙': return <Moon size={24} />;
+      case '🌱': return <Sprout size={24} />;
+      case '🚀': return <Rocket size={24} />;
+      default: return <Award size={24} />;
+    }
   };
 
   if (loading) {
@@ -201,7 +241,7 @@ export default function LeaderboardPage() {
     <div className="leaderboard-page">
       <div className="page-header">
         <div>
-          <h1>🏆 Leaderboard & Achievements</h1>
+          <h1>Leaderboard & Achievements</h1>
           <p>Track your progress and compete with your team</p>
         </div>
       </div>
@@ -217,21 +257,21 @@ export default function LeaderboardPage() {
             </div>
           </div>
           <div className="stat-item">
-            <span className="stat-icon">⚡</span>
+            <span className="stat-icon"><Zap size={28} className="text-yellow-400" /></span>
             <div className="stat-content">
               <span className="stat-value">{currentUser.total_points}</span>
               <span className="stat-label">Total Points</span>
             </div>
           </div>
           <div className="stat-item">
-            <span className="stat-icon">🔥</span>
+            <span className="stat-icon"><Flame size={28} className="text-orange-500" /></span>
             <div className="stat-content">
               <span className="stat-value">{currentUser.current_streak} days</span>
               <span className="stat-label">Current Streak</span>
             </div>
           </div>
           <div className="stat-item">
-            <span className="stat-icon">🎖️</span>
+            <span className="stat-icon"><Award size={28} className="text-purple-500" /></span>
             <div className="stat-content">
               <span className="stat-value">{earnedBadges.length}</span>
               <span className="stat-label">Badges Earned</span>
@@ -246,19 +286,19 @@ export default function LeaderboardPage() {
           className={activeTab === 'leaderboard' ? 'active' : ''}
           onClick={() => setActiveTab('leaderboard')}
         >
-          🏆 Leaderboard
+          <span style={{marginRight: 8}}><Trophy size={16} /></span> Leaderboard
         </button>
         <button 
           className={activeTab === 'badges' ? 'active' : ''}
           onClick={() => setActiveTab('badges')}
         >
-          🎖️ Badges ({earnedBadges.length}/{badges.length})
+          <span style={{marginRight: 8}}><Award size={16} /></span> Badges ({earnedBadges.length}/{badges.length})
         </button>
         <button 
           className={activeTab === 'challenges' ? 'active' : ''}
           onClick={() => setActiveTab('challenges')}
         >
-          🎯 Challenges
+          <span style={{marginRight: 8}}><Target size={16} /></span> Challenges
         </button>
       </div>
 
@@ -282,7 +322,7 @@ export default function LeaderboardPage() {
             <div className="leaderboard-list">
               {leaderboard.length === 0 ? (
                 <div className="no-data">
-                  <span>🏆</span>
+                  <Trophy size={48} className="opacity-50 mb-4" />
                   <p>No points earned yet. Start analyzing calls!</p>
                 </div>
               ) : (
@@ -300,9 +340,11 @@ export default function LeaderboardPage() {
                         {entry.profile?.full_name || 'Unknown'}
                         {entry.user_id === userId && <span className="you-badge">You</span>}
                       </span>
-                      <span className="entry-level">
-                        {getLevelIcon(entry.level)} Level {entry.level} • {entry.current_streak}🔥
-                      </span>
+                      <div className="entry-level">
+                        <span style={{display: 'inline-flex', alignItems: 'center', gap: 4}}>
+                          {getLevelIcon(entry.level)} Level {entry.level} • {entry.current_streak} <Flame size={12} />
+                        </span>
+                      </div>
                     </div>
                     <div className="entry-points">{entry.total_points} pts</div>
                   </div>
@@ -323,7 +365,7 @@ export default function LeaderboardPage() {
                 {earnedBadges.map(badge => (
                   <div key={badge.id} className="badge-card earned">
                     <div className="badge-icon" style={{ backgroundColor: `${getRarityColor(badge.rarity)}30` }}>
-                      {badge.icon}
+                      {getBadgeIcon(badge.icon)}
                     </div>
                     <div className="badge-info">
                       <span className="badge-title">{badge.title}</span>
@@ -332,7 +374,7 @@ export default function LeaderboardPage() {
                         {badge.rarity} • +{badge.points_reward} pts
                       </span>
                     </div>
-                    <span className="earned-check">✅</span>
+                    <span className="earned-check"><CheckCircle size={20} className="text-green-500" /></span>
                   </div>
                 ))}
               </div>
@@ -343,7 +385,7 @@ export default function LeaderboardPage() {
               {badges.filter(b => !earnedBadges.find(eb => eb.id === b.id)).map(badge => (
                 <div key={badge.id} className="badge-card locked">
                   <div className="badge-icon" style={{ backgroundColor: `${getRarityColor(badge.rarity)}15` }}>
-                    {badge.icon}
+                    {getBadgeIcon(badge.icon)}
                   </div>
                   <div className="badge-info">
                     <span className="badge-title">{badge.title}</span>
@@ -352,7 +394,7 @@ export default function LeaderboardPage() {
                       {badge.rarity} • +{badge.points_reward} pts
                     </span>
                   </div>
-                  <span className="locked-icon">🔒</span>
+                  <span className="locked-icon"><Lock size={20} /></span>
                 </div>
               ))}
             </div>
@@ -364,14 +406,14 @@ export default function LeaderboardPage() {
           <div className="challenges-content">
             {challenges.length === 0 ? (
               <div className="no-data">
-                <span>🎯</span>
+                <Target size={48} className="opacity-50 mb-4" />
                 <p>No active challenges. Check back soon!</p>
               </div>
             ) : (
               <div className="challenges-list">
                 {challenges.map(challenge => (
                   <div key={challenge.id} className="challenge-card">
-                    <div className="challenge-icon">{challenge.icon}</div>
+                    <div className="challenge-icon">{getBadgeIcon(challenge.icon || '🎯')}</div>
                     <div className="challenge-info">
                       <h4>{challenge.title}</h4>
                       <p>{challenge.description}</p>
@@ -389,14 +431,16 @@ export default function LeaderboardPage() {
                         </span>
                       </div>
                       <div className="challenge-meta">
-                        <span className="reward">🎁 {challenge.points_reward} pts</span>
+                        <span className="reward" style={{display: 'flex', alignItems: 'center', gap: 4}}>
+                          <Gift size={14} /> {challenge.points_reward} pts
+                        </span>
                         <span className="deadline">
                           Ends: {new Date(challenge.end_date).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
                     {challenge.participant?.completed && (
-                      <span className="completed-badge">✅ Completed</span>
+                      <span className="completed-badge"><CheckCircle size={24} className="text-green-500" /></span>
                     )}
                   </div>
                 ))}
@@ -442,7 +486,9 @@ export default function LeaderboardPage() {
         }
 
         .stat-icon {
-          font-size: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .stat-value {
@@ -464,6 +510,9 @@ export default function LeaderboardPage() {
         }
 
         .tabs button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
           padding: 12px 24px;
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
@@ -543,6 +592,8 @@ export default function LeaderboardPage() {
           font-size: 20px;
           width: 40px;
           text-align: center;
+          display: flex;
+          justify-content: center;
         }
 
         .entry-avatar {
@@ -632,7 +683,7 @@ export default function LeaderboardPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
+          color: var(--text);
         }
 
         .badge-info {
@@ -681,6 +732,9 @@ export default function LeaderboardPage() {
 
         .challenge-icon {
           font-size: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .challenge-info {
@@ -748,12 +802,9 @@ export default function LeaderboardPage() {
           text-align: center;
           padding: 60px 20px;
           color: var(--muted);
-        }
-
-        .no-data span {
-          font-size: 48px;
-          display: block;
-          margin-bottom: 16px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
         .leaderboard-loading {

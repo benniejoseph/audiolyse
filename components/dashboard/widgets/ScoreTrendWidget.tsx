@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Widget } from './Widget';
 import { createClient } from '@/lib/supabase/client';
+import { TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
 
 interface TrendDataPoint {
   date: string;
@@ -118,7 +119,7 @@ export function ScoreTrendWidget({
     <Widget
       id="score-trend"
       title={viewMode === 'team' ? 'Team Score Trend' : 'Your Score Trend'}
-      icon="📈"
+      icon={<TrendingUp size={20} />}
       loading={loading}
       error={error}
       onRefresh={loadTrendData}
@@ -136,7 +137,7 @@ export function ScoreTrendWidget({
     >
       {data.length === 0 ? (
         <div className="no-data">
-          <span>📊</span>
+          <BarChart3 size={32} className="opacity-50 mb-3" />
           <p>No score data available for this period</p>
         </div>
       ) : (
@@ -144,7 +145,7 @@ export function ScoreTrendWidget({
           {trend && (
             <div className="trend-summary">
               <span className={`trend-indicator ${trend.direction}`}>
-                {trend.direction === 'up' ? '↗' : trend.direction === 'down' ? '↘' : '→'}
+                {trend.direction === 'up' ? <TrendingUp size={20} /> : trend.direction === 'down' ? <TrendingDown size={20} /> : <Minus size={20} />}
               </span>
               <span className="trend-text">
                 {trend.direction === 'up' ? `Up ${trend.value}%` :
@@ -210,12 +211,9 @@ export function ScoreTrendWidget({
           text-align: center;
           padding: 40px 20px;
           color: var(--muted);
-        }
-        
-        .no-data span {
-          font-size: 32px;
-          display: block;
-          margin-bottom: 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
         
         .trend-content {
@@ -231,8 +229,8 @@ export function ScoreTrendWidget({
         }
         
         .trend-indicator {
-          font-size: 20px;
-          font-weight: 700;
+          display: flex;
+          align-items: center;
         }
         
         .trend-indicator.up { color: #10b981; }

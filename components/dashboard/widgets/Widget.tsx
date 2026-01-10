@@ -5,7 +5,7 @@ import { useState, ReactNode } from 'react';
 export interface WidgetProps {
   id: string;
   title: string;
-  icon?: string;
+  icon?: ReactNode;
   children: ReactNode;
   className?: string;
   collapsible?: boolean;

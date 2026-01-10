@@ -2,6 +2,7 @@
 
 import { useTheme } from './ThemeProvider';
 import { useEffect, useState } from 'react';
+import { Sun, Moon } from 'lucide-react';
 
 export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
@@ -27,7 +28,7 @@ export function ThemeToggle() {
         aria-label="Toggle theme"
         style={{ opacity: 0, width: '100%' }}
       >
-        <span>☀️</span>
+        <span><Sun size={16} /></span>
         <span>Light</span>
       </button>
     );
@@ -41,7 +42,7 @@ export function ThemeToggle() {
         aria-label="Toggle theme"
         title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       >
-        <span className="theme-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+        <span className="theme-icon">{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</span>
         <span className="theme-label">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
       </button>
       
@@ -70,7 +71,8 @@ export function ThemeToggle() {
         }
         
         .theme-icon {
-          font-size: 16px;
+          display: flex;
+          align-items: center;
         }
         
         @media (max-width: 1024px) {

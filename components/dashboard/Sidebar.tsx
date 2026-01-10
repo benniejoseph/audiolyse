@@ -6,21 +6,36 @@ import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { createClient } from '@/lib/supabase/client';
+import { 
+  LayoutDashboard, 
+  Mic, 
+  FolderOpen, 
+  Users, 
+  Trophy, 
+  Target, 
+  BookOpen, 
+  Settings, 
+  ShieldCheck, 
+  CreditCard, 
+  FileText, 
+  Zap, 
+  Lock 
+} from 'lucide-react';
 
 const navItems = [
-  { href: '/dashboard', icon: '📊', label: 'Dashboard' },
-  { href: '/analyze', icon: '🎙️', label: 'Analyze Calls' },
-  { href: '/history', icon: '📁', label: 'History' },
-  { href: '/customers', icon: '👤', label: 'Customers' },
-  { href: '/team', icon: '👥', label: 'Team', badge: 'PRO' },
-  { href: '/leaderboard', icon: '🏆', label: 'Leaderboard' },
-  { href: '/coaching', icon: '🎯', label: 'Coaching', showForManager: true },
-  { href: '/knowledge', icon: '📚', label: 'Knowledge' },
-  { href: '/settings', icon: '⚙️', label: 'Settings' },
-  { href: '/security', icon: '🔐', label: 'Security' },
-  { href: '/compliance', icon: '🛡️', label: 'Compliance' },
-  { href: '/credits', icon: '💳', label: 'Credits', showForPayg: true },
-  { href: '/transactions', icon: '📋', label: 'Transactions', showForPayg: true },
+  { href: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+  { href: '/analyze', icon: <Mic size={20} />, label: 'Analyze Calls' },
+  { href: '/history', icon: <FolderOpen size={20} />, label: 'History' },
+  { href: '/customers', icon: <Users size={20} />, label: 'Customers' },
+  { href: '/team', icon: <Users size={20} />, label: 'Team', badge: 'PRO' },
+  { href: '/leaderboard', icon: <Trophy size={20} />, label: 'Leaderboard' },
+  { href: '/coaching', icon: <Target size={20} />, label: 'Coaching', showForManager: true },
+  { href: '/knowledge', icon: <BookOpen size={20} />, label: 'Knowledge' },
+  { href: '/settings', icon: <Settings size={20} />, label: 'Settings' },
+  { href: '/security', icon: <Lock size={20} />, label: 'Security' },
+  { href: '/compliance', icon: <ShieldCheck size={20} />, label: 'Compliance' },
+  { href: '/credits', icon: <CreditCard size={20} />, label: 'Credits', showForPayg: true },
+  { href: '/transactions', icon: <FileText size={20} />, label: 'Transactions', showForPayg: true },
 ];
 
 export function Sidebar() {
@@ -102,7 +117,7 @@ export function Sidebar() {
             className={`nav-item ${pathname === '/admin' ? 'active' : ''}`}
             style={{ marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}
           >
-            <span className="nav-icon">⚡</span>
+            <span className="nav-icon"><Zap size={20} /></span>
             <span className="nav-label">Admin</span>
           </Link>
         )}
