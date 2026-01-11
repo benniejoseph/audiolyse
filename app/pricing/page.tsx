@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { SUBSCRIPTION_LIMITS, type SubscriptionTier, type Organization } from '@/lib/types/database';
+import { Target, Building2, Check, X, Globe, IndianRupee } from 'lucide-react';
 import '../globals.css';
 
 const tiers: { id: SubscriptionTier; name: string; description: string; popular?: boolean }[] = [
@@ -342,7 +343,7 @@ export default function PricingPage() {
       <div className="pricing-header">
         <Link href={isLoggedIn ? '/dashboard' : '/'} className="back-link">← Back</Link>
         <div className="pricing-brand">
-          <span className="brand-icon">🎯</span>
+          <span className="brand-icon"><Target size={28} /></span>
           <span>Audiolyse</span>
         </div>
       </div>
@@ -353,8 +354,8 @@ export default function PricingPage() {
         
         <div className="pricing-toggles">
           <div className="currency-toggle">
-            <button className={currency === 'INR' ? 'active' : ''} onClick={() => setCurrency('INR')}>🇮🇳 INR</button>
-            <button className={currency === 'USD' ? 'active' : ''} onClick={() => setCurrency('USD')}>🌍 USD</button>
+            <button className={currency === 'INR' ? 'active' : ''} onClick={() => setCurrency('INR')}><IndianRupee size={16} /> INR</button>
+            <button className={currency === 'USD' ? 'active' : ''} onClick={() => setCurrency('USD')}><Globe size={16} /> USD</button>
           </div>
           
           <div className="billing-toggle">
@@ -459,7 +460,7 @@ export default function PricingPage() {
             </button>
             
             <div className="enterprise-header">
-              <span className="enterprise-icon">🏢</span>
+              <span className="enterprise-icon"><Building2 size={48} /></span>
               <h2>Enterprise Plan Inquiry</h2>
               <p>Tell us about your needs and we&apos;ll create a custom plan for you.</p>
             </div>
