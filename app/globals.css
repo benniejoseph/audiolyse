@@ -173,6 +173,12 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-items: center;
+}
+.sidebar-footer-content {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 .sidebar.collapsed .sidebar-footer { align-items: center; }
 
