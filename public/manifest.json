@@ -1,0 +1,40 @@
+{
+  "name": "Audiolyse - Call Analytics Platform",
+  "short_name": "Audiolyse",
+  "description": "AI-powered call transcription and analysis for sales teams",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#00d9ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Analyze Call",
+      "short_name": "Analyze",
+      "description": "Upload and analyze a new call",
+      "url": "/analyze"
+    },
+    {
+      "name": "View History",
+      "short_name": "History",
+      "description": "View past call analyses",
+      "url": "/history"
+    },
+    {
+      "name": "Customers",
+      "short_name": "Customers",
+      "description": "View customer profiles",
+      "url": "/customers"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

@@ -1,0 +1,289 @@
+/* Credits Purchase Page Styles */
+
+.credits-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.credits-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 1rem;
+}
+
+.credits-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.credits-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  background: linear-gradient(135deg, #00d9ff, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.credits-header p {
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.credits-balance-card {
+  background: rgba(30, 31, 58, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: 1rem;
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: 0 4px 20px rgba(0, 217, 255, 0.15);
+}
+
+.balance-label {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.balance-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00d9ff, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.currency-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+
+.currency-toggle button {
+  padding: 0.75rem 1.5rem;
+  background: rgba(30, 31, 58, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.currency-toggle button:hover {
+  border-color: rgba(0, 217, 255, 0.5);
+  color: #fff;
+}
+
+.currency-toggle button.active {
+  background: linear-gradient(135deg, #00d9ff, #8b5cf6);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 217, 255, 0.3);
+}
+
+.credits-packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.credits-package-card {
+  position: relative;
+  background: rgba(30, 31, 58, 0.5);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.credits-package-card:hover {
+  border-color: rgba(0, 217, 255, 0.4);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(0, 217, 255, 0.2), 0 0 60px rgba(139, 92, 246, 0.15);
+}
+
+.credits-package-card.popular {
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.15), rgba(139, 92, 246, 0.1));
+  border: 2px solid rgba(0, 217, 255, 0.4);
+  transform: scale(1.03);
+  box-shadow: 0 8px 32px rgba(0, 217, 255, 0.3), 0 0 80px rgba(139, 92, 246, 0.2);
+}
+
+.credits-package-card.popular:hover {
+  transform: scale(1.03) translateY(-6px);
+  box-shadow: 0 16px 48px rgba(0, 217, 255, 0.4), 0 0 100px rgba(139, 92, 246, 0.25);
+}
+
+.popular-badge {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1.25rem;
+  background: linear-gradient(135deg, #00d9ff, #8b5cf6);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 100px;
+  box-shadow: 0 4px 16px rgba(0, 217, 255, 0.4);
+}
+
+.discount-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.package-credits {
+  margin-bottom: 1.5rem;
+}
+
+.credits-amount {
+  display: block;
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #00d9ff, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.credits-label {
+  display: block;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.5rem;
+}
+
+.package-price {
+  margin-bottom: 1.5rem;
+}
+
+.price-amount {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+}
+
+.price-per-credit {
+  display: block;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.purchase-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #00d9ff 0%, #8b5cf6 100%);
+  border: none;
+  border-radius: 0.75rem;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 217, 255, 0.3);
+}
+
+.purchase-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 217, 255, 0.5), 0 0 60px rgba(139, 92, 246, 0.3);
+}
+
+.purchase-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.credits-info {
+  background: rgba(30, 31, 58, 0.4);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  margin-top: 3rem;
+}
+
+.credits-info h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem;
+  color: #ffffff;
+}
+
+.credits-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.credits-info li {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 0.75rem;
+  background: rgba(0, 217, 255, 0.05);
+  border-radius: 0.5rem;
+  border-left: 3px solid #00d9ff;
+}
+
+@media (max-width: 768px) {
+  .credits-page {
+    padding: 1rem;
+  }
+  
+  .credits-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .credits-packages-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .credits-info ul {
+    grid-template-columns: 1fr;
+  }
+}
+
