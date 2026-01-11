@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Profile, Organization, AISettings, IndustryType } from '@/lib/types/database';
 import { SUBSCRIPTION_LIMITS } from '@/lib/types/database';
 import { getAvailableIndustries } from '@/lib/ai/industry-prompts';
+import { Building2, Package, Clipboard, BarChart3, Users, FileText, Phone, Download, AlertTriangle } from 'lucide-react';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -431,7 +432,7 @@ export default function SettingsPage() {
                 className="ai-settings-card-header"
                 onClick={() => setAiSettingsExpanded(aiSettingsExpanded === 'industry' ? null : 'industry')}
               >
-                <h4>🏢 Industry & Basic Context</h4>
+                <h4><Building2 size={18} style={{display: 'inline', marginRight: 8}} /> Industry & Basic Context</h4>
                 <span className="expand-icon">{aiSettingsExpanded === 'industry' ? '−' : '+'}</span>
               </div>
               {(aiSettingsExpanded === 'industry' || aiSettingsExpanded === 'basic') && (
@@ -472,7 +473,7 @@ export default function SettingsPage() {
                 className="ai-settings-card-header"
                 onClick={() => setAiSettingsExpanded(aiSettingsExpanded === 'products' ? null : 'products')}
               >
-                <h4>📦 Products & Competitors</h4>
+                <h4><Package size={18} style={{display: 'inline', marginRight: 8}} /> Products & Competitors</h4>
                 <span className="expand-icon">{aiSettingsExpanded === 'products' ? '−' : '+'}</span>
               </div>
               {aiSettingsExpanded === 'products' && (
@@ -511,7 +512,7 @@ export default function SettingsPage() {
                 className="ai-settings-card-header"
                 onClick={() => setAiSettingsExpanded(aiSettingsExpanded === 'compliance' ? null : 'compliance')}
               >
-                <h4>📋 Compliance & Guidelines</h4>
+                <h4><Clipboard size={18} style={{display: 'inline', marginRight: 8}} /> Compliance & Guidelines</h4>
                 <span className="expand-icon">{aiSettingsExpanded === 'compliance' ? '−' : '+'}</span>
               </div>
               {aiSettingsExpanded === 'compliance' && (
@@ -548,7 +549,7 @@ export default function SettingsPage() {
                 className="ai-settings-card-header"
                 onClick={() => setAiSettingsExpanded(aiSettingsExpanded === 'scoring' ? null : 'scoring')}
               >
-                <h4>📊 Scoring Preferences</h4>
+                <h4><BarChart3 size={18} style={{display: 'inline', marginRight: 8}} /> Scoring Preferences</h4>
                 <span className="expand-icon">{aiSettingsExpanded === 'scoring' ? '−' : '+'}</span>
               </div>
               {aiSettingsExpanded === 'scoring' && (
@@ -619,7 +620,7 @@ export default function SettingsPage() {
                 className="ai-settings-card-header"
                 onClick={() => setAiSettingsExpanded(aiSettingsExpanded === 'customer' ? null : 'customer')}
               >
-                <h4>👥 Customer Context</h4>
+                <h4><Users size={18} style={{display: 'inline', marginRight: 8}} /> Customer Context</h4>
                 <span className="expand-icon">{aiSettingsExpanded === 'customer' ? '−' : '+'}</span>
               </div>
               {aiSettingsExpanded === 'customer' && (
@@ -669,7 +670,7 @@ export default function SettingsPage() {
                 className="ai-settings-card-header"
                 onClick={() => setAiSettingsExpanded(aiSettingsExpanded === 'terminology' ? null : 'terminology')}
               >
-                <h4>📝 Custom Terminology</h4>
+                <h4><FileText size={18} style={{display: 'inline', marginRight: 8}} /> Custom Terminology</h4>
                 <span className="expand-icon">{aiSettingsExpanded === 'terminology' ? '−' : '+'}</span>
               </div>
               {aiSettingsExpanded === 'terminology' && (
@@ -695,7 +696,7 @@ export default function SettingsPage() {
                 className="ai-settings-card-header"
                 onClick={() => setAiSettingsExpanded(aiSettingsExpanded === 'scripts' ? null : 'scripts')}
               >
-                <h4>📞 Call Scripts</h4>
+                <h4><Phone size={18} style={{display: 'inline', marginRight: 8}} /> Call Scripts</h4>
                 <span className="expand-icon">{aiSettingsExpanded === 'scripts' ? '−' : '+'}</span>
               </div>
               {aiSettingsExpanded === 'scripts' && (
@@ -777,7 +778,7 @@ export default function SettingsPage() {
             </p>
 
             <div className="privacy-card">
-              <h4>📥 Export Your Data</h4>
+              <h4><Download size={18} style={{display: 'inline', marginRight: 8}} /> Export Your Data</h4>
               <p>Download all your personal data including profile information, call analyses, and settings.</p>
               <button className="save-btn" onClick={handleExportData} disabled={saving}>
                 {saving ? 'Exporting...' : 'Download My Data'}
@@ -785,7 +786,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="privacy-card">
-              <h4>📋 Data We Store</h4>
+              <h4><Clipboard size={18} style={{display: 'inline', marginRight: 8}} /> Data We Store</h4>
               <ul className="data-list">
                 <li><strong>Profile:</strong> Name, email, phone, preferences</li>
                 <li><strong>Organization:</strong> Company name, settings, AI context</li>
@@ -837,7 +838,7 @@ export default function SettingsPage() {
             </button>
 
             <div className="danger-zone">
-              <h4>⚠️ Danger Zone</h4>
+              <h4><AlertTriangle size={18} style={{display: 'inline', marginRight: 8}} /> Danger Zone</h4>
               <p>Permanently delete your account and all data. This action cannot be undone.</p>
               <button className="delete-btn" onClick={() => setShowDeleteModal(true)}>
                 Delete Account
@@ -858,7 +859,7 @@ export default function SettingsPage() {
             >
               ×
             </button>
-            <div className="delete-warning-icon">⚠️</div>
+            <div className="delete-warning-icon"><AlertTriangle size={48} color="#EF4444" /></div>
             <h2>Delete Your Account?</h2>
             <p className="delete-warning-text">
               This action is <strong>permanent and irreversible</strong>. All your data will be deleted:

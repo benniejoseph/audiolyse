@@ -20,7 +20,9 @@ import {
   Handshake, 
   Clipboard,
   Copy,
-  Plus
+  Plus,
+  Search,
+  Star
 } from 'lucide-react';
 
 interface Script {
@@ -267,7 +269,7 @@ export default function KnowledgePage() {
       {/* Search & Filter */}
       <div className="filters">
         <div className="search-box">
-          <span className="search-icon">🔍</span>
+          <span className="search-icon"><Search size={16} /></span>
           <input
             type="text"
             placeholder="Search..."
@@ -373,7 +375,7 @@ export default function KnowledgePage() {
                     <div className="responses-list">
                       {playbook.responses.map((response, i) => (
                         <div key={i} className={`response-item ${i === playbook.best_response_index ? 'best' : ''}`}>
-                          {i === playbook.best_response_index && <span className="best-badge">⭐ Best Response</span>}
+                          {i === playbook.best_response_index && <span className="best-badge"><Star size={14} fill="#FFD700" color="#FFD700" style={{display: 'inline', marginRight: 4}} /> Best Response</span>}
                           <p>{response.response}</p>
                           <button className="copy-btn small" onClick={() => copyScript(response.response)}>
                             <Copy size={12} />

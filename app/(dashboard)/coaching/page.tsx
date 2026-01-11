@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from '@/lib/toast';
+import { Target, Calendar, Clock, CheckCircle, Star, Users, UsersRound, BookOpen, BarChart3 } from 'lucide-react';
 
 interface CoachingSession {
   id: string;
@@ -236,11 +237,11 @@ export default function CoachingPage() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'one_on_one': return '👥';
-      case 'group': return '👨‍👩‍👧‍👦';
-      case 'training': return '📚';
-      case 'review': return '📊';
-      default: return '🎯';
+      case 'one_on_one': return <Users size={28} />;
+      case 'group': return <UsersRound size={28} />;
+      case 'training': return <BookOpen size={28} />;
+      case 'review': return <BarChart3 size={28} />;
+      default: return <Target size={28} />;
     }
   };
 
@@ -263,7 +264,7 @@ export default function CoachingPage() {
     <div className="coaching-page">
       <div className="page-header">
         <div>
-          <h1>🎯 Coaching & 1:1s</h1>
+          <h1><Target size={24} style={{display: 'inline', marginRight: 8}} /> Coaching & 1:1s</h1>
           <p>Track and manage coaching sessions with your team</p>
         </div>
         {isManager && (
@@ -276,28 +277,28 @@ export default function CoachingPage() {
       {/* Stats */}
       <div className="coaching-stats">
         <div className="stat-card">
-          <span className="stat-icon">📅</span>
+          <span className="stat-icon"><Calendar size={24} /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.total}</span>
             <span className="stat-label">Total Sessions</span>
           </div>
         </div>
         <div className="stat-card">
-          <span className="stat-icon">⏳</span>
+          <span className="stat-icon"><Clock size={24} /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.upcoming}</span>
             <span className="stat-label">Upcoming</span>
           </div>
         </div>
         <div className="stat-card">
-          <span className="stat-icon">✅</span>
+          <span className="stat-icon"><CheckCircle size={24} /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.completed}</span>
             <span className="stat-label">Completed</span>
           </div>
         </div>
         <div className="stat-card">
-          <span className="stat-icon">⭐</span>
+          <span className="stat-icon"><Star size={24} /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.avgRating || '—'}</span>
             <span className="stat-label">Avg Rating</span>
@@ -335,7 +336,7 @@ export default function CoachingPage() {
       {/* Sessions List */}
       {filteredSessions.length === 0 ? (
         <div className="no-sessions">
-          <span className="empty-icon">🎯</span>
+          <span className="empty-icon"><Target size={48} /></span>
           <h3>No coaching sessions</h3>
           <p>{isManager ? 'Schedule your first coaching session' : 'No sessions scheduled yet'}</p>
           {isManager && (
@@ -378,7 +379,7 @@ export default function CoachingPage() {
                 )}
                 {session.agent_rating && (
                   <div className="session-rating">
-                    {'⭐'.repeat(session.agent_rating)}
+                    {Array.from({length: session.agent_rating}).map((_, i) => <Star key={i} size={14} fill="#FFD700" color="#FFD700" />)}
                   </div>
                 )}
               </div>

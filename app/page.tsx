@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Logo } from '@/components/Logo';
+import { Mic, BarChart3, Target, Sparkles, Zap, FileText, Check, X } from 'lucide-react';
 
 export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -182,7 +183,7 @@ export default function LandingPage() {
         <div className="features-grid-v2">
           <div className="feature-card-v2 featured">
             <div className="feature-icon-v2">
-              <span>🎙️</span>
+              <Mic size={32} />
             </div>
             <h3>AI Transcription</h3>
             <p>Real-time transcription in English, Hindi & Hinglish with 98% accuracy and speaker identification.</p>
@@ -194,7 +195,7 @@ export default function LandingPage() {
 
           <div className="feature-card-v2">
             <div className="feature-icon-v2">
-              <span>📊</span>
+              <BarChart3 size={32} />
             </div>
             <h3>Conversation Metrics</h3>
             <p>Talk ratios, response times, interruptions, and 20+ metrics analyzed instantly.</p>
@@ -202,7 +203,7 @@ export default function LandingPage() {
 
           <div className="feature-card-v2">
             <div className="feature-icon-v2">
-              <span>🎯</span>
+              <Target size={32} />
             </div>
             <h3>Precision Scoring</h3>
             <p>Strict AI evaluation across 8 categories with actionable improvement suggestions.</p>
@@ -210,7 +211,7 @@ export default function LandingPage() {
 
           <div className="feature-card-v2">
             <div className="feature-icon-v2">
-              <span>🔮</span>
+              <Sparkles size={32} />
             </div>
             <h3>Predictive Analytics</h3>
             <p>Conversion probability, churn risk, and satisfaction forecasts powered by ML.</p>
@@ -218,7 +219,7 @@ export default function LandingPage() {
 
           <div className="feature-card-v2">
             <div className="feature-icon-v2">
-              <span>⚡</span>
+              <Zap size={32} />
             </div>
             <h3>Key Moments</h3>
             <p>Auto-detect objections, buying signals, and critical conversation turning points.</p>
@@ -226,7 +227,7 @@ export default function LandingPage() {
 
           <div className="feature-card-v2">
             <div className="feature-icon-v2">
-              <span>📄</span>
+              <FileText size={32} />
             </div>
             <h3>Executive Reports</h3>
             <p>One-click PDF exports with visualizations for training and compliance.</p>
@@ -255,11 +256,11 @@ export default function LandingPage() {
               <span className="period">/forever</span>
             </div>
             <ul className="price-features-v2">
-              <li><span className="check">✓</span>10 calls/day</li>
-              <li><span className="check">✓</span>Basic analysis</li>
-              <li><span className="check">✓</span>7 days history</li>
-              <li className="disabled"><span className="x">✗</span>PDF export</li>
-              <li className="disabled"><span className="x">✗</span>Team features</li>
+              <li><span className="check"><Check size={14} /></span>10 calls/day</li>
+              <li><span className="check"><Check size={14} /></span>Basic analysis</li>
+              <li><span className="check"><Check size={14} /></span>7 days history</li>
+              <li className="disabled"><span className="x"><X size={14} /></span>PDF export</li>
+              <li className="disabled"><span className="x"><X size={14} /></span>Team features</li>
             </ul>
             <Link href="/signup" className="price-btn-v2">Get Started</Link>
           </div>
@@ -276,11 +277,11 @@ export default function LandingPage() {
               <span className="period">/month</span>
             </div>
             <ul className="price-features-v2">
-              <li><span className="check">✓</span>100 calls/month</li>
-              <li><span className="check">✓</span>Full analysis suite</li>
-              <li><span className="check">✓</span>30 days history</li>
-              <li><span className="check">✓</span>PDF export</li>
-              <li><span className="check">✓</span>Bulk upload</li>
+              <li><span className="check"><Check size={14} /></span>100 calls/month</li>
+              <li><span className="check"><Check size={14} /></span>Full analysis suite</li>
+              <li><span className="check"><Check size={14} /></span>30 days history</li>
+              <li><span className="check"><Check size={14} /></span>PDF export</li>
+              <li><span className="check"><Check size={14} /></span>Bulk upload</li>
             </ul>
             <Link href="/signup" className="price-btn-v2">Start Trial</Link>
           </div>
@@ -298,11 +299,11 @@ export default function LandingPage() {
               <span className="period">/month</span>
             </div>
             <ul className="price-features-v2">
-              <li><span className="check">✓</span>600 calls/month</li>
-              <li><span className="check">✓</span>Up to 10 users</li>
-              <li><span className="check">✓</span>90 days history</li>
-              <li><span className="check">✓</span>Team management</li>
-              <li><span className="check">✓</span>Priority support</li>
+              <li><span className="check"><Check size={14} /></span>600 calls/month</li>
+              <li><span className="check"><Check size={14} /></span>Up to 10 users</li>
+              <li><span className="check"><Check size={14} /></span>90 days history</li>
+              <li><span className="check"><Check size={14} /></span>Team management</li>
+              <li><span className="check"><Check size={14} /></span>Priority support</li>
             </ul>
             <Link href="/signup" className="price-btn-v2 primary">Start Trial</Link>
           </div>
@@ -319,11 +320,11 @@ export default function LandingPage() {
               <span className="period">/month</span>
             </div>
             <ul className="price-features-v2">
-              <li><span className="check">✓</span>2,000 calls/month</li>
-              <li><span className="check">✓</span>Unlimited users</li>
-              <li><span className="check">✓</span>1 year history</li>
-              <li><span className="check">✓</span>API access</li>
-              <li><span className="check">✓</span>Custom branding</li>
+              <li><span className="check"><Check size={14} /></span>2,000 calls/month</li>
+              <li><span className="check"><Check size={14} /></span>Unlimited users</li>
+              <li><span className="check"><Check size={14} /></span>1 year history</li>
+              <li><span className="check"><Check size={14} /></span>API access</li>
+              <li><span className="check"><Check size={14} /></span>Custom branding</li>
             </ul>
             <Link href="/signup" className="price-btn-v2">Contact Sales</Link>
           </div>
@@ -340,11 +341,11 @@ export default function LandingPage() {
               <span className="period">/credit</span>
             </div>
             <ul className="price-features-v2">
-              <li><span className="check">✓</span>Pay per call - No commitment</li>
-              <li><span className="check">✓</span>1 credit = 1 call analysis</li>
-              <li><span className="check">✓</span>Credits never expire</li>
-              <li><span className="check">✓</span>Bulk discounts available</li>
-              <li><span className="check">✓</span>All premium features</li>
+              <li><span className="check"><Check size={14} /></span>Pay per call - No commitment</li>
+              <li><span className="check"><Check size={14} /></span>1 credit = 1 call analysis</li>
+              <li><span className="check"><Check size={14} /></span>Credits never expire</li>
+              <li><span className="check"><Check size={14} /></span>Bulk discounts available</li>
+              <li><span className="check"><Check size={14} /></span>All premium features</li>
             </ul>
             <Link href="/signup" className="price-btn-v2">Buy Credits</Link>
           </div>

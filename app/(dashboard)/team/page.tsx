@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Organization, OrganizationMember, Profile } from '@/lib/types/database';
 import { SUBSCRIPTION_LIMITS } from '@/lib/types/database';
+import { Users, User, BarChart3, Target, FolderOpen } from 'lucide-react';
 
 type MemberWithProfile = OrganizationMember & { 
   profile: Profile;
@@ -252,24 +253,24 @@ export default function TeamPage() {
     return (
       <div className="team-page">
         <div className="team-upgrade-prompt">
-          <div className="upgrade-icon">👥</div>
+          <div className="upgrade-icon"><Users size={64} /></div>
           <h2>Team Management</h2>
           <p>Upgrade to Team or Enterprise plan to invite team members and collaborate on call analysis.</p>
           <div className="upgrade-features">
             <div className="feature">
-              <span className="feature-icon">📊</span>
+              <span className="feature-icon"><BarChart3 size={20} /></span>
               <span>Shared dashboards</span>
             </div>
             <div className="feature">
-              <span className="feature-icon">🎯</span>
+              <span className="feature-icon"><Target size={20} /></span>
               <span>Team performance tracking</span>
             </div>
             <div className="feature">
-              <span className="feature-icon">👤</span>
+              <span className="feature-icon"><User size={20} /></span>
               <span>Role-based access</span>
             </div>
             <div className="feature">
-              <span className="feature-icon">📁</span>
+              <span className="feature-icon"><FolderOpen size={20} /></span>
               <span>Shared call history</span>
             </div>
           </div>

@@ -8,7 +8,7 @@ import { SUBSCRIPTION_LIMITS } from '@/lib/types/database';
 import { toast } from '@/lib/toast';
 import { getAudioUrl } from '@/lib/storage/audio';
 import Link from 'next/link';
-import { XCircle } from 'lucide-react';
+import { XCircle, Search, FolderOpen } from 'lucide-react';
 import CallDetailView from '@/components/analysis/CallDetailView';
 
 interface CustomerOption {
@@ -355,7 +355,7 @@ export default function HistoryPage() {
       {/* Filters */}
       <div className="history-filters">
         <div className="search-box">
-          <span className="search-icon">🔍</span>
+          <span className="search-icon"><Search size={16} /></span>
           <input
             type="text"
             placeholder="Search by file name..."
@@ -386,7 +386,7 @@ export default function HistoryPage() {
       {/* Calls Grid */}
       {filteredCalls.length === 0 ? (
         <div className="empty-history">
-          <div className="empty-icon">📁</div>
+          <div className="empty-icon"><FolderOpen size={48} /></div>
           <h3>No calls found</h3>
           <p>{searchQuery ? 'Try a different search term' : 'Start by analyzing your first call'}</p>
           {!searchQuery && (

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { searchCustomers, getTopCustomers, getAtRiskCustomers, type CustomerProfile } from '@/lib/customer';
+import { Users, User, CheckCircle, Smile, AlertTriangle, Search } from 'lucide-react';
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -141,7 +142,7 @@ export default function CustomersPage() {
     <div className="customers-page">
       <div className="page-header">
         <div className="header-content">
-          <h1>👥 Customers</h1>
+          <h1><Users size={24} style={{display: 'inline', marginRight: 8}} /> Customers</h1>
           <p>Track and manage customer relationships</p>
         </div>
         <button 
@@ -155,21 +156,21 @@ export default function CustomersPage() {
       {/* Stats Cards */}
       <div className="customer-stats">
         <div className="stat-card">
-          <span className="stat-icon">👤</span>
+          <span className="stat-icon"><User size={24} /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.totalCustomers}</span>
             <span className="stat-label">Total Customers</span>
           </div>
         </div>
         <div className="stat-card">
-          <span className="stat-icon">✅</span>
+          <span className="stat-icon"><CheckCircle size={24} /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.activeCustomers}</span>
             <span className="stat-label">Active</span>
           </div>
         </div>
         <div className="stat-card">
-          <span className="stat-icon">😊</span>
+          <span className="stat-icon"><Smile size={24} /></span>
           <div className="stat-content">
             <span className="stat-value" style={{ color: getSentimentColor(stats.avgSentiment) }}>
               {stats.avgSentiment}%
@@ -178,7 +179,7 @@ export default function CustomersPage() {
           </div>
         </div>
         <div className="stat-card warning">
-          <span className="stat-icon">⚠️</span>
+          <span className="stat-icon"><AlertTriangle size={24} /></span>
           <div className="stat-content">
             <span className="stat-value">{stats.atRiskCount}</span>
             <span className="stat-label">At Risk</span>
@@ -219,7 +220,7 @@ export default function CustomersPage() {
       {/* Search and Filters */}
       <div className="customer-filters">
         <div className="search-box">
-          <span className="search-icon">🔍</span>
+          <span className="search-icon"><Search size={16} /></span>
           <input
             type="text"
             placeholder="Search by name, email, phone..."
@@ -244,7 +245,7 @@ export default function CustomersPage() {
       <div className="customer-list">
         {displayedCustomers.length === 0 ? (
           <div className="no-customers">
-            <span className="empty-icon">👥</span>
+            <span className="empty-icon"><Users size={48} /></span>
             <h3>No customers found</h3>
             <p>Customers will appear here after call analyses</p>
           </div>
