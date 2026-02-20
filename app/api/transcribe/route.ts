@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { processAudioForAnalysis, checkFileSize } from './audioUtils';
-import { supabaseAdmin, getDefaultOrgAndUser } from '@/app/utils/supabaseAdmin';
+import { supabaseAdmin } from '@/app/utils/supabaseAdmin';
+import { getUserAndOrg } from '@/app/utils/supabaseServer';
 
 // Debug logging for env vars (masked)
 const k1 = process.env.GOOGLE_GEMINI_API_KEY;
@@ -44,6 +45,41 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await audio.arrayBuffer();
     const originalMimeType = audio.type || 'audio/mpeg';
     const originalBuffer = Buffer.from(arrayBuffer);
+
+    // Rate limit (per user or IP)
+    if (supabaseAdmin) {
+      const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim();
+      const { user_id } = await getUserAndOrg();
+      const identifier = user_id || ip || 'anonymous';
+      const endpoint = 'transcribe';
+      const { data: existing } = await supabaseAdmin
+        .from('rate_limit_tracking')
+        .select('id, request_count, window_start')
+        .eq('identifier', identifier)
+        .eq('endpoint', endpoint)
+        .order('window_start', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const now = new Date();
+      const windowMs = 60 * 60 * 1000;
+      const maxReq = 30;
+      const windowStart = existing?.window_start ? new Date(existing.window_start) : null;
+
+      if (existing && windowStart && now.getTime() - windowStart.getTime() < windowMs) {
+        if ((existing.request_count || 0) >= maxReq) {
+          return NextResponse.json({ error: 'Rate limit exceeded. Try again later.' }, { status: 429 });
+        }
+        await supabaseAdmin
+          .from('rate_limit_tracking')
+          .update({ request_count: (existing.request_count || 0) + 1 })
+          .eq('id', existing.id);
+      } else {
+        await supabaseAdmin
+          .from('rate_limit_tracking')
+          .insert({ identifier, endpoint, request_count: 1, window_start: now.toISOString() });
+      }
+    }
 
     console.log(`[Transcribe] Processing: ${audio.name}, Size: ${Math.round(originalBuffer.length / 1024)}KB, Type: ${originalMimeType}`);
 
@@ -179,7 +215,7 @@ IMPORTANT: For redFlags array - if there are no red flags, return an EMPTY ARRAY
 
     if (!text) {
       if (supabaseAdmin) {
-        const { organization_id, user_id } = await getDefaultOrgAndUser();
+        const { organization_id, user_id } = await getUserAndOrg();
         if (organization_id && user_id) {
           await supabaseAdmin.from('audit_logs').insert({
             organization_id,
@@ -208,7 +244,7 @@ IMPORTANT: For redFlags array - if there are no red flags, return an EMPTY ARRAY
 
     // Persist analysis + audit + usage logs
     if (supabaseAdmin) {
-      const { organization_id, user_id } = await getDefaultOrgAndUser();
+      const { organization_id, user_id } = await getUserAndOrg();
       if (organization_id && user_id) {
         const overallScore = normalized?.coaching?.overallScore ?? null;
         const sentiment = normalized?.insights?.sentiment ?? null;
@@ -264,7 +300,7 @@ IMPORTANT: For redFlags array - if there are no red flags, return an EMPTY ARRAY
   } catch (e: any) {
     console.error('Transcribe API error:', e);
     if (supabaseAdmin) {
-      const { organization_id, user_id } = await getDefaultOrgAndUser();
+      const { organization_id, user_id } = await getUserAndOrg();
       if (organization_id && user_id) {
         await supabaseAdmin.from('audit_logs').insert({
           organization_id,

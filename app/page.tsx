@@ -87,13 +87,35 @@ export default function HomePage() {
     globalAudioRef.current.addEventListener('play', () => {
       setIsPlaying(true);
     });
-    
+
     return () => {
       if (globalAudioRef.current) {
         globalAudioRef.current.pause();
         globalAudioRef.current.src = '';
       }
     };
+  }, []);
+
+  // Load previous analyses from DB
+  useEffect(() => {
+    fetch('/api/analyses')
+      .then(r => r.ok ? r.json() : { data: [] })
+      .then(j => {
+        if (!j?.data?.length) return;
+        const mapped = j.data.map((row: any) => ({
+          id: row.id,
+          fileName: row.file_name,
+          fileSize: Number(row.file_size_bytes || 0),
+          status: row.status || 'completed',
+          result: row.analysis_json,
+          audioUrl: row.audio_url || undefined,
+        }));
+        if (mapped.length) {
+          setBulkResults(mapped);
+          setViewMode('dashboard');
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Load audio when selected call changes
@@ -246,7 +268,10 @@ export default function HomePage() {
     const a = document.createElement('a'); a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   };
-  const exportAllResults = () => download('bulk-analysis.json', JSON.stringify({ exportedAt: new Date().toISOString(), summary, calls: bulkResults.filter(r => r.status === 'completed').map(r => ({ fileName: r.fileName, ...r.result })) }, null, 2));
+  const exportAllResults = () => {
+    fetch('/api/usage', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'api_call', metadata: { type: 'bulk_export' } }) });
+    return download('bulk-analysis.json', JSON.stringify({ exportedAt: new Date().toISOString(), summary, calls: bulkResults.filter(r => r.status === 'completed').map(r => ({ fileName: r.fileName, ...r.result })) }, null, 2));
+  };
   const getScoreColor = (score: number) => score >= 80 ? '#7cffc7' : score >= 60 ? '#ffd166' : '#ff6b6b';
   const getRiskColor = (risk: string) => risk === 'high' ? '#ff6b6b' : risk === 'medium' ? '#ffd166' : '#7cffc7';
   const getSeverityColor = (severity: string) => severity === 'severe' ? '#ff6b6b' : severity === 'moderate' ? '#ffa94d' : severity === 'mild' ? '#ffd166' : '#7cffc7';
@@ -805,10 +830,10 @@ export default function HomePage() {
           <div className="card">
             <div className="sectionTitle"><strong>Export Options</strong></div>
             <div className="export-buttons">
-              <button className="export-btn" onClick={() => generateCallAnalysisPDF(selectedCall)}>Download PDF Report</button>
-              <button className="export-btn" onClick={() => download(`${selectedCall.fileName}-full.json`, JSON.stringify(selectedCall.result, null, 2))}>Export JSON Analysis</button>
-              <button className="export-btn" onClick={() => download(`${selectedCall.fileName}-transcript.txt`, selectedCall.result?.transcription || '', 'text/plain')}>Export Transcript</button>
-              <button className="export-btn" onClick={() => download(`${selectedCall.fileName}-coaching.json`, JSON.stringify(selectedCall.result?.coaching, null, 2))}>Export Coaching</button>
+              <button className="export-btn" onClick={() => { fetch('/api/usage', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'pdf_exported', metadata: { file: selectedCall.fileName } }) }); generateCallAnalysisPDF(selectedCall); }}>Download PDF Report</button>
+              <button className="export-btn" onClick={() => { fetch('/api/usage', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'api_call', metadata: { type: 'export_json', file: selectedCall.fileName } }) }); download(`${selectedCall.fileName}-full.json`, JSON.stringify(selectedCall.result, null, 2)); }}>Export JSON Analysis</button>
+              <button className="export-btn" onClick={() => { fetch('/api/usage', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'api_call', metadata: { type: 'export_transcript', file: selectedCall.fileName } }) }); download(`${selectedCall.fileName}-transcript.txt`, selectedCall.result?.transcription || '', 'text/plain'); }}>Export Transcript</button>
+              <button className="export-btn" onClick={() => { fetch('/api/usage', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'api_call', metadata: { type: 'export_coaching', file: selectedCall.fileName } }) }); download(`${selectedCall.fileName}-coaching.json`, JSON.stringify(selectedCall.result?.coaching, null, 2)); }}>Export Coaching</button>
             </div>
           </div>
         </div>
