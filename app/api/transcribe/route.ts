@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { processAudioForAnalysis, checkFileSize } from './audioUtils';
+import { supabaseAdmin, getDefaultOrgAndUser } from '@/app/utils/supabaseAdmin';
 
 // Debug logging for env vars (masked)
 const k1 = process.env.GOOGLE_GEMINI_API_KEY;
@@ -54,6 +55,29 @@ export async function POST(req: NextRequest) {
     }
 
     const processedAudio = processAudioForAnalysis(originalBuffer, originalMimeType, audio.name);
+
+    // Optional: persist raw audio to Supabase Storage
+    let storagePath: string | null = null;
+    let audioUrl: string | null = null;
+    if (supabaseAdmin) {
+      try {
+        const ext = audio.name.split('.').pop() || 'audio';
+        const fileKey = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        storagePath = `uploads/${fileKey}`;
+        const { error: uploadErr } = await supabaseAdmin.storage
+          .from('call-recordings')
+          .upload(storagePath, originalBuffer, {
+            contentType: processedAudio.mimeType,
+            upsert: false,
+          });
+        if (!uploadErr) {
+          const { data: publicUrl } = supabaseAdmin.storage
+            .from('call-recordings')
+            .getPublicUrl(storagePath);
+          audioUrl = publicUrl?.publicUrl || null;
+        }
+      } catch {}
+    }
     
     // 4. Try Models sequentially
     const errors: string[] = [];
@@ -154,6 +178,18 @@ IMPORTANT: For redFlags array - if there are no red flags, return an EMPTY ARRAY
     }
 
     if (!text) {
+      if (supabaseAdmin) {
+        const { organization_id, user_id } = await getDefaultOrgAndUser();
+        if (organization_id && user_id) {
+          await supabaseAdmin.from('audit_logs').insert({
+            organization_id,
+            user_id,
+            action: 'call_analysis_failed',
+            resource_type: 'call_analyses',
+            metadata: { file_name: audio.name, errors },
+          });
+        }
+      }
       return NextResponse.json({
         error: 'All AI models failed to respond.',
         debug_errors: errors
@@ -170,9 +206,75 @@ IMPORTANT: For redFlags array - if there are no red flags, return an EMPTY ARRAY
     const d: any = data || {};
     const normalized = normalizeData(d, usedModel);
 
-    return NextResponse.json(normalized);
+    // Persist analysis + audit + usage logs
+    if (supabaseAdmin) {
+      const { organization_id, user_id } = await getDefaultOrgAndUser();
+      if (organization_id && user_id) {
+        const overallScore = normalized?.coaching?.overallScore ?? null;
+        const sentiment = normalized?.insights?.sentiment ?? null;
+        const durationSec = normalized?.durationSec ?? null;
+
+        const { data: inserted, error: insertErr } = await supabaseAdmin
+          .from('call_analyses')
+          .insert({
+            organization_id,
+            uploaded_by: user_id,
+            file_name: audio.name,
+            file_size_bytes: originalBuffer.length,
+            file_path: storagePath,
+            audio_url: audioUrl,
+            duration_sec: durationSec,
+            language: normalized?.language || null,
+            transcription: normalized?.transcription || null,
+            summary: normalized?.summary || null,
+            overall_score: overallScore,
+            sentiment,
+            analysis_json: normalized,
+            status: 'completed',
+          })
+          .select('id')
+          .single();
+
+        const callId = inserted?.id || null;
+
+        await supabaseAdmin.from('audit_logs').insert({
+          organization_id,
+          user_id,
+          action: 'call_analysis_created',
+          resource_type: 'call_analyses',
+          resource_id: callId,
+          metadata: { file_name: audio.name, model: usedModel },
+        });
+
+        await supabaseAdmin.from('usage_logs').insert({
+          organization_id,
+          user_id,
+          action: 'call_analyzed',
+          call_analysis_id: callId,
+          metadata: { duration_sec: durationSec, file_size_bytes: originalBuffer.length },
+        });
+
+        if (insertErr) {
+          console.error('Supabase insert error:', insertErr);
+        }
+      }
+    }
+
+    return NextResponse.json({ ...normalized, audioUrl });
   } catch (e: any) {
     console.error('Transcribe API error:', e);
+    if (supabaseAdmin) {
+      const { organization_id, user_id } = await getDefaultOrgAndUser();
+      if (organization_id && user_id) {
+        await supabaseAdmin.from('audit_logs').insert({
+          organization_id,
+          user_id,
+          action: 'call_analysis_error',
+          resource_type: 'call_analyses',
+          metadata: { message: e?.message, stack: e?.stack },
+        });
+      }
+    }
     return NextResponse.json({
       error: e?.message || 'Unexpected error',
       stack: process.env.NODE_ENV !== 'production' ? e?.stack : undefined,

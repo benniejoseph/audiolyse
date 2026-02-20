@@ -6,3 +6,6 @@ dist
 coverage
 
 
+.env*.local
+supabase/
+supabase_schema.sql
